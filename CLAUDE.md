@@ -84,6 +84,14 @@ frontend/src/
 - All routes are under the `/api` global prefix.
 - **All routes are JWT-protected by default** (global `JwtAuthGuard`). Use `@Public()` to opt out.
 
+### External Services (`services/`)
+
+- External service integrations (email, SMS, etc.) live in `backend/src/services/`, one module per service.
+- Each service gets its own folder: `services/mail/`, `services/sms/`, etc. — containing `module`, `service`, and `types` files.
+- `services/index.ts` is a barrel that re-exports all service modules, services, and types.
+- Service modules are **not globally registered** — consumers import only the modules they need (e.g., `imports: [MailModule]`).
+- **MailService** (`services/mail/`) uses Nodemailer with SMTP config from env vars (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`).
+
 ### DTOs & Validation
 
 - Validation uses **Zod schemas from `@base-dashboard/shared`** with `ZodValidationPipe` applied per-param (e.g., `@Body(new ZodValidationPipe(schema))`).
