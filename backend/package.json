@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@base-dashboard/shared": "workspace:*",
+    "@google-cloud/storage": "^7.19.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
@@ -22,7 +23,9 @@
     "@nestjs/mongoose": "^11.0.0",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/serve-static": "^5.0.5",
     "bcrypt": "^6.0.0",
+    "firebase-admin": "^13.8.0",
     "mongoose": "^8.0.0",
     "nodemailer": "^8.0.5",
     "passport": "^0.7.0",
