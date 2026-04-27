@@ -15,10 +15,9 @@ export async function updateProfileApi(
 export async function changePasswordApi(
   currentPassword: string,
   newPassword: string,
-): Promise<{ message: string }> {
-  const res = await authFetch("/api/users/me/password", {
+): Promise<void> {
+  await authFetch("/api/users/me/password", {
     method: "PATCH",
     body: JSON.stringify({ currentPassword, newPassword }),
   })
-  return res.json()
 }

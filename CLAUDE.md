@@ -61,6 +61,15 @@ pnpm monorepo with three packages: `backend` (NestJS 11 + Mongoose), `frontend` 
 - **No manual `useState`/`useEffect` for fetching.** Use `useQuery` for reads and `useMutation` for writes. Invalidate queries on mutation success via `queryClient.invalidateQueries()`.
 - Use `placeholderData: keepPreviousData` for paginated queries to avoid flash on page change.
 
+### API Response Conventions
+
+- **No response envelope.** Endpoints return the typed resource directly — `User`, `AuthResponse`, `PaginatedResponse<T>`, etc. Do not wrap responses in `{ data: T }`.
+- **Action-only endpoints return 204 No Content** — logout, forgot-password, reset-password, change-password, delete. Use `@HttpCode(HttpStatus.NO_CONTENT)` on the controller and `Promise<void>` return type. Frontend API functions return `Promise<void>` and skip `res.json()`.
+- **Error responses follow `ApiErrorResponse`** from `@base-dashboard/shared`: `{ statusCode, message, errors? }`. The global `HttpExceptionFilter` handles this automatically.
+- **Frontend uses `ApiError` class** (`lib/api-error.ts`) — thrown by `authFetch`/`publicFetch`. Extends `Error` so it works with React Query's `onError`. Provides `statusCode`, `errors`, and helpers like `isValidation`, `isUnauthorized`, `isNotFound`.
+- **All controller methods must have explicit return types** — `Promise<User>`, `Promise<AuthResponse>`, `Promise<PaginatedResponse<T>>`, or `Promise<void>`.
+- **React Query skips retries for client errors** (4xx) — only retries server errors and network failures.
+
 ### Pagination
 
 - **Server-side pagination** for all list endpoints. Never fetch all records at once.
@@ -153,11 +162,47 @@ frontend/src/
 
 - Use NestJS built-in exceptions: `ConflictException`, `UnauthorizedException`, `NotFoundException`, `BadRequestException`, etc.
 - Never return raw error objects. Let the exception filter format them.
+- A global `HttpExceptionFilter` (`common/filters/http-exception.filter.ts`) normalizes all errors into the `ApiErrorResponse` shape from `@base-dashboard/shared`: `{ statusCode, message, errors? }`. The `errors` array is preserved from `ZodValidationPipe` validation failures.
 
 ### Environment Variables
 
 - Access via `ConfigService` — use `getOrThrow()` for required variables, `get()` only for optional ones.
 - All env vars documented in `.env.example`.
+
+### Testing
+
+- **Framework:** Jest + `@nestjs/testing` + `ts-jest`. Config in `backend/jest.config.ts`.
+- **Run tests:** `pnpm test` (single run), `pnpm test:watch` (watch mode), `pnpm test:cov` (coverage).
+- **File placement:** Colocate test files next to source — `auth.service.spec.ts` alongside `auth.service.ts`. No separate `test/` directory inside `src/`.
+- **Naming:** `*.spec.ts` for unit tests. Use `describe` blocks matching the class/function name, nested `describe` blocks per method.
+- **Unit tests only** (no E2E for now). Test services, guards, pipes, and filters in isolation.
+- **When building a new feature, always write unit tests** for the service layer. Guards, pipes, and filters should also be tested if custom logic is added.
+
+#### Mocking Pattern
+
+- Use `@nestjs/testing` `Test.createTestingModule()` to build the test module.
+- **Mock dependencies as plain objects with `jest.fn()` methods**, then provide them with `{ provide: ServiceClass, useValue: mockObject }`. Do NOT use `jest.Mocked<Partial<T>>` for typing — it causes TS errors with complex NestJS types.
+- Call `jest.clearAllMocks()` in `beforeEach` to reset state between tests.
+- For `bcrypt` and other native modules, use `jest.mock('bcrypt')` at the top of the file and cast to `jest.Mocked<typeof bcrypt>`.
+- For Mongoose models, provide `{ provide: getModelToken(Entity.name), useValue: mockModel }` where `mockModel` is a plain object with `jest.fn()` methods like `create`, `find`, `findOne`, `findById`, `findByIdAndUpdate`, `findByIdAndDelete`, `countDocuments`, `exists`.
+- For Mongoose query chains (`.find().skip().limit()`), mock as chainable objects: `{ skip: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue(data) }`.
+- For Mongoose select chains (`.findOne().select('+field')`), mock as: `{ select: jest.fn().mockResolvedValue(data) }`.
+
+#### What to Test
+
+- **Services:** All public methods — happy path, error cases, edge cases (e.g., first user gets admin role, cooldown logic).
+- **Guards:** Role checking, missing roles metadata, multiple allowed roles.
+- **Pipes:** Valid input passes through, invalid input throws `BadRequestException` with structured errors, non-body/query metadata types pass through unchanged.
+- **Filters:** HttpException handling (string and object responses), non-HttpException → 500, validation errors array preservation.
+- **Do NOT test controllers directly** — they are thin wrappers. Controller logic gets covered by service tests + future E2E tests.
+
+#### Reference Test Files
+
+- **Service with DI mocks:** `auth/auth.service.spec.ts` — mocking UsersService, JwtService, ConfigService, MailService, bcrypt.
+- **Service with Mongoose model:** `users/users.service.spec.ts` — mocking Model methods and query chains.
+- **Guard:** `auth/guards/roles.guard.spec.ts` — mocking Reflector and ExecutionContext.
+- **Pipe:** `common/pipes/zod-validation.pipe.spec.ts` — testing with a real Zod schema.
+- **Filter:** `common/filters/http-exception.filter.spec.ts` — mocking ArgumentsHost and Response.
 
 ## General
 

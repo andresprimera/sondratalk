@@ -11,6 +11,8 @@ import {
   NotFoundException,
   ConflictException,
   UnauthorizedException,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from './users.service';
@@ -45,7 +47,7 @@ export class UsersController {
   // --- Current user endpoints (all authenticated users) ---
 
   @Get('me')
-  async getMe(@CurrentUser('userId') userId: string) {
+  async getMe(@CurrentUser('userId') userId: string): Promise<User> {
     const user = await this.usersService.findById(userId);
     if (!user) {
       throw new NotFoundException('User not found');
@@ -62,7 +64,7 @@ export class UsersController {
   async updateProfile(
     @CurrentUser('userId') userId: string,
     @Body(new ZodValidationPipe(updateProfileSchema)) dto: UpdateProfileInput,
-  ) {
+  ): Promise<User> {
     const existingUser = await this.usersService.findByEmail(dto.email);
     if (existingUser && existingUser.id !== userId) {
       throw new ConflictException('Email already in use');
@@ -80,10 +82,11 @@ export class UsersController {
   }
 
   @Patch('me/password')
+  @HttpCode(HttpStatus.NO_CONTENT)
   async changePassword(
     @CurrentUser('userId') userId: string,
     @Body(new ZodValidationPipe(changePasswordSchema)) dto: ChangePasswordInput,
-  ) {
+  ): Promise<void> {
     const user = await this.usersService.findByIdWithPassword(userId);
     if (!user) {
       throw new NotFoundException('User not found');
@@ -97,7 +100,6 @@ export class UsersController {
     }
     const hashedPassword = await bcrypt.hash(dto.newPassword, 12);
     await this.usersService.updatePassword(userId, hashedPassword);
-    return { message: 'Password changed successfully' };
   }
 
   // --- Admin-only endpoints ---
@@ -136,7 +138,7 @@ export class UsersController {
     @Param('id') id: string,
     @Body(new ZodValidationPipe(updateUserRoleSchema)) dto: UpdateUserRoleInput,
     @CurrentUser('userId') currentUserId: string,
-  ) {
+  ): Promise<User> {
     if (id === currentUserId) {
       throw new ForbiddenException('Cannot change your own role');
     }
@@ -144,20 +146,25 @@ export class UsersController {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    return { id: user.id, email: user.email, name: user.name, role: user.role };
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role as Role,
+    };
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles('admin')
+  @HttpCode(HttpStatus.NO_CONTENT)
   async deleteUser(
     @Param('id') id: string,
     @CurrentUser('userId') currentUserId: string,
-  ) {
+  ): Promise<void> {
     if (id === currentUserId) {
       throw new ForbiddenException('Cannot delete your own account');
     }
     await this.usersService.deleteUser(id);
-    return { success: true };
   }
 }

@@ -1,4 +1,5 @@
-import { type AuthResponse } from "@base-dashboard/shared"
+import { type AuthResponse, type ApiErrorResponse } from "@base-dashboard/shared"
+import { ApiError } from "@/lib/api-error"
 
 const TOKEN_KEYS = {
   access: "accessToken",
@@ -23,6 +24,16 @@ export function storeTokens(accessToken: string, refreshToken: string): void {
 export function clearTokens(): void {
   localStorage.removeItem(TOKEN_KEYS.access)
   localStorage.removeItem(TOKEN_KEYS.refresh)
+}
+
+// --- Error handling ---
+
+async function throwApiError(res: Response): Promise<never> {
+  const body: ApiErrorResponse = await res.json().catch(() => ({
+    statusCode: res.status,
+    message: res.statusText || "Request failed",
+  }))
+  throw new ApiError(body.statusCode, body.message, body.errors)
 }
 
 // --- Refresh queue ---
@@ -76,8 +87,7 @@ export async function publicFetch(
     },
   })
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.message || "Request failed")
+    await throwApiError(res)
   }
   return res
 }
@@ -105,8 +115,7 @@ export async function authFetch(
       const { accessToken: newToken } = await refreshTokens()
       const retryRes = await makeRequest(newToken)
       if (!retryRes.ok) {
-        const body = await retryRes.json().catch(() => ({}))
-        throw new Error(body.message || "Request failed")
+        await throwApiError(retryRes)
       }
       return retryRes
     } catch {
@@ -117,8 +126,7 @@ export async function authFetch(
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.message || "Request failed")
+    await throwApiError(res)
   }
 
   return res

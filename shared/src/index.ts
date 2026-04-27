@@ -25,3 +25,10 @@ export {
   type PaginationMeta,
   type PaginatedResponse,
 } from "./schemas/pagination";
+
+export {
+  fieldErrorSchema,
+  type FieldError,
+  apiErrorResponseSchema,
+  type ApiErrorResponse,
+} from "./schemas/api";
