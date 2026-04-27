@@ -47,6 +47,10 @@ export class UsersService {
     await this.userModel.findByIdAndDelete(userId);
   }
 
+  async findByEmailExists(email: string): Promise<boolean> {
+    return this.userModel.exists({ email }).then((result) => result !== null);
+  }
+
   async findByEmail(email: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ email }).select('+password');
   }

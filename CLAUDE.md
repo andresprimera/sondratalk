@@ -18,6 +18,7 @@ pnpm monorepo with three packages: `backend` (NestJS 11 + Mongoose), `frontend` 
 
 - **Use shadcn/ui for everything.** Only build custom components when shadcn has no equivalent.
 - **Do not customize shadcn component styles** unless absolutely necessary. Use the built-in variants and sizes. Override via `className` prop with Tailwind utilities only when the variant system doesn't cover the case.
+- **Search before creating.** Before building any new component, search `components/` for an existing one that already does what you need. Prefer modifying or extending an existing component over creating a new one. Only create a new component when nothing existing can reasonably be adapted.
 - **Prefer shared/reusable components** over single-use ones. If a component is used in more than one place (or could be), extract it. If it's truly page-specific, keep it in the page file or a colocated file.
 - **Do not modify files in `components/ui/`.** These are shadcn-managed. Customizations go in wrapper components or via `className`.
 - **Pattern-first design:** Before building any new UI (page, form, modal, CRUD screen, etc.), read existing similar components to match their structure, spacing, and component choices. Reference examples:
