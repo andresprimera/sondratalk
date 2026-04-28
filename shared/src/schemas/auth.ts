@@ -16,6 +16,15 @@ export const signupSchema = z.object({
 
 export type SignupInput = z.infer<typeof signupSchema>;
 
+export const createUserSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.email("Please enter a valid email"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  role: roleEnum,
+});
+
+export type CreateUserInput = z.infer<typeof createUserSchema>;
+
 export const authResponseSchema = z.object({
   accessToken: z.string(),
   refreshToken: z.string(),

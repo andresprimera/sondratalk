@@ -63,6 +63,13 @@ The shared package is the **single source of truth** for all data shapes that cr
 - Use CVA (`class-variance-authority`) for component variants.
 - Use CSS variables from the theme system (defined in `index.css`) — never hardcode colors.
 
+### Dialogs & Confirmations
+
+- **Use shadcn `AlertDialog`** for destructive confirmations (delete, remove). Never use `window.confirm()`.
+- **Use shadcn `Dialog`** for forms or content that appears in an overlay.
+- **Toast (`sonner`) for feedback** — success/error messages after actions. Not for confirmations.
+- **Never install a separate modal/dialog library** — shadcn covers all cases.
+
 ### Forms
 
 - **All forms use Zod v4 + react-hook-form.** No exceptions.
@@ -107,6 +114,9 @@ Error handling goes beyond forms. Every page or component that fetches data must
 - **No axios.** Plain `fetch` via the `authFetch` / `publicFetch` wrappers from `@/lib/api`.
 - **No manual `useState`/`useEffect` for fetching.** Use `useQuery` for reads and `useMutation` for writes. Invalidate queries on mutation success via `queryClient.invalidateQueries()`.
 - Use `placeholderData: keepPreviousData` for paginated queries to avoid flash on page change.
+- **Query keys are arrays** — resource name first, then params: `["users", page, pageSize]`, `["users", userId]`. Never use plain strings.
+- **Invalidation uses broad matching** — `queryClient.invalidateQueries({ queryKey: ["users"] })` invalidates all queries starting with `"users"` regardless of params.
+- **Key naming matches the API resource** — `"users"` for `/api/users`, `"projects"` for `/api/projects`. No prefixes, no camelCase variations.
 
 ### API Response Conventions
 
@@ -316,6 +326,13 @@ Services contain business logic. Method names describe the **data operation**:
 - **Sensitive data:** Passwords and refresh tokens use `select: false` on Mongoose schemas. Never return these fields in API responses — use `findById()` (not `findByIdWithPassword()`) for normal reads.
 - **Secrets:** Never hardcode secrets. All sensitive config comes from env vars via `ConfigService.getOrThrow()`.
 
+### Logging
+
+- Use the **NestJS `Logger`** class — never `console.log`, `console.error`, or `console.warn`.
+- Each service creates its own logger instance: `private readonly logger = new Logger(ClassName.name)`.
+- Use `this.logger.log()` for info-level events and `this.logger.error()` for errors.
+- Log meaningful events (service startup, external API calls, seeding) — not routine CRUD operations.
+
 ### Environment Variables
 
 - Access via `ConfigService` — use `getOrThrow()` for required variables, `get()` only for optional ones.
@@ -362,4 +379,16 @@ Services contain business logic. Method names describe the **data operation**:
 - **Dev command:** `pnpm dev` at root runs both backend and frontend in parallel.
 - **Build check:** Run `pnpm run build` in both packages before considering work complete.
 - **No commented-out code.** Delete it; git has history.
-- **No `console.log` in committed code.** Use proper error handling or logging.
+- **No `console.log` in committed code.** Use proper error handling or logging (NestJS `Logger` on backend).
+
+### Date & Time
+
+- **Use native `Date` and `Intl` APIs.** No date-fns, dayjs, or moment — the project doesn't use them and shouldn't add them unless a complex need arises (recurring schedules, timezone math, etc.).
+- **Locale-aware formatting:** Use `toLocaleDateString(i18n.language)` on the frontend, never hardcoded `"en-US"`.
+- **Duration strings on backend:** Use the `ms` library's `StringValue` type for config values like JWT expirations (`"15m"`, `"7d"`).
+
+### Dependencies
+
+- **Check before adding.** Before installing a new package, verify that the functionality isn't already covered by an existing dependency or native API. Common traps: adding `axios` (use `fetch`), `lodash` (use native array/object methods), `uuid` (use `crypto.randomUUID()`), date libraries (use native `Date`/`Intl`).
+- **Prefer what's already installed.** The project uses shadcn/ui, lucide-react, sonner, recharts, @dnd-kit, react-hook-form, and TanStack React Query. Use these before reaching for alternatives.
+- **No duplicate-purpose packages.** If a library already solves a problem, don't add a second one that does the same thing.

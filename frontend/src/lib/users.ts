@@ -1,4 +1,8 @@
-import { type User, type PaginatedResponse } from "@base-dashboard/shared"
+import {
+  type User,
+  type PaginatedResponse,
+  type CreateUserInput,
+} from "@base-dashboard/shared"
 import { authFetch } from "@/lib/api"
 
 export async function fetchUsersApi(
@@ -26,4 +30,12 @@ export async function updateUserRoleApi(
 
 export async function removeUserApi(userId: string): Promise<void> {
   await authFetch(`/api/users/${userId}`, { method: "DELETE" })
+}
+
+export async function createUserApi(data: CreateUserInput): Promise<User> {
+  const res = await authFetch("/api/users", {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+  return res.json()
 }

@@ -1,4 +1,4 @@
-import { fetchUsersApi, updateUserRoleApi, removeUserApi } from "@/lib/users"
+import { fetchUsersApi, updateUserRoleApi, removeUserApi, createUserApi } from "@/lib/users"
 import { authFetch } from "@/lib/api"
 
 vi.mock("@/lib/api", () => ({
@@ -49,6 +49,22 @@ describe("users API", () => {
       expect(authFetch).toHaveBeenCalledWith("/api/users/u1", {
         method: "DELETE",
       })
+    })
+  })
+
+  describe("createUserApi", () => {
+    it("should POST /api/users with user data", async () => {
+      const user = { id: "u2", name: "New User", email: "new@test.com", role: "user" }
+      vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(user))
+
+      const data = { name: "New User", email: "new@test.com", password: "password123", role: "user" as const }
+      const result = await createUserApi(data)
+
+      expect(authFetch).toHaveBeenCalledWith("/api/users", {
+        method: "POST",
+        body: JSON.stringify(data),
+      })
+      expect(result).toEqual(user)
     })
   })
 })

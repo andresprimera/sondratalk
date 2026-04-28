@@ -13,7 +13,7 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { useForm } from "react-hook-form"
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema"
 import { z } from "zod/v4"
@@ -102,9 +102,8 @@ export function ResetPasswordForm({
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="password">{t("New Password")}</FieldLabel>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 {...register("password")}
               />
               {errors.password && (
@@ -117,9 +116,8 @@ export function ResetPasswordForm({
               <FieldLabel htmlFor="confirm-password">
                 {t("Confirm Password")}
               </FieldLabel>
-              <Input
+              <PasswordInput
                 id="confirm-password"
-                type="password"
                 {...register("confirmPassword")}
               />
               {errors.confirmPassword && (

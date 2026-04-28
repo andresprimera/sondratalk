@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { AddUserDialog } from "@/components/add-user-dialog"
 import { useTranslation } from "react-i18next"
 import {
   useQuery,
@@ -35,6 +36,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronsRightIcon,
+  PlusIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -44,6 +46,7 @@ export default function UsersPage() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["users", page, pageSize],
@@ -96,11 +99,17 @@ export default function UsersPage() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">{t("Users")}</h2>
-          <p className="text-muted-foreground">
-            {t("Manage user accounts and roles.")}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">{t("Users")}</h2>
+            <p className="text-muted-foreground">
+              {t("Manage user accounts and roles.")}
+            </p>
+          </div>
+          <Button onClick={() => setAddDialogOpen(true)}>
+            <PlusIcon className="size-4" />
+            {t("Add User")}
+          </Button>
         </div>
         <div className="rounded-lg border">
           <Table>
@@ -141,11 +150,17 @@ export default function UsersPage() {
   if (isError) {
     return (
       <div className="space-y-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">{t("Users")}</h2>
-          <p className="text-muted-foreground">
-            {t("Manage user accounts and roles.")}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">{t("Users")}</h2>
+            <p className="text-muted-foreground">
+              {t("Manage user accounts and roles.")}
+            </p>
+          </div>
+          <Button onClick={() => setAddDialogOpen(true)}>
+            <PlusIcon className="size-4" />
+            {t("Add User")}
+          </Button>
         </div>
         <div className="flex flex-col items-center justify-center gap-4 py-12">
           <AlertCircleIcon className="size-10 text-destructive" />
@@ -162,11 +177,17 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">{t("Users")}</h2>
-        <p className="text-muted-foreground">
-          {t("Manage user accounts and roles.")}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">{t("Users")}</h2>
+          <p className="text-muted-foreground">
+            {t("Manage user accounts and roles.")}
+          </p>
+        </div>
+        <Button onClick={() => setAddDialogOpen(true)}>
+          <PlusIcon className="size-4" />
+          {t("Add User")}
+        </Button>
       </div>
       <div className="rounded-lg border">
         <Table>
@@ -304,6 +325,7 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+      <AddUserDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
     </div>
   )
 }

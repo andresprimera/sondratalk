@@ -14,6 +14,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { useForm } from "react-hook-form"
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema"
 import { signupSchema } from "@base-dashboard/shared"
@@ -99,9 +100,8 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             </Field>
             <Field>
               <FieldLabel htmlFor="password">{t("Password")}</FieldLabel>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 {...register("password")}
               />
               {errors.password && (
@@ -114,9 +114,8 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
               <FieldLabel htmlFor="confirm-password">
                 {t("Confirm Password")}
               </FieldLabel>
-              <Input
+              <PasswordInput
                 id="confirm-password"
-                type="password"
                 {...register("confirmPassword")}
               />
               {errors.confirmPassword && (

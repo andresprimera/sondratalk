@@ -12,7 +12,7 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { useTranslation } from "react-i18next"
 import { useForm } from "react-hook-form"
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema"
@@ -76,9 +76,8 @@ export function ChangePasswordForm() {
               <FieldLabel htmlFor="currentPassword">
                 {t("Current Password")}
               </FieldLabel>
-              <Input
+              <PasswordInput
                 id="currentPassword"
-                type="password"
                 {...register("currentPassword")}
               />
               {errors.currentPassword && (
@@ -89,9 +88,8 @@ export function ChangePasswordForm() {
             </Field>
             <Field>
               <FieldLabel htmlFor="newPassword">{t("New Password")}</FieldLabel>
-              <Input
+              <PasswordInput
                 id="newPassword"
-                type="password"
                 {...register("newPassword")}
               />
               {errors.newPassword && (
@@ -104,9 +102,8 @@ export function ChangePasswordForm() {
               <FieldLabel htmlFor="confirmPassword">
                 {t("Confirm New Password")}
               </FieldLabel>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 {...register("confirmPassword")}
               />
               {errors.confirmPassword && (

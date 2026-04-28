@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Delete,
   Param,
@@ -39,6 +40,10 @@ import {
   changePasswordSchema,
   type ChangePasswordInput,
 } from './dto/change-password.dto';
+import {
+  createUserSchema,
+  type CreateUserInput,
+} from './dto/create-user.dto';
 
 @Controller('users')
 export class UsersController {
@@ -103,6 +108,29 @@ export class UsersController {
   }
 
   // --- Admin-only endpoints ---
+
+  @Post()
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async create(
+    @Body(new ZodValidationPipe(createUserSchema)) dto: CreateUserInput,
+  ): Promise<User> {
+    const existingUser = await this.usersService.findByEmailExists(dto.email);
+    if (existingUser) {
+      throw new ConflictException('Email already in use');
+    }
+    const hashedPassword = await bcrypt.hash(dto.password, 12);
+    const user = await this.usersService.create({
+      ...dto,
+      password: hashedPassword,
+    });
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role as Role,
+    };
+  }
 
   @Get()
   @UseGuards(RolesGuard)

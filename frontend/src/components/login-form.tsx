@@ -15,6 +15,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { useForm } from "react-hook-form"
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema"
 import { loginSchema, type LoginInput } from "@base-dashboard/shared"
@@ -88,9 +89,8 @@ export function LoginForm({
                     {t("Forgot password?")}
                   </Link>
                 </div>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   {...register("password")}
                 />
                 {errors.password && (

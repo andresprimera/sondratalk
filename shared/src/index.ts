@@ -15,6 +15,8 @@ export {
   type UpdateProfileInput,
   changePasswordSchema,
   type ChangePasswordInput,
+  createUserSchema,
+  type CreateUserInput,
 } from "./schemas/auth";
 
 export { userSchema, roleEnum, type User, type Role } from "./schemas/user";
