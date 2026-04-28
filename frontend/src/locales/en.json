@@ -1,5 +1,5 @@
 {
-  "Loading...": "Loading...",
+  "Try again": "Try again",
   "Save Changes": "Save Changes",
   "Saving...": "Saving...",
   "Delete": "Delete",
@@ -123,7 +123,7 @@
   "Showing total visitors for the last 6 months. This is just some random text to test the layout. It spans multiple lines and should wrap around.": "Showing total visitors for the last 6 months. This is just some random text to test the layout. It spans multiple lines and should wrap around.",
 
   "Manage user accounts and roles.": "Manage user accounts and roles.",
-  "Loading users...": "Loading users...",
+  "Failed to load users.": "Failed to load users.",
   "Name": "Name",
   "Role": "Role",
   "Actions": "Actions",

@@ -27,7 +27,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
+  AlertCircleIcon,
   TrashIcon,
   ChevronsLeftIcon,
   ChevronLeftIcon,
@@ -43,7 +45,7 @@ export default function UsersPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["users", page, pageSize],
     queryFn: () => fetchUsersApi(page, pageSize),
     placeholderData: keepPreviousData,
@@ -93,8 +95,67 @@ export default function UsersPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">{t("Loading users...")}</p>
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">{t("Users")}</h2>
+          <p className="text-muted-foreground">
+            {t("Manage user accounts and roles.")}
+          </p>
+        </div>
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("Name")}</TableHead>
+                <TableHead>{t("Email")}</TableHead>
+                <TableHead>{t("Role")}</TableHead>
+                <TableHead className="w-25">{t("Actions")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: pageSize > 5 ? 5 : pageSize }).map(
+                (_, i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <Skeleton className="h-4 w-24" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-40" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-8 w-20" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="size-8" />
+                    </TableCell>
+                  </TableRow>
+                ),
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">{t("Users")}</h2>
+          <p className="text-muted-foreground">
+            {t("Manage user accounts and roles.")}
+          </p>
+        </div>
+        <div className="flex flex-col items-center justify-center gap-4 py-12">
+          <AlertCircleIcon className="size-10 text-destructive" />
+          <p className="text-muted-foreground">
+            {error.message || t("Failed to load users.")}
+          </p>
+          <Button variant="outline" onClick={() => refetch()}>
+            {t("Try again")}
+          </Button>
+        </div>
       </div>
     )
   }

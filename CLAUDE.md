@@ -4,6 +4,33 @@
 
 pnpm monorepo with three packages: `backend` (NestJS 11 + Mongoose), `frontend` (Vite + React 19 + React Router v7), and `shared` (`@base-dashboard/shared` — Zod schemas and types). All entity/API types are defined in `shared/` and imported by both backend and frontend. Never duplicate types across packages. The shared package has no build step — it exports raw TS via `"main": "src/index.ts"`.
 
+## Shared Package (`@base-dashboard/shared`)
+
+The shared package is the **single source of truth** for all data shapes that cross the network boundary. It contains Zod schemas and their inferred TypeScript types — nothing else.
+
+### What belongs in `shared/`
+
+- **Entity schemas and types** — the shape of data as returned by the API (e.g., `userSchema` / `User`, `roleEnum` / `Role`).
+- **Request input schemas and types** — validated request bodies and query params (e.g., `loginSchema` / `LoginInput`, `paginationQuerySchema` / `PaginationQuery`).
+- **Response schemas and types** — structured response shapes used by both sides (e.g., `authResponseSchema` / `AuthResponse`, `apiErrorResponseSchema` / `ApiErrorResponse`).
+- **Shared generic types** — reusable type utilities that apply to both packages (e.g., `PaginatedResponse<T>`, `PaginationMeta`).
+
+### What does NOT belong in `shared/`
+
+- **Mongoose schemas, decorators, or anything NestJS-specific** — these stay in `backend/`. Shared types describe the API contract, not the database layer.
+- **React components, hooks, or UI types** — these stay in `frontend/`.
+- **Utility functions with runtime logic** — no helpers, formatters, or business logic. If both packages need a utility, evaluate whether it truly belongs in both or if it's incidental duplication.
+- **Constants or enums that only one side uses** — if only the backend cares about a config value or only the frontend uses a set of UI states, keep it in that package.
+- **Environment-specific config** — env var names, default values, feature flags.
+
+### Rules
+
+- Every schema file lives in `shared/src/schemas/` and is re-exported from `shared/src/index.ts`.
+- Every schema uses **Zod v4** (`import { z } from "zod/v4"`) and exports both the schema and its inferred type (`z.infer<typeof schema>`).
+- Backend DTO files (`backend/src/<feature>/dto/`) **re-export** from shared — they never redefine the same schema.
+- Frontend imports directly from `@base-dashboard/shared` in `lib/` and `hooks/` files.
+- When adding a new feature, define the schemas and types in shared **first**, then build the backend and frontend against them.
+
 ## TypeScript — Zero Tolerance
 
 - **No `any` types.** No exceptions. If a library returns `any`, wrap it with a proper type.
@@ -13,6 +40,8 @@ pnpm monorepo with three packages: `backend` (NestJS 11 + Mongoose), `frontend` 
 - Explicit return types on all service methods (backend) and API functions (frontend).
 
 ## Frontend
+
+**This is a Vite + React SPA, not Next.js.** Never add `"use client"` or `"use server"` directives — they do nothing here and are a sign of framework confusion.
 
 ### Components
 
@@ -53,6 +82,24 @@ pnpm monorepo with three packages: `backend` (NestJS 11 + Mongoose), `frontend` 
 - `@Public()` decorator on backend marks endpoints that skip JWT guard.
 - `@Roles('admin')` + `@UseGuards(RolesGuard)` on backend for role-restricted endpoints.
 
+### Error Handling & Loading States
+
+Error handling goes beyond forms. Every page or component that fetches data must handle all three states:
+
+- **Loading:** Show the shadcn `Skeleton` component (from `ui/skeleton.tsx`) matching the shape of the expected content — not bare "Loading..." text. For tables, render skeleton rows. For cards, render skeleton blocks.
+- **Error:** Check `isError` / `error` from `useQuery`. Display an inline error message with a retry button (`refetch` from `useQuery`). Use `toast.error()` only for mutation failures, not for query errors (the user didn't trigger those).
+- **Empty:** When data loads successfully but the list is empty, show a descriptive empty state — not just a blank area. A centered message inside the table/container (see `pages/users.tsx` "No users found." pattern, but prefer adding an icon + description for new pages).
+- **No React error boundaries** for now — handle errors per-query at the component level.
+- **Mutations** use `onError` to show `toast.error()` with the error message. Use `ApiError` helpers (`isValidation`, `isNotFound`, etc.) when the error message should vary by status code.
+
+### State Management
+
+- **Server state → React Query.** All data from the API lives in the query cache. No duplicating server data into local state.
+- **Auth state → `AuthContext`** via `useAuth()`. This is the only app-wide context. Do not add new React Contexts without strong justification — most "global" state is actually server state that belongs in React Query.
+- **Local UI state → `useState`** in the component that owns it. Pagination controls, form input, modal open/closed, selected tabs — these are local to the component.
+- **No state management libraries** (no zustand, redux, jotai). React Query + Context + local state covers all current needs. Do not add a state library unless a clear use case arises that none of these solve.
+- **Derived state → compute inline or `useMemo`.** Don't store derived values in state. If it can be computed from existing state or query data, compute it.
+
 ### Data Fetching
 
 - Use **TanStack React Query** for server state (queries, mutations, caching).
@@ -87,6 +134,7 @@ pnpm monorepo with three packages: `backend` (NestJS 11 + Mongoose), `frontend` 
 - **Authenticated endpoints** use `authFetch` — tokens are auto-attached and 401s trigger a silent refresh + retry. API functions should **never** accept an access token parameter.
 - **Public endpoints** (login, signup, forgot-password) use `publicFetch`.
 - When adding a new feature, create a new `src/lib/<feature>.ts` file rather than adding functions to an existing file.
+- **Naming mirrors backend conventions:** API functions use `<verb><Resource>Api()` — same verbs as backend (`fetch` for reads, `create`, `update`, `remove`) with an `Api` suffix. E.g., `fetchUsersApi()`, `createProjectApi()`, `updateUserRoleApi()`, `removeUserApi()`.
 
 ### File Organization
 
@@ -257,6 +305,16 @@ Services contain business logic. Method names describe the **data operation**:
 - Use NestJS built-in exceptions: `ConflictException`, `UnauthorizedException`, `NotFoundException`, `BadRequestException`, etc.
 - Never return raw error objects. Let the exception filter format them.
 - A global `HttpExceptionFilter` (`common/filters/http-exception.filter.ts`) normalizes all errors into the `ApiErrorResponse` shape from `@base-dashboard/shared`: `{ statusCode, message, errors? }`. The `errors` array is preserved from `ZodValidationPipe` validation failures.
+
+### Security
+
+- **Authentication:** Global `JwtAuthGuard` protects all routes by default. Use `@Public()` to opt out for public endpoints.
+- **Authorization:** `@Roles('admin')` + `@UseGuards(RolesGuard)` for role-restricted endpoints.
+- **CORS:** Enabled via `app.enableCors()` in `main.ts`. For production, configure `origin` to restrict allowed domains — never ship wide-open CORS.
+- **Input validation:** All request bodies and query params validated via `ZodValidationPipe` with schemas from `shared/`. This is the primary defense against malformed input — no additional sanitization layer needed for fields Zod validates.
+- **No rate limiting or helmet yet.** When adding them: use `@nestjs/throttler` for rate limiting (apply globally via `ThrottlerGuard`, exempt health checks with `@SkipThrottle()`), and `helmet` middleware in `main.ts` for security headers.
+- **Sensitive data:** Passwords and refresh tokens use `select: false` on Mongoose schemas. Never return these fields in API responses — use `findById()` (not `findByIdWithPassword()`) for normal reads.
+- **Secrets:** Never hardcode secrets. All sensitive config comes from env vars via `ConfigService.getOrThrow()`.
 
 ### Environment Variables
 

@@ -1,5 +1,5 @@
 {
-  "Loading...": "Cargando...",
+  "Try again": "Reintentar",
   "Save Changes": "Guardar cambios",
   "Saving...": "Guardando...",
   "Delete": "Eliminar",
@@ -123,7 +123,7 @@
   "Showing total visitors for the last 6 months. This is just some random text to test the layout. It spans multiple lines and should wrap around.": "Mostrando visitantes totales de los últimos 6 meses. Este es solo un texto aleatorio para probar el diseño. Abarca múltiples líneas y debería ajustarse.",
 
   "Manage user accounts and roles.": "Gestiona las cuentas de usuario y los roles.",
-  "Loading users...": "Cargando usuarios...",
+  "Failed to load users.": "Error al cargar usuarios.",
   "Name": "Nombre",
   "Role": "Rol",
   "Actions": "Acciones",
