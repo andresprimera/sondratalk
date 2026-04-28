@@ -127,6 +127,48 @@ frontend/src/
 - **When adding new UI strings:** Add the key to both `en.json` and `es.json`, then use `t("key")` in the component.
 - **Zod validation messages stay in English** — schemas live in `shared/` and are used by backend too.
 
+### Testing
+
+- **Framework:** Vitest with jsdom environment. Config in `frontend/vitest.config.ts` (separate from `vite.config.ts` to avoid loading Tailwind plugin during tests).
+- **Run tests:** `pnpm test` (single run), `pnpm test:watch` (watch mode), `pnpm test:cov` (coverage).
+- **File placement:** Colocate test files next to source — `api-error.spec.ts` alongside `api-error.ts`.
+- **Naming:** `*.spec.ts` (or `*.spec.tsx` for React). Use `describe` blocks per export, nested `describe` per method/getter.
+- **Globals enabled:** `describe`, `it`, `expect`, `vi`, `beforeEach` are available without imports (configured in `vitest.config.ts` and `tsconfig.app.json`).
+- **When building a new feature, always write unit tests** for the API functions in `src/lib/<feature>.ts`, any custom hooks with logic, and form/component behavior that involves conditional rendering or user interaction.
+
+#### Mocking Patterns
+
+- **Mocking `fetch`:** Use `vi.stubGlobal("fetch", vi.fn())` + `vi.mocked(fetch)` to control responses. No msw or nock.
+- **Mocking modules:** For feature API files (`auth.ts`, `users.ts`, `profile.ts`), mock the `@/lib/api` module with `vi.mock("@/lib/api")` and use `vi.mocked(authFetch)` / `vi.mocked(publicFetch)` to control behavior. This tests the API function logic without testing the fetch wrapper.
+- **Module-scoped state:** `api.ts` has a module-scoped `refreshPromise`. Tests use `vi.resetModules()` + dynamic `await import("@/lib/api")` in `beforeEach` to get a fresh module instance per test. This means the `api` variable must be `let` (not a static import).
+- **`instanceof` caveat:** When using `vi.resetModules()`, classes from static imports differ from those in the dynamically imported module. Check `error.name === "ApiError"` and properties instead of `toBeInstanceOf(ApiError)`.
+- **`window.location`:** Mock with `vi.stubGlobal("location", { ...window.location, href: "" })` and assert `locationMock.href` afterward.
+- Call `vi.clearAllMocks()` in `beforeEach` for module-mocked tests, or `vi.restoreAllMocks()` in `afterEach` for global-mocked tests.
+
+#### What to Test
+
+- **API functions (`src/lib/`):** Correct URL, HTTP method, request body, and response parsing. One test per function.
+- **Fetch wrappers (`api.ts`):** Token attachment, 401 refresh+retry logic, refresh deduplication, error parsing into `ApiError`, redirect on session expiry.
+- **Utility classes (`api-error.ts`):** Constructor, getters, edge cases.
+- **Query client config:** `staleTime`, retry logic for 4xx vs 5xx vs network errors.
+- **Custom hooks with logic:** Use `renderHook` from `@testing-library/react`. Test state transitions, side effects, and returned values. Wrap in necessary providers (QueryClientProvider, AuthProvider, etc.) via a `wrapper` option. Good candidates: `useAuth` (login/logout/signup flows, token refresh scheduling), and any future hooks with derived state or async logic.
+- **Form components:** Test that validation errors display on invalid input, that successful submission calls the correct API/mutation, and that loading/error states render. Use `render` + `userEvent` from `@testing-library/user-event` to simulate real user interaction (typing, clicking). Mock API functions via `vi.mock`.
+- **Conditional rendering:** Components like `ProtectedRoute`, `AdminRoute`, or anything that shows/hides content based on auth state or roles.
+
+#### What NOT to Test
+
+- **shadcn `components/ui/`** — you don't own these.
+- **Pure layout components** (`dashboard-layout.tsx`) — they just render children, no logic.
+- **Pages that only wire data to UI** — if a page just fetches with `useQuery` and renders a table, the logic lives in the hook/service layer. Test those instead.
+- **Static markup** — don't test that a heading says "Dashboard". Test behavior, not content.
+
+#### Reference Test Files
+
+- **Pure class (no mocking):** `lib/api-error.spec.ts`
+- **Config extraction:** `lib/query-client.spec.ts` — extracts retry function from QueryClient defaults.
+- **Global fetch mocking + module reset:** `lib/api.spec.ts` — `vi.resetModules()` pattern for module-scoped state.
+- **Module mocking (vi.mock):** `lib/auth.spec.ts`, `lib/users.spec.ts`, `lib/profile.spec.ts` — mock `@/lib/api` and test API functions in isolation.
+
 ## Backend
 
 ### Module Structure
