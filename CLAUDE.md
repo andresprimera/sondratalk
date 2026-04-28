@@ -184,6 +184,7 @@ frontend/src/
 - **Date formatting:** Use `i18n.language` instead of hardcoded `"en-US"` in `toLocaleDateString()`.
 - **When adding new UI strings:** Add the key to both `en.json` and `es.json`, then use `t("key")` in the component.
 - **Zod validation messages stay in English** — schemas live in `shared/` and are used by backend too.
+- **Translate validation errors at render time:** Even though schemas keep English messages, forms must wrap `errors.<field>.message` in `t()` when rendering — e.g., `{t(errors.email.message ?? "")}`. Each English message must also exist as a key in both `en.json` and `es.json` (use the message string itself as the key, per the English-string-as-key convention). This applies to both shared schemas and any frontend-only schema extensions (e.g., `confirmPassword` refinements). See `login-form.tsx` for the pattern.
 
 ### Testing
 
