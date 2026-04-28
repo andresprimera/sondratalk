@@ -206,5 +206,15 @@
   "Cannot delete your own account": "No puedes eliminar tu propia cuenta",
   "Current password is incorrect": "La contraseña actual es incorrecta",
   "Invalid or expired reset token": "El enlace de restablecimiento es inválido o ha expirado",
-  "Internal server error": "Error interno del servidor"
+  "Internal server error": "Error interno del servidor",
+
+  "Please enter a valid email": "Por favor ingrese un correo electrónico válido",
+  "Name is required": "El nombre es obligatorio",
+  "Password is required": "La contraseña es obligatoria",
+  "Password must be at least 8 characters": "La contraseña debe tener al menos 8 caracteres",
+  "Current password is required": "La contraseña actual es obligatoria",
+  "Token is required": "El token es obligatorio",
+  "Please confirm your new password": "Por favor confirme su nueva contraseña",
+  "Passwords don't match": "Las contraseñas no coinciden",
+  "Passwords do not match": "Las contraseñas no coinciden"
 }

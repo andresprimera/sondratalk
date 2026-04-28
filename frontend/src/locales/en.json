@@ -206,5 +206,15 @@
   "Cannot delete your own account": "Cannot delete your own account",
   "Current password is incorrect": "Current password is incorrect",
   "Invalid or expired reset token": "Invalid or expired reset token",
-  "Internal server error": "Internal server error"
+  "Internal server error": "Internal server error",
+
+  "Please enter a valid email": "Please enter a valid email",
+  "Name is required": "Name is required",
+  "Password is required": "Password is required",
+  "Password must be at least 8 characters": "Password must be at least 8 characters",
+  "Current password is required": "Current password is required",
+  "Token is required": "Token is required",
+  "Please confirm your new password": "Please confirm your new password",
+  "Passwords don't match": "Passwords don't match",
+  "Passwords do not match": "Passwords do not match"
 }

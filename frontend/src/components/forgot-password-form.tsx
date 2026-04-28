@@ -99,7 +99,7 @@ export function ForgotPasswordForm({
               />
               {errors.email && (
                 <FieldDescription className="text-destructive">
-                  {errors.email.message}
+                  {t(errors.email.message ?? "")}
                 </FieldDescription>
               )}
             </Field>

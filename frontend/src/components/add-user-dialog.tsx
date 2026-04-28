@@ -115,7 +115,7 @@ export function AddUserDialog({
               />
               {errors.name && (
                 <FieldDescription className="text-destructive">
-                  {errors.name.message}
+                  {t(errors.name.message ?? "")}
                 </FieldDescription>
               )}
             </Field>
@@ -129,7 +129,7 @@ export function AddUserDialog({
               />
               {errors.email && (
                 <FieldDescription className="text-destructive">
-                  {errors.email.message}
+                  {t(errors.email.message ?? "")}
                 </FieldDescription>
               )}
             </Field>
@@ -143,7 +143,7 @@ export function AddUserDialog({
               />
               {errors.password && (
                 <FieldDescription className="text-destructive">
-                  {errors.password.message}
+                  {t(errors.password.message ?? "")}
                 </FieldDescription>
               )}
             </Field>
@@ -157,7 +157,7 @@ export function AddUserDialog({
               />
               {errors.confirmPassword && (
                 <FieldDescription className="text-destructive">
-                  {errors.confirmPassword.message}
+                  {t(errors.confirmPassword.message ?? "")}
                 </FieldDescription>
               )}
             </Field>
@@ -185,7 +185,7 @@ export function AddUserDialog({
               />
               {errors.role && (
                 <FieldDescription className="text-destructive">
-                  {errors.role.message}
+                  {t(errors.role.message ?? "")}
                 </FieldDescription>
               )}
             </Field>

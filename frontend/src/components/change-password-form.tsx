@@ -82,7 +82,7 @@ export function ChangePasswordForm() {
               />
               {errors.currentPassword && (
                 <FieldDescription className="text-destructive">
-                  {errors.currentPassword.message}
+                  {t(errors.currentPassword.message ?? "")}
                 </FieldDescription>
               )}
             </Field>
@@ -94,7 +94,7 @@ export function ChangePasswordForm() {
               />
               {errors.newPassword && (
                 <FieldDescription className="text-destructive">
-                  {errors.newPassword.message}
+                  {t(errors.newPassword.message ?? "")}
                 </FieldDescription>
               )}
             </Field>
@@ -108,7 +108,7 @@ export function ChangePasswordForm() {
               />
               {errors.confirmPassword && (
                 <FieldDescription className="text-destructive">
-                  {errors.confirmPassword.message}
+                  {t(errors.confirmPassword.message ?? "")}
                 </FieldDescription>
               )}
             </Field>

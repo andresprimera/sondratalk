@@ -75,7 +75,7 @@ export function LoginForm({
                 />
                 {errors.email && (
                   <FieldDescription className="text-destructive">
-                    {errors.email.message}
+                    {t(errors.email.message ?? "")}
                   </FieldDescription>
                 )}
               </Field>
@@ -95,7 +95,7 @@ export function LoginForm({
                 />
                 {errors.password && (
                   <FieldDescription className="text-destructive">
-                    {errors.password.message}
+                    {t(errors.password.message ?? "")}
                   </FieldDescription>
                 )}
               </Field>

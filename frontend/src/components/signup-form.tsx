@@ -80,7 +80,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
               />
               {errors.name && (
                 <FieldDescription className="text-destructive">
-                  {errors.name.message}
+                  {t(errors.name.message ?? "")}
                 </FieldDescription>
               )}
             </Field>
@@ -94,7 +94,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
               />
               {errors.email && (
                 <FieldDescription className="text-destructive">
-                  {errors.email.message}
+                  {t(errors.email.message ?? "")}
                 </FieldDescription>
               )}
             </Field>
@@ -106,7 +106,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
               />
               {errors.password && (
                 <FieldDescription className="text-destructive">
-                  {errors.password.message}
+                  {t(errors.password.message ?? "")}
                 </FieldDescription>
               )}
             </Field>
@@ -120,7 +120,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
               />
               {errors.confirmPassword && (
                 <FieldDescription className="text-destructive">
-                  {errors.confirmPassword.message}
+                  {t(errors.confirmPassword.message ?? "")}
                 </FieldDescription>
               )}
             </Field>

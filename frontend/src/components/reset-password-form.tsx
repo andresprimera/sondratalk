@@ -108,7 +108,7 @@ export function ResetPasswordForm({
               />
               {errors.password && (
                 <FieldDescription className="text-destructive">
-                  {errors.password.message}
+                  {t(errors.password.message ?? "")}
                 </FieldDescription>
               )}
             </Field>
@@ -122,7 +122,7 @@ export function ResetPasswordForm({
               />
               {errors.confirmPassword && (
                 <FieldDescription className="text-destructive">
-                  {errors.confirmPassword.message}
+                  {t(errors.confirmPassword.message ?? "")}
                 </FieldDescription>
               )}
             </Field>

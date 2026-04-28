@@ -68,7 +68,7 @@ export function ProfileForm() {
               <Input id="name" type="text" {...register("name")} />
               {errors.name && (
                 <FieldDescription className="text-destructive">
-                  {errors.name.message}
+                  {t(errors.name.message ?? "")}
                 </FieldDescription>
               )}
             </Field>
@@ -77,7 +77,7 @@ export function ProfileForm() {
               <Input id="email" type="email" {...register("email")} />
               {errors.email && (
                 <FieldDescription className="text-destructive">
-                  {errors.email.message}
+                  {t(errors.email.message ?? "")}
                 </FieldDescription>
               )}
             </Field>
