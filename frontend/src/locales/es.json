@@ -58,8 +58,10 @@
   "Log in": "Iniciar sesión",
   "Join": "Únete",
   "Real human conversation, always within reach": "Conversación humana real, siempre al alcance",
-  "Someone is waiting to listen.": "Alguien está esperando para escucharte.",
-  "No chatbot. No hold music. No 'your call is important to us.' Just a real person, present with you.": "Sin chatbots. Sin música de espera. Sin 'su llamada es importante para nosotros'. Solo una persona real, presente contigo.",
+  "Someone is waiting": "Alguien está esperando",
+  "to listen.": "para escucharte.",
+  "No chatbot. No hold music. No 'your call is important to us.'": "Sin chatbots. Sin música de espera. Sin 'su llamada es importante para nosotros'.",
+  "Just a real person, present with you.": "Solo una persona real, presente contigo.",
   "Talk Now": "Hablar ahora",
   "Join Sondra": "Únete a Sondra",
 
