@@ -6,8 +6,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-heading: 'Playfair Display', ui-serif, Georgia, serif;
+    --font-sans: 'Inter', 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,82 +49,177 @@
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    /* BASE — warm beige (NOT white) */
+    --background: oklch(0.94 0.03 85);
+    --foreground: oklch(0.25 0.04 140); /* deep olive/greenish */
+
+    /* SURFACES */
+    --card: oklch(0.96 0.02 85);
+    --card-foreground: oklch(0.25 0.04 140);
+
+    --popover: oklch(0.96 0.02 85);
+    --popover-foreground: oklch(0.25 0.04 140);
+
+      /* PRIMARY — terracotta (CTA) */
+    --primary: oklch(0.62 0.16 40);
+    --primary-foreground: oklch(0.96 0.02 85);
+
+    /* SECONDARY — deep green (headlines / brand) */
+    --secondary: oklch(0.35 0.08 140);
+    --secondary-foreground: oklch(0.96 0.02 85);
+
+    /* MUTED */
+    --muted: oklch(0.9 0.02 85);
+    --muted-foreground: oklch(0.45 0.03 120);
+
+  /* ACCENT — lighter terracotta (hover) */
+    --accent: oklch(0.7 0.14 45);
+    --accent-foreground: oklch(0.2 0.03 140);
+
+    /* UI */
+    --border: oklch(0.85 0.02 85);
+    --input: oklch(0.9 0.02 85);
+    --ring: oklch(0.62 0.16 40);
+
+    --destructive: oklch(0.6 0.2 25);
+
+    /* Sidebar */
+    --sidebar: oklch(0.93 0.03 85);
+    --sidebar-foreground: oklch(0.25 0.04 140);
+
+    --sidebar-primary: oklch(0.35 0.08 140);
+    --sidebar-primary-foreground: oklch(0.96 0.02 85);
+
+    --sidebar-accent: oklch(0.9 0.03 85);
+    --sidebar-accent-foreground: oklch(0.25 0.04 140);
+
+    --sidebar-border: oklch(0.85 0.02 85);
+    --sidebar-ring: oklch(0.62 0.16 40);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
+    --background: oklch(0.18 0.02 260);
+    --foreground: oklch(0.95 0.01 80);
+
+    --card: oklch(0.22 0.02 260);
+    --card-foreground: oklch(0.95 0.01 80);
+
+    --primary: oklch(0.7 0.09 20);
+    --primary-foreground: oklch(0.15 0.02 260);
+
+    --secondary: oklch(0.3 0.03 85);
+    --secondary-foreground: oklch(0.95 0.01 80);
+
+    --accent: oklch(0.5 0.06 15);
+    --accent-foreground: oklch(0.95 0.01 80);
+
+    --muted: oklch(0.25 0.02 260);
+    --muted-foreground: oklch(0.7 0.02 80);
+
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --ring: oklch(0.7 0.09 20);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
+
+  html {
+    @apply font-sans antialiased;
+  }
+
   body {
     @apply bg-background text-foreground;
-    }
-  html {
-    @apply font-sans;
-    }
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.7;
+    letter-spacing: -0.01em;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    @apply text-foreground;
+  }
+
+  h1 {
+    font-size: clamp(2.25rem, 4vw, 3rem); /* ~48px */
+    font-weight: 500;
+  }
+
+  h2 {
+    font-size: clamp(1.875rem, 3vw, 2.25rem); /* ~36px */
+    font-weight: 500;
+  }
+
+  h3 {
+    font-size: 1.75rem; /* 28px */
+    font-weight: 500;
+  }
+
+  h4 {
+    font-size: 1.375rem; /* 22px */
+    font-weight: 500;
+  }
+
+  h5 {
+    font-family: var(--font-sans);
+    font-size: 1.125rem; /* 18px */
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.4;
+    @apply text-foreground;
+  }
+
+  h6 {
+    font-family: var(--font-sans);
+    font-size: 0.75rem; /* 12px */
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    line-height: 1.4;
+    text-transform: uppercase;
+    @apply text-muted-foreground;
+  }
+
+  p {
+    line-height: 1.7;
+  }
+
+  small {
+    font-size: 0.85rem;
+    @apply text-muted-foreground;
+  }
+
+  button {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+}
+
+@layer components {
+  .prose {
+    max-width: 65ch;
+  }
+
+  .prose p {
+    line-height: 1.75;
+    margin-block: 1em;
+  }
+
+  .prose a {
+    @apply text-primary underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition: color 150ms ease;
+  }
+
+  .prose a:hover {
+    @apply text-accent;
+  }
 }
