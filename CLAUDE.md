@@ -63,11 +63,11 @@ The shared package is the **single source of truth** for all data shapes that cr
 - Use CVA (`class-variance-authority`) for component variants.
 - Use CSS variables from the theme system (defined in `index.css`) — never hardcode colors.
 
-### Landing Page Exception
+### Landing & Onboarding Page Exception
 
-Custom typography and style overrides — arbitrary Tailwind values (`text-[1.35rem]`, `tracking-[0.45em]`, `mb-[3.8rem]`), scoped CSS in `@layer components`, decorative animations — are **only** accepted in [pages/landing.tsx](frontend/src/pages/landing.tsx) and the matching `.landing-*` classes in [index.css](frontend/src/index.css). The marketing hero needs a feel the dashboard typography can't deliver.
+Custom typography and style overrides — arbitrary Tailwind values (`text-[1.35rem]`, `tracking-[0.45em]`, `mb-[3.8rem]`), scoped CSS in `@layer components`, decorative animations — are **only** accepted in: [pages/landing.tsx](frontend/src/pages/landing.tsx), [pages/onboarding.tsx](frontend/src/pages/onboarding.tsx) plus its colocated step components in [components/onboarding/](frontend/src/components/onboarding/), and the matching `.landing-*` and `.onboarding-*` classes in [index.css](frontend/src/index.css). The marketing hero and the first-time-user moment need a feel the dashboard typography can't deliver.
 
-**This exception does not extend to any other page.** Inside the authenticated app, continue to use shadcn variants, the global `<h1>`/`<h6>`/`<p>` baseline, and design tokens — no custom font sizes, weights, or spacing scales.
+**This exception does not extend to any other page.** Inside the authenticated app proper (everything under `/dashboard`), continue to use shadcn variants, the global `<h1>`/`<h6>`/`<p>` baseline, and design tokens — no custom font sizes, weights, or spacing scales.
 
 ### Dialogs & Confirmations
 
