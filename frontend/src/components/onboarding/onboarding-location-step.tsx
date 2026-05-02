@@ -3,15 +3,20 @@ import { useTranslation } from "react-i18next"
 import { MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  Combobox,
+  ComboboxCollection,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox"
 import {
   TIMEZONES,
+  formatUtcOffset,
+  getCountryDisplayName,
   getTimezoneByIana,
+  getTimezoneLongName,
   type TimezoneEntry,
 } from "@/lib/timezones"
 
@@ -28,11 +33,21 @@ export function OnboardingLocationStep({
   detectedIana,
   onNext,
 }: OnboardingLocationStepProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language
   const [isEditing, setIsEditing] = useState(false)
 
   const tz: TimezoneEntry | undefined = getTimezoneByIana(selectedIana)
   const isAutoDetected = selectedIana === detectedIana && tz !== undefined
+
+  function formatCityCountry(entry: TimezoneEntry): string {
+    return `${t(entry.city)}, ${getCountryDisplayName(entry.countryCode, locale)}`
+  }
+
+  function formatTimezoneDetail(entry: TimezoneEntry): string {
+    const longName = getTimezoneLongName(entry.iana, locale)
+    return `${entry.abbr} · ${longName} · ${formatUtcOffset(entry.utcOffsetMinutes)}`
+  }
 
   return (
     <section className="mt-18">
@@ -49,10 +64,10 @@ export function OnboardingLocationStep({
           <MapPin className="onboarding-location-icon size-7" strokeWidth={1.5} />
           <div>
             <div className="onboarding-location-city">
-              {tz ? `${tz.city}, ${tz.country}` : t("Your local timezone")}
+              {tz ? formatCityCountry(tz) : t("Your local timezone")}
             </div>
             <div className="onboarding-location-meta">
-              {tz ? tz.label : selectedIana}
+              {tz ? formatTimezoneDetail(tz) : selectedIana}
             </div>
             {isAutoDetected && (
               <span className="onboarding-location-auto">
@@ -65,25 +80,34 @@ export function OnboardingLocationStep({
 
       {isEditing && (
         <div className="mb-4">
-          <Select
-            value={selectedIana}
-            onValueChange={(iana) => {
-              if (typeof iana !== "string") return
-              onSelectIana(iana)
+          <Combobox<TimezoneEntry>
+            items={TIMEZONES}
+            value={tz ?? null}
+            itemToStringLabel={formatCityCountry}
+            isItemEqualToValue={(a, b) => a.iana === b.iana}
+            onValueChange={(picked) => {
+              if (!picked) return
+              onSelectIana(picked.iana)
               setIsEditing(false)
             }}
           >
-            <SelectTrigger className="h-12 w-full text-base">
-              <SelectValue placeholder={t("Pick a city")} />
-            </SelectTrigger>
-            <SelectContent>
-              {TIMEZONES.map((entry) => (
-                <SelectItem key={entry.iana} value={entry.iana}>
-                  {entry.city}, {entry.country} · {entry.abbr}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <ComboboxInput
+              placeholder={t("Pick a city")}
+              className="w-full"
+            />
+            <ComboboxContent>
+              <ComboboxList>
+                <ComboboxEmpty>{t("No matches")}</ComboboxEmpty>
+                <ComboboxCollection>
+                  {(entry: TimezoneEntry) => (
+                    <ComboboxItem key={entry.iana} value={entry}>
+                      {formatCityCountry(entry)} · {entry.abbr}
+                    </ComboboxItem>
+                  )}
+                </ComboboxCollection>
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
         </div>
       )}
 

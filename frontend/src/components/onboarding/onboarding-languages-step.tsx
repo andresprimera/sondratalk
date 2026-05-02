@@ -2,10 +2,19 @@ import { useTranslation } from "react-i18next"
 import { ArrowLeft, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
+  Combobox,
+  ComboboxCollection,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox"
+import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui/toggle-group"
-import { getLanguageByCode } from "@/lib/languages"
+import { LANGUAGES, getLanguageByCode, type LanguageEntry } from "@/lib/languages"
 
 export type Fluency = "Conversational" | "Fluent" | "Native"
 
@@ -21,19 +30,6 @@ interface OnboardingLanguagesStepProps {
   onNext: () => void
   onBack: () => void
 }
-
-const SUGGESTED_CODES = [
-  "ca",
-  "fr",
-  "pt",
-  "ar",
-  "zh",
-  "it",
-  "de",
-  "ja",
-  "ru",
-  "hi",
-] as const
 
 const FLUENCY_LEVELS: Fluency[] = ["Conversational", "Fluent", "Native"]
 
@@ -70,9 +66,7 @@ export function OnboardingLanguagesStep({
   }
 
   const addedCodes = new Set(languages.map((l) => l.code))
-  const suggestions = SUGGESTED_CODES.filter((code) => !addedCodes.has(code))
-    .map((code) => getLanguageByCode(code))
-    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+  const remaining = LANGUAGES.filter((entry) => !addedCodes.has(entry.code))
 
   return (
     <section className="mt-12">
@@ -129,22 +123,37 @@ export function OnboardingLanguagesStep({
         ))}
       </div>
 
-      {suggestions.length > 0 && (
-        <>
+      {remaining.length > 0 && (
+        <div className="mb-10">
           <p className="onboarding-section-label mb-3">{t("Add another")}</p>
-          <div className="onboarding-chip-row mb-10">
-            {suggestions.map((entry) => (
-              <button
-                key={entry.code}
-                type="button"
-                className="onboarding-chip"
-                onClick={() => addLanguage(entry.code)}
-              >
-                {t(entry.name)}
-              </button>
-            ))}
-          </div>
-        </>
+          <Combobox<LanguageEntry>
+            items={remaining}
+            value={null}
+            itemToStringLabel={(entry) => t(entry.name)}
+            isItemEqualToValue={(a, b) => a.code === b.code}
+            onValueChange={(picked) => {
+              if (!picked) return
+              addLanguage(picked.code)
+            }}
+          >
+            <ComboboxInput
+              placeholder={t("Search languages…")}
+              className="w-full"
+            />
+            <ComboboxContent>
+              <ComboboxList>
+                <ComboboxEmpty>{t("No matches")}</ComboboxEmpty>
+                <ComboboxCollection>
+                  {(entry: LanguageEntry) => (
+                    <ComboboxItem key={entry.code} value={entry}>
+                      {t(entry.name)}
+                    </ComboboxItem>
+                  )}
+                </ComboboxCollection>
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+        </div>
       )}
 
       <div className="mt-6">
