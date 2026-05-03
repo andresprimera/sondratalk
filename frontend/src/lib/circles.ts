@@ -13,6 +13,7 @@ export async function fetchCirclesApi(
   const params = new URLSearchParams()
   if (query.q) params.set("q", query.q)
   if (query.themeId) params.set("themeId", query.themeId)
+  if (query.locale) params.set("locale", query.locale)
   params.set("page", String(query.page))
   params.set("limit", String(query.limit))
   const res = await authFetch(`/api/circles?${params}`)

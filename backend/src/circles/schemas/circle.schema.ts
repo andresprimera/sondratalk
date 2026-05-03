@@ -45,14 +45,10 @@ export class Circle {
   @Prop({ type: CircleAliasesSchema, default: () => ({ en: [], es: [] }) })
   aliases: CircleAliases;
 
-  @Prop({ type: [String], default: [] })
-  searchTerms: string[];
-
   @Prop({ required: true, default: 0, min: 0 })
   popularity: number;
 }
 
 export const CircleSchema = SchemaFactory.createForClass(Circle);
 
-CircleSchema.index({ searchTerms: 'text' });
 CircleSchema.index({ themeId: 1, popularity: -1 });

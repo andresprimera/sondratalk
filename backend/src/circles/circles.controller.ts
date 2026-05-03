@@ -7,6 +7,7 @@ import {
   Param,
   Body,
   Query,
+  Headers,
   UseGuards,
   NotFoundException,
   ConflictException,
@@ -23,6 +24,8 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import {
   type Circle,
   type PaginatedResponse,
+  LOCALE_KEYS,
+  type LocaleKey,
 } from '@base-dashboard/shared';
 import {
   createCircleSchema,
@@ -42,6 +45,33 @@ function toCircle(doc: CircleDocument): Circle {
     aliases: { en: doc.aliases.en, es: doc.aliases.es },
     popularity: doc.popularity,
   };
+}
+
+function isLocaleKey(s: string): s is LocaleKey {
+  // eslint-disable-next-line no-restricted-syntax -- narrow the readonly tuple to readonly string[] for `.includes`
+  return (LOCALE_KEYS as readonly string[]).includes(s);
+}
+
+function resolveLocale(
+  queryLocale: string | undefined,
+  acceptLanguage: string | undefined,
+): LocaleKey {
+  if (queryLocale && isLocaleKey(queryLocale)) {
+    return queryLocale;
+  }
+  if (acceptLanguage) {
+    const primarySubtag = acceptLanguage
+      .split(',')[0]
+      ?.trim()
+      .split(';')[0]
+      ?.trim()
+      .split('-')[0]
+      ?.toLowerCase();
+    if (primarySubtag && isLocaleKey(primarySubtag)) {
+      return primarySubtag;
+    }
+  }
+  return 'en';
 }
 
 @Controller('circles')
@@ -73,10 +103,12 @@ export class CirclesController {
   async findAll(
     @Query(new ZodValidationPipe(circleSearchQuerySchema))
     query: CircleSearchQuery,
+    @Headers('accept-language') acceptLanguage: string | undefined,
   ): Promise<PaginatedResponse<Circle>> {
-    const { q, themeId, page, limit } = query;
+    const { q, themeId, page, limit, locale: queryLocale } = query;
+    const locale = resolveLocale(queryLocale, acceptLanguage);
     const { data, total } = q
-      ? await this.circlesService.searchPaginated(q, page, limit, themeId)
+      ? await this.circlesService.searchPaginated(q, page, limit, locale, themeId)
       : await this.circlesService.findAllPaginated(page, limit, themeId);
     return {
       data: data.map(toCircle),
@@ -119,7 +151,7 @@ export class CirclesController {
         throw new BadRequestException('Theme not found');
       }
     }
-    const doc = await this.circlesService.update(current, dto);
+    const doc = await this.circlesService.update(id, dto);
     if (!doc) {
       throw new NotFoundException('Circle not found');
     }

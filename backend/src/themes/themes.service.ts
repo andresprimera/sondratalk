@@ -49,6 +49,17 @@ export class ThemesService {
     return this.themeModel.findByIdAndUpdate(id, dto, { new: true });
   }
 
+  async upsertById(
+    id: string,
+    data: CreateThemeInput,
+  ): Promise<ThemeDocument | null> {
+    return this.themeModel.findByIdAndUpdate(id, data, {
+      upsert: true,
+      setDefaultsOnInsert: true,
+      new: true,
+    });
+  }
+
   async remove(id: string): Promise<void> {
     await this.themeModel.findByIdAndDelete(id);
   }

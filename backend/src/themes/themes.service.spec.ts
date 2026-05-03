@@ -152,6 +152,22 @@ describe('ThemesService', () => {
     });
   });
 
+  describe('upsertById', () => {
+    it('upserts by id with setDefaultsOnInsert', async () => {
+      const seed = { slug: 'dogs', label: 'Dogs', sortOrder: 1 };
+      model.findByIdAndUpdate.mockResolvedValue({ id: 'theme-1', ...seed });
+
+      const result = await service.upsertById('theme-1', seed);
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith('theme-1', seed, {
+        upsert: true,
+        setDefaultsOnInsert: true,
+        new: true,
+      });
+      expect(result).toEqual({ id: 'theme-1', ...seed });
+    });
+  });
+
   describe('remove', () => {
     it('should delete theme by id', async () => {
       model.findByIdAndDelete.mockResolvedValue(mockTheme);

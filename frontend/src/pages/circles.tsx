@@ -56,7 +56,9 @@ import { toast } from "sonner"
 const ALL_THEMES_VALUE = "__all__"
 
 export default function CirclesPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale: "en" | "es" =
+    i18n.language?.split("-")[0] === "es" ? "es" : "en"
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -84,12 +86,13 @@ export default function CirclesPage() {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
       "circles",
-      { q: debouncedQ, themeId, page, pageSize },
+      { q: debouncedQ, themeId, locale, page, pageSize },
     ] as const,
     queryFn: () =>
       fetchCirclesApi({
         q: debouncedQ || undefined,
         themeId,
+        locale,
         page,
         limit: pageSize,
       }),

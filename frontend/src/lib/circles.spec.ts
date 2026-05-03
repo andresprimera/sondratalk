@@ -85,6 +85,42 @@ describe("circles API", () => {
         "/api/circles?q=gsd&themeId=t1&page=2&limit=20",
       )
     })
+
+    it("includes locale when provided", async () => {
+      vi.mocked(authFetch).mockResolvedValue(
+        mockJsonResponse({
+          data: [],
+          meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
+        }),
+      )
+
+      await fetchCirclesApi({ locale: "es", page: 1, limit: 10 })
+
+      expect(authFetch).toHaveBeenCalledWith(
+        "/api/circles?locale=es&page=1&limit=10",
+      )
+    })
+
+    it("includes q, themeId, and locale together when all provided", async () => {
+      vi.mocked(authFetch).mockResolvedValue(
+        mockJsonResponse({
+          data: [],
+          meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
+        }),
+      )
+
+      await fetchCirclesApi({
+        q: "ger",
+        themeId: "t1",
+        locale: "en",
+        page: 1,
+        limit: 10,
+      })
+
+      expect(authFetch).toHaveBeenCalledWith(
+        "/api/circles?q=ger&themeId=t1&locale=en&page=1&limit=10",
+      )
+    })
   })
 
   describe("fetchCircleByIdApi", () => {

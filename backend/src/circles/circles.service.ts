@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model } from 'mongoose';
+import { FilterQuery, Model, PipelineStage, Types } from 'mongoose';
+import { LOCALE_KEYS, type LocaleKey } from '@base-dashboard/shared';
 import { Circle, CircleDocument } from './schemas/circle.schema';
 import { CreateCircleInput, UpdateCircleInput } from './dto';
-import { buildSearchTerms, normalize } from './utils/build-search-terms';
 
 @Injectable()
 export class CirclesService {
@@ -13,8 +13,7 @@ export class CirclesService {
 
   async create(dto: CreateCircleInput): Promise<CircleDocument> {
     const aliases = dto.aliases ?? { en: [], es: [] };
-    const searchTerms = buildSearchTerms(dto.labels, aliases);
-    return this.circleModel.create({ ...dto, aliases, searchTerms });
+    return this.circleModel.create({ ...dto, aliases });
   }
 
   async findAllPaginated(
@@ -39,23 +38,59 @@ export class CirclesService {
     q: string,
     page: number,
     limit: number,
+    locale: LocaleKey,
     themeId?: string,
   ): Promise<{ data: CircleDocument[]; total: number }> {
-    const normalizedQ = normalize(q);
-    const filter: FilterQuery<Circle> = {
-      $text: { $search: normalizedQ },
-      ...(themeId ? { themeId } : {}),
+    if (!LOCALE_KEYS.includes(locale)) {
+      throw new Error(`Unsupported locale: ${locale}`);
+    }
+
+    const labelPath = `labels.${locale}`;
+    const aliasPath = `aliases.${locale}`;
+
+    const compound = {
+      should: [
+        { autocomplete: { query: q, path: labelPath } },
+        { autocomplete: { query: q, path: aliasPath } },
+        { text: { query: q, path: labelPath, fuzzy: { maxEdits: 1 } } },
+      ],
+      minimumShouldMatch: 1,
+      ...(themeId
+        ? {
+            filter: [
+              { equals: { path: 'themeId', value: new Types.ObjectId(themeId) } },
+            ],
+          }
+        : {}),
     };
+
     const skip = (page - 1) * limit;
-    const [data, total] = await Promise.all([
+
+    // Atlas Search emits `searchScore` meta which Mongoose's PipelineStage
+    // typing doesn't recognize (it only knows `textScore`/`indexKey`). Cast
+    // the assembled pipelines to PipelineStage[] to escape the narrow typing.
+    const searchPipeline = [
+      { $search: { compound } },
+      { $sort: { score: { $meta: 'searchScore' }, popularity: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ] as unknown as PipelineStage[];
+    const metaPipeline = [
+      { $searchMeta: { compound, count: { type: 'total' } } },
+    ] as unknown as PipelineStage[];
+
+    const [hits, meta] = await Promise.all([
+      this.circleModel.aggregate<CircleDocument>(searchPipeline).exec(),
       this.circleModel
-        .find(filter, { score: { $meta: 'textScore' } })
-        .sort({ score: { $meta: 'textScore' }, popularity: -1 })
-        .skip(skip)
-        .limit(limit),
-      this.circleModel.countDocuments(filter),
+        .aggregate<{ count: { lowerBound?: number; total?: number } }>(
+          metaPipeline,
+        )
+        .exec(),
     ]);
-    return { data, total };
+
+    const total = meta[0]?.count?.total ?? meta[0]?.count?.lowerBound ?? 0;
+
+    return { data: hits, total };
   }
 
   async findById(id: string): Promise<CircleDocument | null> {
@@ -67,25 +102,25 @@ export class CirclesService {
   }
 
   async update(
-    existing: CircleDocument,
+    id: string,
     dto: UpdateCircleInput,
   ): Promise<CircleDocument | null> {
-    if (dto.labels === undefined && dto.aliases === undefined) {
-      return this.circleModel.findByIdAndUpdate(existing.id, dto, { new: true });
-    }
-    const labels = dto.labels ?? {
-      en: existing.labels.en,
-      es: existing.labels.es,
-    };
-    const aliases = dto.aliases ?? {
-      en: existing.aliases.en,
-      es: existing.aliases.es,
-    };
-    const searchTerms = buildSearchTerms(labels, aliases);
+    return this.circleModel.findByIdAndUpdate(id, dto, { new: true });
+  }
+
+  async upsertById(
+    id: string,
+    data: CreateCircleInput,
+  ): Promise<CircleDocument | null> {
+    const aliases = data.aliases ?? { en: [], es: [] };
     return this.circleModel.findByIdAndUpdate(
-      existing.id,
-      { ...dto, searchTerms },
-      { new: true },
+      id,
+      { ...data, aliases },
+      {
+        upsert: true,
+        setDefaultsOnInsert: true,
+        new: true,
+      },
     );
   }
 

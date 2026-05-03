@@ -25,6 +25,7 @@ describe('CirclesService', () => {
       findByIdAndUpdate: jest.fn(),
       findByIdAndDelete: jest.fn(),
       exists: jest.fn(),
+      aggregate: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -38,7 +39,7 @@ describe('CirclesService', () => {
   });
 
   describe('create', () => {
-    it('persists the circle with built searchTerms and default aliases', async () => {
+    it('persists the circle with default aliases when none are passed', async () => {
       model.create.mockResolvedValue(mockCircle);
 
       const result = await service.create({
@@ -48,18 +49,13 @@ describe('CirclesService', () => {
         popularity: 0,
       });
 
-      expect(model.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          slug: 'german-shepherd',
-          themeId: 'theme-1',
-          labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
-          aliases: { en: [], es: [] },
-          searchTerms: expect.arrayContaining([
-            'german shepherd',
-            'pastor aleman',
-          ]),
-        }),
-      );
+      expect(model.create).toHaveBeenCalledWith({
+        slug: 'german-shepherd',
+        themeId: 'theme-1',
+        labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
+        aliases: { en: [], es: [] },
+        popularity: 0,
+      });
       expect(result).toEqual(mockCircle);
     });
 
@@ -77,7 +73,6 @@ describe('CirclesService', () => {
       expect(model.create).toHaveBeenCalledWith(
         expect.objectContaining({
           aliases: { en: ['GSD'], es: [] },
-          searchTerms: expect.arrayContaining(['gsd']),
         }),
       );
     });
@@ -119,51 +114,138 @@ describe('CirclesService', () => {
   });
 
   describe('searchPaginated', () => {
-    it('runs $text query with normalized term and ranks by score', async () => {
-      const chainable = {
-        sort: jest.fn().mockReturnThis(),
-        skip: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue([mockCircle]),
-      };
-      model.find.mockReturnValue(chainable);
-      model.countDocuments.mockResolvedValue(1);
+    it('runs Atlas $search aggregation scoped to the locale and ranks by score', async () => {
+      model.aggregate
+        .mockReturnValueOnce({
+          exec: jest.fn().mockResolvedValue([mockCircle]),
+        })
+        .mockReturnValueOnce({
+          exec: jest.fn().mockResolvedValue([{ count: { total: 1 } }]),
+        });
 
       const result = await service.searchPaginated(
-        'Pastor Alemán',
+        'ger',
         1,
         10,
-        'theme-1',
+        'en',
+        '507f1f77bcf86cd799439011',
       );
 
-      expect(model.find).toHaveBeenCalledWith(
+      expect(model.aggregate).toHaveBeenCalledTimes(2);
+
+      const searchPipeline = model.aggregate.mock.calls[0][0];
+      expect(searchPipeline).toEqual([
         {
-          $text: { $search: 'pastor aleman' },
-          themeId: 'theme-1',
+          $search: {
+            compound: expect.objectContaining({
+              should: expect.arrayContaining([
+                { autocomplete: { query: 'ger', path: 'labels.en' } },
+                { autocomplete: { query: 'ger', path: 'aliases.en' } },
+                {
+                  text: {
+                    query: 'ger',
+                    path: 'labels.en',
+                    fuzzy: { maxEdits: 1 },
+                  },
+                },
+              ]),
+              filter: [
+                {
+                  equals: {
+                    path: 'themeId',
+                    value: expect.anything(),
+                  },
+                },
+              ],
+              minimumShouldMatch: 1,
+            }),
+          },
         },
-        { score: { $meta: 'textScore' } },
-      );
-      expect(chainable.sort).toHaveBeenCalledWith({
-        score: { $meta: 'textScore' },
-        popularity: -1,
-      });
+        { $sort: { score: { $meta: 'searchScore' }, popularity: -1 } },
+        { $skip: 0 },
+        { $limit: 10 },
+      ]);
+
+      const metaPipeline = model.aggregate.mock.calls[1][0];
+      expect(metaPipeline).toEqual([
+        {
+          $searchMeta: expect.objectContaining({
+            compound: expect.objectContaining({ minimumShouldMatch: 1 }),
+            count: { type: 'total' },
+          }),
+        },
+      ]);
+
       expect(result).toEqual({ data: [mockCircle], total: 1 });
     });
 
-    it('omits themeId from filter when not provided', async () => {
-      const chainable = {
-        sort: jest.fn().mockReturnThis(),
-        skip: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue([]),
-      };
-      model.find.mockReturnValue(chainable);
-      model.countDocuments.mockResolvedValue(0);
+    it('omits the themeId filter when not provided', async () => {
+      model.aggregate
+        .mockReturnValueOnce({ exec: jest.fn().mockResolvedValue([]) })
+        .mockReturnValueOnce({
+          exec: jest.fn().mockResolvedValue([{ count: { total: 0 } }]),
+        });
 
-      await service.searchPaginated('gsd', 1, 10);
+      await service.searchPaginated('ger', 1, 10, 'en');
 
-      expect(model.find).toHaveBeenCalledWith(
-        { $text: { $search: 'gsd' } },
-        { score: { $meta: 'textScore' } },
-      );
+      const searchStage = model.aggregate.mock.calls[0][0][0].$search;
+      expect(searchStage.compound.filter).toBeUndefined();
+    });
+
+    it('uses the spanish locale paths when locale is "es"', async () => {
+      model.aggregate
+        .mockReturnValueOnce({ exec: jest.fn().mockResolvedValue([]) })
+        .mockReturnValueOnce({
+          exec: jest.fn().mockResolvedValue([{ count: { total: 0 } }]),
+        });
+
+      await service.searchPaginated('pastor', 1, 10, 'es');
+
+      const searchStage = model.aggregate.mock.calls[0][0][0].$search;
+      expect(searchStage.compound.should).toContainEqual({
+        autocomplete: { query: 'pastor', path: 'labels.es' },
+      });
+      expect(searchStage.compound.should).toContainEqual({
+        autocomplete: { query: 'pastor', path: 'aliases.es' },
+      });
+      expect(searchStage.compound.should).toContainEqual({
+        text: {
+          query: 'pastor',
+          path: 'labels.es',
+          fuzzy: { maxEdits: 1 },
+        },
+      });
+    });
+
+    it('falls back to the lowerBound count when total is missing', async () => {
+      model.aggregate
+        .mockReturnValueOnce({
+          exec: jest.fn().mockResolvedValue([mockCircle]),
+        })
+        .mockReturnValueOnce({
+          exec: jest.fn().mockResolvedValue([{ count: { lowerBound: 42 } }]),
+        });
+
+      const result = await service.searchPaginated('x', 1, 10, 'en');
+
+      expect(result.total).toBe(42);
+    });
+
+    it('returns total: 0 when meta is empty', async () => {
+      model.aggregate
+        .mockReturnValueOnce({ exec: jest.fn().mockResolvedValue([]) })
+        .mockReturnValueOnce({ exec: jest.fn().mockResolvedValue([]) });
+
+      const result = await service.searchPaginated('nothing', 1, 10, 'en');
+
+      expect(result).toEqual({ data: [], total: 0 });
+    });
+
+    it('throws when called with an unsupported locale', async () => {
+      await expect(
+        // eslint-disable-next-line no-restricted-syntax -- simulate an out-of-band caller bypassing the LocaleKey type
+        service.searchPaginated('x', 1, 10, 'fr' as never),
+      ).rejects.toThrow(/unsupported locale/i);
     });
   });
 
@@ -197,13 +279,12 @@ describe('CirclesService', () => {
   });
 
   describe('update', () => {
-    it('updates without rebuilding searchTerms when neither labels nor aliases change', async () => {
+    it('passes the dto through to findByIdAndUpdate', async () => {
       const updated = { ...mockCircle, popularity: 5 };
       model.findByIdAndUpdate.mockResolvedValue(updated);
 
-      const result = await service.update(mockCircle, { popularity: 5 });
+      const result = await service.update('circle-1', { popularity: 5 });
 
-      expect(model.findById).not.toHaveBeenCalled();
       expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
         'circle-1',
         { popularity: 5 },
@@ -212,35 +293,54 @@ describe('CirclesService', () => {
       expect(result).toEqual(updated);
     });
 
-    it('rebuilds searchTerms when labels change', async () => {
-      model.findByIdAndUpdate.mockResolvedValue(mockCircle);
-
-      await service.update(mockCircle, {
-        labels: { en: 'German Shepherd Dog', es: 'Pastor Alemán' },
-      });
-
-      expect(model.findById).not.toHaveBeenCalled();
-      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
-        'circle-1',
-        expect.objectContaining({
-          searchTerms: expect.arrayContaining([
-            'german shepherd dog',
-            'pastor aleman',
-            'gsd',
-          ]),
-        }),
-        { new: true },
-      );
-    });
-
-    it('returns null when the doc was deleted between fetch and update', async () => {
+    it('returns null when the doc is missing', async () => {
       model.findByIdAndUpdate.mockResolvedValue(null);
 
-      const result = await service.update(mockCircle, {
+      const result = await service.update('missing', {
         labels: { en: 'A', es: 'B' },
       });
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('upsertById', () => {
+    it('upserts by id with setDefaultsOnInsert and default aliases', async () => {
+      const seed = {
+        slug: 'german-shepherd',
+        themeId: 'theme-1',
+        labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
+        popularity: 0,
+      };
+      model.findByIdAndUpdate.mockResolvedValue({ id: 'circle-1', ...seed });
+
+      const result = await service.upsertById('circle-1', seed);
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
+        'circle-1',
+        { ...seed, aliases: { en: [], es: [] } },
+        { upsert: true, setDefaultsOnInsert: true, new: true },
+      );
+      expect(result).toEqual({ id: 'circle-1', ...seed });
+    });
+
+    it('preserves caller-supplied aliases', async () => {
+      const seed = {
+        slug: 'german-shepherd',
+        themeId: 'theme-1',
+        labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
+        aliases: { en: ['GSD'], es: [] },
+        popularity: 0,
+      };
+      model.findByIdAndUpdate.mockResolvedValue({ id: 'circle-1', ...seed });
+
+      await service.upsertById('circle-1', seed);
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
+        'circle-1',
+        seed,
+        { upsert: true, setDefaultsOnInsert: true, new: true },
+      );
     });
   });
 

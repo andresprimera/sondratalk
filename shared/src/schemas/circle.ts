@@ -47,6 +47,7 @@ export type UpdateCircleInput = z.infer<typeof updateCircleSchema>;
 export const circleSearchQuerySchema = paginationQuerySchema.extend({
   q: z.string().trim().optional(),
   themeId: z.string().optional(),
+  locale: z.enum(LOCALE_KEYS).optional(),
 });
 
 export type CircleSearchQuery = z.infer<typeof circleSearchQuerySchema>;
