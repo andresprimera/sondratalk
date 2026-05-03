@@ -137,6 +137,7 @@ describe('CirclesService', () => {
       expect(searchPipeline).toEqual([
         {
           $search: {
+            index: 'circle_search',
             compound: expect.objectContaining({
               should: expect.arrayContaining([
                 { autocomplete: { query: 'ger', path: 'labels.en' } },
@@ -170,6 +171,7 @@ describe('CirclesService', () => {
       expect(metaPipeline).toEqual([
         {
           $searchMeta: expect.objectContaining({
+            index: 'circle_search',
             compound: expect.objectContaining({ minimumShouldMatch: 1 }),
             count: { type: 'total' },
           }),

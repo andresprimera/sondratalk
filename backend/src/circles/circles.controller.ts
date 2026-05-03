@@ -75,8 +75,6 @@ function resolveLocale(
 }
 
 @Controller('circles')
-@UseGuards(RolesGuard)
-@Roles('admin')
 export class CirclesController {
   constructor(
     private readonly circlesService: CirclesService,
@@ -84,6 +82,8 @@ export class CirclesController {
   ) {}
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles('admin')
   async create(
     @Body(new ZodValidationPipe(createCircleSchema)) dto: CreateCircleInput,
   ): Promise<Circle> {
@@ -131,6 +131,8 @@ export class CirclesController {
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
   async update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(updateCircleSchema)) dto: UpdateCircleInput,
@@ -159,6 +161,8 @@ export class CirclesController {
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string): Promise<void> {
     await this.circlesService.remove(id);

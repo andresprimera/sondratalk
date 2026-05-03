@@ -5,6 +5,11 @@ import { LOCALE_KEYS, type LocaleKey } from '@base-dashboard/shared';
 import { Circle, CircleDocument } from './schemas/circle.schema';
 import { CreateCircleInput, UpdateCircleInput } from './dto';
 
+// Name of the Atlas Search index defined on the `circles` collection.
+// Must match the index name shown in Atlas → Search tab. The index
+// definition itself is documented in backend/src/circles/atlas-search-index.json.
+const CIRCLES_SEARCH_INDEX = 'circle_search';
+
 @Injectable()
 export class CirclesService {
   constructor(
@@ -70,13 +75,19 @@ export class CirclesService {
     // typing doesn't recognize (it only knows `textScore`/`indexKey`). Cast
     // the assembled pipelines to PipelineStage[] to escape the narrow typing.
     const searchPipeline = [
-      { $search: { compound } },
+      { $search: { index: CIRCLES_SEARCH_INDEX, compound } },
       { $sort: { score: { $meta: 'searchScore' }, popularity: -1 } },
       { $skip: skip },
       { $limit: limit },
     ] as unknown as PipelineStage[];
     const metaPipeline = [
-      { $searchMeta: { compound, count: { type: 'total' } } },
+      {
+        $searchMeta: {
+          index: CIRCLES_SEARCH_INDEX,
+          compound,
+          count: { type: 'total' },
+        },
+      },
     ] as unknown as PipelineStage[];
 
     const [hits, meta] = await Promise.all([

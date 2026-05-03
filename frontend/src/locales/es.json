@@ -417,5 +417,6 @@
   "Create a new granular topic within a theme.": "Crea un nuevo tema granular dentro de una categoría.",
   "Select a theme": "Selecciona un tema",
   "{{count}} circle total_one": "{{count}} círculo total",
-  "{{count}} circle total_other": "{{count}} círculos en total"
+  "{{count}} circle total_other": "{{count}} círculos en total",
+  "Load more": "Cargar más"
 }

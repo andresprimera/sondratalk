@@ -1,7 +1,12 @@
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ArrowLeft, Plus, X } from "lucide-react"
+import { useInfiniteQuery, keepPreviousData } from "@tanstack/react-query"
+import { ArrowLeft, Loader2, X } from "lucide-react"
+import type { Circle } from "@base-dashboard/shared"
+import { fetchCirclesApi } from "@/lib/circles"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface OnboardingCirclesStepProps {
   circles: string[]
@@ -12,28 +17,8 @@ interface OnboardingCirclesStepProps {
   onBack: () => void
 }
 
-const SUGGESTED_CIRCLES = [
-  "Venezuelan",
-  "Catalan",
-  "Peruvian",
-  "Moroccan",
-  "Japanese",
-  "Restaurant owner",
-  "Startup founder",
-  "Teacher",
-  "Nurse",
-  "Freelancer",
-  "Triathlete",
-  "Salsa dancer",
-  "Home cook",
-  "Photographer",
-  "Yoga practitioner",
-  "New parent",
-  "Expat",
-  "PhD student",
-  "Digital nomad",
-  "LGBTQ+",
-] as const
+const PAGE_SIZE = 24
+const SKELETON_WIDTHS = ["w-16", "w-20", "w-24", "w-28"] as const
 
 export function OnboardingCirclesStep({
   circles,
@@ -43,17 +28,52 @@ export function OnboardingCirclesStep({
   onNext,
   onBack,
 }: OnboardingCirclesStepProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale: "en" | "es" =
+    i18n.language?.split("-")[0] === "es" ? "es" : "en"
+
+  const [debouncedQ, setDebouncedQ] = useState("")
+  useEffect(() => {
+    const trimmed = inputValue.trim()
+    const next = trimmed.length >= 3 ? trimmed : ""
+    const id = setTimeout(() => setDebouncedQ(next), 250)
+    return () => clearTimeout(id)
+  }, [inputValue])
+
+  const {
+    data,
+    isLoading,
+    isError,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: [
+      "onboarding-circles",
+      { q: debouncedQ, locale, pageSize: PAGE_SIZE },
+    ] as const,
+    queryFn: ({ pageParam }) =>
+      fetchCirclesApi({
+        q: debouncedQ || undefined,
+        locale,
+        page: pageParam,
+        limit: PAGE_SIZE,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.page < lastPage.meta.totalPages
+        ? lastPage.meta.page + 1
+        : undefined,
+    placeholderData: keepPreviousData,
+  })
+
+  const fetchedCircles: Circle[] = data?.pages.flatMap((p) => p.data) ?? []
 
   function add(name: string) {
     const clean = name.trim()
     if (!clean || circles.includes(clean)) return
     onCirclesChange([...circles, clean])
-  }
-
-  function commitInput() {
-    add(inputValue)
-    onInputChange("")
   }
 
   function remove(name: string) {
@@ -81,27 +101,13 @@ export function OnboardingCirclesStep({
         )}
       </p>
 
-      <div className="mb-6 flex items-start gap-2">
+      <div className="mb-6">
         <Input
           value={inputValue}
           onChange={(e) => onInputChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault()
-              commitInput()
-            }
-          }}
-          placeholder={t("Type anything and press Enter…")}
+          placeholder={t("Search circles...")}
           className="h-11 text-base"
         />
-        <button
-          type="button"
-          className="onboarding-add-btn"
-          onClick={commitInput}
-          aria-label={t("Add circle")}
-        >
-          <Plus className="size-5" />
-        </button>
       </div>
 
       {circles.length > 0 && (
@@ -133,23 +139,69 @@ export function OnboardingCirclesStep({
       </div>
 
       <p className="onboarding-section-label mb-3">{t("Some ideas")}</p>
-      <div className="onboarding-chip-row mb-10">
-        {SUGGESTED_CIRCLES.map((name) => {
-          const used = circles.includes(name)
-          return (
-            <button
-              key={name}
-              type="button"
-              className="onboarding-chip"
-              data-used={used}
-              onClick={() => add(name)}
-              aria-pressed={used}
-            >
-              {t(name)}
-            </button>
-          )
-        })}
-      </div>
+
+      {isLoading ? (
+        <div className="onboarding-chip-row mb-10" aria-busy="true">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <Skeleton
+              key={i}
+              className={`h-[34px] ${SKELETON_WIDTHS[i % SKELETON_WIDTHS.length]} rounded-full`}
+            />
+          ))}
+        </div>
+      ) : isError ? (
+        <div className="mb-10 flex items-center gap-3">
+          <p className="onboarding-section-label">
+            {t("Failed to load circles.")}
+          </p>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            {t("Try again")}
+          </Button>
+        </div>
+      ) : fetchedCircles.length === 0 ? (
+        <p className="onboarding-section-label mb-10">
+          {t("No circles match your search.")}
+        </p>
+      ) : (
+        <>
+          <div className="onboarding-chip-row mb-4">
+            {fetchedCircles.map((c) => {
+              const label = c.labels[locale]
+              // Comparing by localized label: known limitation if the user
+              // toggles UI language mid-onboarding (chip may re-enable,
+              // allowing a duplicate). Acceptable until persistence lands.
+              const used = circles.includes(label)
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  className="onboarding-chip"
+                  data-used={used}
+                  onClick={() => add(label)}
+                  aria-pressed={used}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+          {hasNextPage && (
+            <div className="mb-10">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage && (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                )}
+                {t("Load more")}
+              </Button>
+            </div>
+          )}
+        </>
+      )}
 
       <div className="mt-6">
         <Button
