@@ -34,3 +34,25 @@ export {
   apiErrorResponseSchema,
   type ApiErrorResponse,
 } from "./schemas/api";
+
+export {
+  themeSchema,
+  type Theme,
+  createThemeSchema,
+  type CreateThemeInput,
+  updateThemeSchema,
+  type UpdateThemeInput,
+} from "./schemas/theme";
+
+export {
+  LOCALE_KEYS,
+  type LocaleKey,
+  circleSchema,
+  type Circle,
+  createCircleSchema,
+  type CreateCircleInput,
+  updateCircleSchema,
+  type UpdateCircleInput,
+  circleSearchQuerySchema,
+  type CircleSearchQuery,
+} from "./schemas/circle";

@@ -14,7 +14,22 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon } from "lucide-react"
+import {
+  LayoutDashboardIcon,
+  ListIcon,
+  ChartBarIcon,
+  FolderIcon,
+  UsersIcon,
+  Settings2Icon,
+  CircleHelpIcon,
+  SearchIcon,
+  DatabaseIcon,
+  FileChartColumnIcon,
+  FileIcon,
+  CommandIcon,
+  LayersIcon,
+  CircleDotIcon,
+} from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { Link } from "react-router"
 
@@ -30,6 +45,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     { title: t("Projects"), url: "#", icon: <FolderIcon /> },
     { title: t("Team"), url: "#", icon: <UsersIcon /> },
     { title: t("Users"), url: "/dashboard/users", icon: <UsersIcon /> },
+    { title: t("Themes"), url: "/dashboard/themes", icon: <LayersIcon /> },
+    { title: t("Circles"), url: "/dashboard/circles", icon: <CircleDotIcon /> },
   ]
 
   const userNavMain = [

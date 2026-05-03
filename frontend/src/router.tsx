@@ -2,6 +2,8 @@ import { createBrowserRouter } from "react-router"
 import LandingPage from "@/pages/landing"
 import DashboardPage from "@/pages/dashboard"
 import UsersPage from "@/pages/users"
+import ThemesPage from "@/pages/themes"
+import CirclesPage from "@/pages/circles"
 import LoginPage from "@/pages/login"
 import SignupPage from "@/pages/signup"
 import ForgotPasswordPage from "@/pages/forgot-password"
@@ -58,6 +60,22 @@ export const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <UsersPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "themes",
+        element: (
+          <AdminRoute>
+            <ThemesPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "circles",
+        element: (
+          <AdminRoute>
+            <CirclesPage />
           </AdminRoute>
         ),
       },
