@@ -4,9 +4,8 @@ import LanguageDetector from "i18next-browser-languagedetector"
 import en from "@/locales/en.json"
 import es from "@/locales/es.json"
 
-const supportedLocalesEnv = import.meta.env.VITE_SUPPORTED_LOCALES as
-  | string
-  | undefined
+const supportedLocalesEnv: string | undefined =
+  import.meta.env.VITE_SUPPORTED_LOCALES
 const supportedLocales: readonly string[] = supportedLocalesEnv
   ? supportedLocalesEnv.split(",").map((l) => l.trim())
   : ["en"]
@@ -27,7 +26,7 @@ i18n
   .init({
     resources,
     fallbackLng: "en",
-    supportedLngs: supportedLocales as string[],
+    supportedLngs: [...supportedLocales],
     keySeparator: false,
     nsSeparator: false,
     interpolation: {
