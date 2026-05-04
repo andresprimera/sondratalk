@@ -16,7 +16,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { CirclesService } from './circles.service';
-import { CircleDocument } from './schemas/circle.schema';
+import { toCircle } from './circle.mapper';
 import { ThemesService } from '../themes/themes.service';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -35,17 +35,6 @@ import {
   circleSearchQuerySchema,
   type CircleSearchQuery,
 } from './dto';
-
-function toCircle(doc: CircleDocument): Circle {
-  return {
-    id: doc.id,
-    slug: doc.slug,
-    themeId: doc.themeId.toString(),
-    labels: { en: doc.labels.en, es: doc.labels.es },
-    aliases: { en: doc.aliases.en, es: doc.aliases.es },
-    popularity: doc.popularity,
-  };
-}
 
 function isLocaleKey(s: string): s is LocaleKey {
   // eslint-disable-next-line no-restricted-syntax -- narrow the readonly tuple to readonly string[] for `.includes`

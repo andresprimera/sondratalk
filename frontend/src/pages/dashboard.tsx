@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
-import { ArrowRight } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
+import { AlertCircleIcon, ArrowRight } from "lucide-react"
 import { ConversationCard } from "@/components/conversation-card"
 import { CopyableInput } from "@/components/copyable-input"
 import { SectionHeader } from "@/components/section-header"
@@ -14,17 +15,12 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/hooks/use-auth"
 import i18n from "@/lib/i18n"
+import { fetchMyCirclesApi } from "@/lib/memberships"
 
 const stats = { conversations: 23, activeSince: "Mar 2024", hosted: 8 }
-const circles = [
-  "Catalan",
-  "Restaurant owner",
-  "Startup founder",
-  "Expat",
-  "Triathlete",
-]
 const lastConversation = {
   name: "Ana",
   circles: ["Catalan", "Restaurant owner"],
@@ -36,8 +32,15 @@ const lastConversation = {
 const referralUrl = "sondratalk.com/join/raul-h23k"
 
 export default function DashboardPage() {
-  const { t } = useTranslation()
+  const { t, i18n: i18nInstance } = useTranslation()
+  const locale: "en" | "es" =
+    i18nInstance.language?.split("-")[0] === "es" ? "es" : "en"
   const { user } = useAuth()
+
+  const myCirclesQuery = useQuery({
+    queryKey: ["users", "me", "circles"] as const,
+    queryFn: fetchMyCirclesApi,
+  })
 
   const hour = new Date().getHours()
   const greeting =
@@ -91,21 +94,42 @@ export default function DashboardPage() {
         <SectionHeader
           title={t("Your Circles")}
           action={
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" disabled>
               {t("Edit")}
             </Button>
           }
         />
-        <div className="flex flex-wrap gap-2">
-          {circles.map((circle) => (
-            <Badge key={circle} variant="secondary">
-              {circle}
-            </Badge>
-          ))}
-        </div>
-        <p className="mt-3 text-sm text-muted-foreground">
-          {t("1 change remaining this month · Resets 1 May")}
-        </p>
+        {myCirclesQuery.isLoading ? (
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-6 w-20 rounded-full" />
+            ))}
+          </div>
+        ) : myCirclesQuery.isError ? (
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <AlertCircleIcon className="size-4 text-destructive" />
+            <span>{t("Failed to load circles.")}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => myCirclesQuery.refetch()}
+            >
+              {t("Try again")}
+            </Button>
+          </div>
+        ) : (myCirclesQuery.data ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {t("You haven't picked any circles yet.")}
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {(myCirclesQuery.data ?? []).map((c) => (
+              <Badge key={c.id} variant="secondary">
+                {c.labels[locale]}
+              </Badge>
+            ))}
+          </div>
+        )}
       </section>
 
       <Separator className="my-8" />

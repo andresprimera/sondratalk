@@ -26,6 +26,7 @@ describe('CirclesService', () => {
       findByIdAndDelete: jest.fn(),
       exists: jest.fn(),
       aggregate: jest.fn(),
+      hydrate: jest.fn((doc: unknown) => doc),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -188,6 +189,7 @@ describe('CirclesService', () => {
       ]);
 
       expect(result).toEqual({ data: [mockCircle], total: 1 });
+      expect(model.hydrate).toHaveBeenCalledWith(mockCircle);
     });
 
     it('omits the themeId filter when not provided', async () => {

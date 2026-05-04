@@ -6,9 +6,6 @@
   "Cancel": "Cancel",
   "Submit": "Submit",
   "Edit": "Edit",
-  "Open": "Open",
-  "Share": "Share",
-  "More": "More",
   "Rows per page": "Rows per page",
   "Page {{page}} of {{totalPages}}": "Page {{page}} of {{totalPages}}",
   "Go to first page": "Go to first page",
@@ -17,17 +14,8 @@
   "Go to last page": "Go to last page",
 
   "Dashboard": "Dashboard",
-  "Lifecycle": "Lifecycle",
-  "Analytics": "Analytics",
-  "Projects": "Projects",
-  "Team": "Team",
   "Users": "Users",
   "Settings": "Settings",
-  "Get Help": "Get Help",
-  "Search": "Search",
-  "Data Library": "Data Library",
-  "Reports": "Reports",
-  "Word Assistant": "Word Assistant",
   "Account": "Account",
   "Billing": "Billing",
   "Notifications": "Notifications",
@@ -418,5 +406,8 @@
   "Select a theme": "Select a theme",
   "{{count}} circle total_one": "{{count}} circle total",
   "{{count}} circle total_other": "{{count}} circles total",
-  "Load more": "Load more"
+  "Load more": "Load more",
+  "You haven't picked any circles yet.": "You haven't picked any circles yet.",
+  "Failed to save your circles": "Failed to save your circles",
+  "Too many circles selected": "Too many circles selected"
 }

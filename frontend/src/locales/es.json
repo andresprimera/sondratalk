@@ -6,9 +6,6 @@
   "Cancel": "Cancelar",
   "Submit": "Enviar",
   "Edit": "Editar",
-  "Open": "Abrir",
-  "Share": "Compartir",
-  "More": "Más",
   "Rows per page": "Filas por página",
   "Page {{page}} of {{totalPages}}": "Página {{page}} de {{totalPages}}",
   "Go to first page": "Ir a la primera página",
@@ -17,17 +14,8 @@
   "Go to last page": "Ir a la última página",
 
   "Dashboard": "Panel",
-  "Lifecycle": "Ciclo de vida",
-  "Analytics": "Analítica",
-  "Projects": "Proyectos",
-  "Team": "Equipo",
   "Users": "Usuarios",
   "Settings": "Configuración",
-  "Get Help": "Obtener ayuda",
-  "Search": "Buscar",
-  "Data Library": "Biblioteca de datos",
-  "Reports": "Informes",
-  "Word Assistant": "Asistente de texto",
   "Account": "Cuenta",
   "Billing": "Facturación",
   "Notifications": "Notificaciones",
@@ -418,5 +406,8 @@
   "Select a theme": "Selecciona un tema",
   "{{count}} circle total_one": "{{count}} círculo total",
   "{{count}} circle total_other": "{{count}} círculos en total",
-  "Load more": "Cargar más"
+  "Load more": "Cargar más",
+  "You haven't picked any circles yet.": "Aún no has elegido círculos.",
+  "Failed to save your circles": "No se pudieron guardar tus círculos",
+  "Too many circles selected": "Demasiados círculos seleccionados"
 }

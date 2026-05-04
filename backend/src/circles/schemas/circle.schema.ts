@@ -1,5 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
+import {
+  HydratedDocument,
+  Query,
+  Schema as MongooseSchema,
+  Types,
+} from 'mongoose';
 
 // NOTE: locale fields here (en, es) must stay in sync with LOCALE_KEYS in
 // shared/src/schemas/circle.ts. Adding a new locale = update both places.
@@ -70,3 +75,19 @@ export class Circle {
 export const CircleSchema = SchemaFactory.createForClass(Circle);
 
 CircleSchema.index({ themeId: 1, popularity: -1 });
+
+// Cascade delete: when a circle is removed, wipe its memberships so the
+// `circle_memberships` collection doesn't accumulate orphans. Mirror the
+// same pattern in user.schema.ts.
+CircleSchema.post(
+  'findOneAndDelete',
+  async function (
+    this: Query<CircleDocument | null, CircleDocument>,
+    res: CircleDocument | null,
+  ) {
+    if (!res) return;
+    await this.model.db
+      .model('Membership')
+      .deleteMany({ circleId: res._id });
+  },
+);

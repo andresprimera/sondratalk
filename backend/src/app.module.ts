@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ThemesModule } from './themes/themes.module';
 import { CirclesModule } from './circles/circles.module';
+import { MembershipsModule } from './memberships/memberships.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { SeederModule } from './seeder/seeder.module';
 
@@ -33,6 +34,7 @@ import { SeederModule } from './seeder/seeder.module';
     UsersModule,
     ThemesModule,
     CirclesModule,
+    MembershipsModule,
     SeederModule,
   ],
   controllers: [AppController],

@@ -56,3 +56,8 @@ export {
   circleSearchQuerySchema,
   type CircleSearchQuery,
 } from "./schemas/circle";
+
+export {
+  updateMyCirclesSchema,
+  type UpdateMyCirclesInput,
+} from "./schemas/membership";

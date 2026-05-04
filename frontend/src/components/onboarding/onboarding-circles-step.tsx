@@ -8,12 +8,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 
+export interface OnboardingCircle {
+  id: string
+  label: string
+}
+
 interface OnboardingCirclesStepProps {
-  circles: string[]
-  onCirclesChange: (next: string[]) => void
+  circles: OnboardingCircle[]
+  onCirclesChange: (next: OnboardingCircle[]) => void
   inputValue: string
   onInputChange: (value: string) => void
-  onNext: () => void
+  onSubmit: () => void
+  isSubmitting: boolean
   onBack: () => void
 }
 
@@ -25,7 +31,8 @@ export function OnboardingCirclesStep({
   onCirclesChange,
   inputValue,
   onInputChange,
-  onNext,
+  onSubmit,
+  isSubmitting,
   onBack,
 }: OnboardingCirclesStepProps) {
   const { t, i18n } = useTranslation()
@@ -70,14 +77,13 @@ export function OnboardingCirclesStep({
 
   const fetchedCircles: Circle[] = data?.pages.flatMap((p) => p.data) ?? []
 
-  function add(name: string) {
-    const clean = name.trim()
-    if (!clean || circles.includes(clean)) return
-    onCirclesChange([...circles, clean])
+  function add(circle: OnboardingCircle) {
+    if (circles.some((c) => c.id === circle.id)) return
+    onCirclesChange([...circles, circle])
   }
 
-  function remove(name: string) {
-    onCirclesChange(circles.filter((c) => c !== name))
+  function remove(id: string) {
+    onCirclesChange(circles.filter((c) => c.id !== id))
   }
 
   const revealVisible = circles.length >= 2
@@ -113,13 +119,13 @@ export function OnboardingCirclesStep({
       {circles.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-2">
           {circles.map((c) => (
-            <span key={c} className="onboarding-tag">
-              {t(c)}
+            <span key={c.id} className="onboarding-tag">
+              {c.label}
               <button
                 type="button"
                 className="onboarding-tag-remove"
-                onClick={() => remove(c)}
-                aria-label={t("Remove {{circle}}", { circle: t(c) })}
+                onClick={() => remove(c.id)}
+                aria-label={t("Remove {{circle}}", { circle: c.label })}
               >
                 <X className="size-3.5" />
               </button>
@@ -167,17 +173,14 @@ export function OnboardingCirclesStep({
           <div className="onboarding-chip-row mb-4">
             {fetchedCircles.map((c) => {
               const label = c.labels[locale]
-              // Comparing by localized label: known limitation if the user
-              // toggles UI language mid-onboarding (chip may re-enable,
-              // allowing a duplicate). Acceptable until persistence lands.
-              const used = circles.includes(label)
+              const used = circles.some((sel) => sel.id === c.id)
               return (
                 <button
                   key={c.id}
                   type="button"
                   className="onboarding-chip"
                   data-used={used}
-                  onClick={() => add(label)}
+                  onClick={() => add({ id: c.id, label })}
                   aria-pressed={used}
                 >
                   {label}
@@ -207,10 +210,10 @@ export function OnboardingCirclesStep({
         <Button
           size="xl"
           className="landing-flicker tracking-[0.05em]"
-          onClick={onNext}
-          disabled={circles.length === 0}
+          onClick={onSubmit}
+          disabled={circles.length === 0 || isSubmitting}
         >
-          {t("Enter Sondra →")}
+          {isSubmitting ? t("Saving...") : t("Enter Sondra →")}
         </Button>
       </div>
     </section>

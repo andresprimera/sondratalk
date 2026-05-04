@@ -100,14 +100,18 @@ export class CirclesService {
       },
     ] as unknown as PipelineStage[];
 
-    const [hits, meta] = await Promise.all([
-      this.circleModel.aggregate<CircleDocument>(searchPipeline).exec(),
+    const [rawHits, meta] = await Promise.all([
+      this.circleModel.aggregate(searchPipeline).exec(),
       this.circleModel
         .aggregate<{ count: { lowerBound?: number; total?: number } }>(
           metaPipeline,
         )
         .exec(),
     ]);
+
+    // Aggregation returns raw POJOs without Mongoose virtuals (notably `id`).
+    // Hydrate so callers can read `doc.id` consistently with `find()` results.
+    const hits = rawHits.map((doc) => this.circleModel.hydrate(doc));
 
     const total = meta[0]?.count?.total ?? meta[0]?.count?.lowerBound ?? 0;
 
@@ -116,6 +120,12 @@ export class CirclesService {
 
   async findById(id: string): Promise<CircleDocument | null> {
     return this.circleModel.findById(id);
+  }
+
+  async findByIds(ids: string[]): Promise<CircleDocument[]> {
+    if (ids.length === 0) return [];
+    const objectIds = ids.map((id) => new Types.ObjectId(id));
+    return this.circleModel.find({ _id: { $in: objectIds } });
   }
 
   async findBySlugExists(slug: string): Promise<boolean> {
