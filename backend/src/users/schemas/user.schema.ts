@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Query } from 'mongoose';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -28,3 +28,19 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+// Cascade delete: when a user is removed (admin deletes them), wipe their
+// memberships from the `circle_memberships` collection. Mirror the same
+// pattern in circle.schema.ts.
+UserSchema.post(
+  'findOneAndDelete',
+  async function (
+    this: Query<UserDocument | null, UserDocument>,
+    res: UserDocument | null,
+  ) {
+    if (!res) return;
+    await this.model.db
+      .model('Membership')
+      .deleteMany({ userId: res._id });
+  },
+);

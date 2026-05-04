@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Patch,
   Delete,
   Param,
@@ -17,6 +18,8 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from './users.service';
+import { MembershipsService } from '../memberships/memberships.service';
+import { toCircle } from '../circles/circle.mapper';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -25,6 +28,7 @@ import {
   updateUserRoleSchema,
   type UpdateUserRoleInput,
   type Role,
+  type Circle,
   type PaginatedResponse,
   type User,
 } from '@base-dashboard/shared';
@@ -44,10 +48,17 @@ import {
   createUserSchema,
   type CreateUserInput,
 } from './dto/create-user.dto';
+import {
+  updateMyCirclesSchema,
+  type UpdateMyCirclesInput,
+} from '../memberships/dto';
 
 @Controller('users')
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private membershipsService: MembershipsService,
+  ) {}
 
   // --- Current user endpoints (all authenticated users) ---
 
@@ -105,6 +116,27 @@ export class UsersController {
     }
     const hashedPassword = await bcrypt.hash(dto.newPassword, 12);
     await this.usersService.updatePassword(userId, hashedPassword);
+  }
+
+  @Get('me/circles')
+  async getMyCircles(
+    @CurrentUser('userId') userId: string,
+  ): Promise<Circle[]> {
+    const docs = await this.membershipsService.findCirclesForUser(userId);
+    return docs.map(toCircle);
+  }
+
+  @Put('me/circles')
+  async updateMyCircles(
+    @CurrentUser('userId') userId: string,
+    @Body(new ZodValidationPipe(updateMyCirclesSchema))
+    dto: UpdateMyCirclesInput,
+  ): Promise<Circle[]> {
+    const docs = await this.membershipsService.replaceCirclesForUser(
+      userId,
+      dto.circleIds,
+    );
+    return docs.map(toCircle);
   }
 
   // --- Admin-only endpoints ---

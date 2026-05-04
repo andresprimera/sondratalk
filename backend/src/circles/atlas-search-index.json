@@ -1,0 +1,48 @@
+{
+  "mappings": {
+    "dynamic": false,
+    "fields": {
+      "labels": {
+        "type": "document",
+        "fields": {
+          "en": [
+            { "type": "autocomplete" },
+            { "type": "string" }
+          ],
+          "es": [
+            { "type": "autocomplete" },
+            { "type": "string" }
+          ]
+        }
+      },
+      "aliases": {
+        "type": "document",
+        "fields": {
+          "en": [
+            { "type": "autocomplete" },
+            { "type": "string" }
+          ],
+          "es": [
+            { "type": "autocomplete" },
+            { "type": "string" }
+          ]
+        }
+      },
+      "themeLabels": {
+        "type": "document",
+        "fields": {
+          "en": [
+            { "type": "autocomplete" },
+            { "type": "string" }
+          ],
+          "es": [
+            { "type": "autocomplete" },
+            { "type": "string" }
+          ]
+        }
+      },
+      "themeId": { "type": "objectId" },
+      "popularity": { "type": "number" }
+    }
+  }
+}

@@ -1,7 +1,6 @@
 import * as React from "react"
 import { useTranslation } from "react-i18next"
 
-import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
@@ -14,7 +13,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon } from "lucide-react"
+import {
+  LayoutDashboardIcon,
+  UsersIcon,
+  Settings2Icon,
+  CommandIcon,
+  LayersIcon,
+  CircleDotIcon,
+} from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { Link } from "react-router"
 
@@ -25,11 +31,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const adminNavMain = [
     { title: t("Dashboard"), url: "/dashboard", icon: <LayoutDashboardIcon /> },
-    { title: t("Lifecycle"), url: "#", icon: <ListIcon /> },
-    { title: t("Analytics"), url: "#", icon: <ChartBarIcon /> },
-    { title: t("Projects"), url: "#", icon: <FolderIcon /> },
-    { title: t("Team"), url: "#", icon: <UsersIcon /> },
     { title: t("Users"), url: "/dashboard/users", icon: <UsersIcon /> },
+    { title: t("Themes"), url: "/dashboard/themes", icon: <LayersIcon /> },
+    { title: t("Circles"), url: "/dashboard/circles", icon: <CircleDotIcon /> },
   ]
 
   const userNavMain = [
@@ -38,14 +42,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const navSecondary = [
     { title: t("Settings"), url: "/dashboard/settings", icon: <Settings2Icon /> },
-    { title: t("Get Help"), url: "#", icon: <CircleHelpIcon /> },
-    { title: t("Search"), url: "#", icon: <SearchIcon /> },
-  ]
-
-  const documents = [
-    { name: t("Data Library"), url: "#", icon: <DatabaseIcon /> },
-    { name: t("Reports"), url: "#", icon: <FileChartColumnIcon /> },
-    { name: t("Word Assistant"), url: "#", icon: <FileIcon /> },
   ]
 
   return (
@@ -65,7 +61,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={isAdmin ? adminNavMain : userNavMain} />
-        {isAdmin && <NavDocuments items={documents} />}
         <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

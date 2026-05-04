@@ -1,16 +1,32 @@
-// Onboarding is a transient pre-dashboard ceremony. State is intentionally
-// component-local — no react-hook-form, no API calls — until persistence lands.
+// Onboarding is a transient pre-dashboard ceremony. Step 3 persists circle
+// memberships; steps 1 and 2 are still local-state-only (location and
+// languages persistence is a follow-up).
 import { useState } from "react"
+import { Navigate } from "react-router"
+import { useTranslation } from "react-i18next"
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
+import { toast } from "sonner"
 import { OnboardingProgress } from "@/components/onboarding/onboarding-progress"
 import { OnboardingLocationStep } from "@/components/onboarding/onboarding-location-step"
 import {
   OnboardingLanguagesStep,
   type OnboardingLanguage,
 } from "@/components/onboarding/onboarding-languages-step"
-import { OnboardingCirclesStep } from "@/components/onboarding/onboarding-circles-step"
+import {
+  OnboardingCirclesStep,
+  type OnboardingCircle,
+} from "@/components/onboarding/onboarding-circles-step"
 import { OnboardingWelcomeStep } from "@/components/onboarding/onboarding-welcome-step"
 import { detectTimezone } from "@/lib/timezones"
 import { detectBrowserLanguage } from "@/lib/languages"
+import {
+  fetchMyCirclesApi,
+  updateMyCirclesApi,
+} from "@/lib/memberships"
 
 type Step = 1 | 2 | 3 | 4
 
@@ -27,18 +43,56 @@ function detectInitialLanguages(): OnboardingLanguage[] {
 }
 
 export default function OnboardingPage() {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+
   const [step, setStep] = useState<Step>(1)
   const [detectedIana] = useState(detectInitialIana)
   const [selectedIana, setSelectedIana] = useState(detectedIana)
   const [languages, setLanguages] = useState<OnboardingLanguage[]>(
     detectInitialLanguages
   )
-  const [circles, setCircles] = useState<string[]>([])
+  const [circles, setCircles] = useState<OnboardingCircle[]>([])
   const [circleInput, setCircleInput] = useState("")
+
+  const myCirclesQuery = useQuery({
+    queryKey: ["users", "me", "circles"] as const,
+    queryFn: fetchMyCirclesApi,
+  })
+
+  const submitMutation = useMutation({
+    mutationFn: updateMyCirclesApi,
+    onSuccess: (data) => {
+      queryClient.setQueryData(["users", "me", "circles"], data)
+      setStep(4)
+      window.scrollTo(0, 0)
+    },
+    onError: () => {
+      toast.error(t("Failed to save your circles"))
+    },
+  })
 
   function go(next: Step) {
     setStep(next)
     window.scrollTo(0, 0)
+  }
+
+  function handleSubmit() {
+    submitMutation.mutate({ circleIds: circles.map((c) => c.id) })
+  }
+
+  // Skip onboarding only when the user already has memberships. Gating on
+  // `isSuccess` means a brief flash of step 1 for returning users (until
+  // the query resolves and the redirect kicks in) — acceptable because
+  // returning users almost never land on /onboarding directly. Step !== 4
+  // keeps the welcome screen reachable after a fresh submit, since the
+  // mutation seeds the cache before advancing to step 4.
+  if (
+    step !== 4 &&
+    myCirclesQuery.isSuccess &&
+    myCirclesQuery.data.length > 0
+  ) {
+    return <Navigate to="/dashboard" replace />
   }
 
   return (
@@ -73,7 +127,8 @@ export default function OnboardingPage() {
             onCirclesChange={setCircles}
             inputValue={circleInput}
             onInputChange={setCircleInput}
-            onNext={() => go(4)}
+            onSubmit={handleSubmit}
+            isSubmitting={submitMutation.isPending}
             onBack={() => go(2)}
           />
         )}

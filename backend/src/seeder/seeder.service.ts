@@ -2,6 +2,10 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
+import { ThemesService } from '../themes/themes.service';
+import { CirclesService } from '../circles/circles.service';
+import { SEED_THEMES } from './data/themes';
+import { SEED_CIRCLES } from './data/circles';
 
 @Injectable()
 export class SeederService implements OnModuleInit {
@@ -9,11 +13,15 @@ export class SeederService implements OnModuleInit {
 
   constructor(
     private readonly usersService: UsersService,
+    private readonly themesService: ThemesService,
+    private readonly circlesService: CirclesService,
     private readonly configService: ConfigService,
   ) {}
 
   async onModuleInit(): Promise<void> {
     await this.seedAdminUser();
+    await this.seedThemes();
+    await this.seedCircles();
   }
 
   private async seedAdminUser(): Promise<void> {
@@ -41,5 +49,35 @@ export class SeederService implements OnModuleInit {
     });
 
     this.logger.log(`Seeded default admin user: ${email}`);
+  }
+
+  private async seedThemes(): Promise<void> {
+    for (const seed of SEED_THEMES) {
+      const { id, ...data } = seed;
+      await this.themesService.upsertById(id, data);
+    }
+    this.logger.log(`Seeded ${SEED_THEMES.length} themes`);
+  }
+
+  private async seedCircles(): Promise<void> {
+    // Build an in-memory map of theme id → labels so we can denormalize
+    // themeLabels onto each seeded circle. Source of truth is SEED_THEMES,
+    // which seedThemes() upserted just before this call.
+    const themeLabelsById = new Map(
+      SEED_THEMES.map((t) => [t.id, { en: t.labels.en, es: t.labels.es }]),
+    );
+
+    for (const seed of SEED_CIRCLES) {
+      const { id, ...data } = seed;
+      const themeLabels = themeLabelsById.get(data.themeId);
+      if (!themeLabels) {
+        this.logger.warn(
+          `Skipping circle ${seed.slug}: theme ${data.themeId} not in SEED_THEMES`,
+        );
+        continue;
+      }
+      await this.circlesService.upsertById(id, data, themeLabels);
+    }
+    this.logger.log(`Seeded ${SEED_CIRCLES.length} circles`);
   }
 }
