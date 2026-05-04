@@ -52,7 +52,9 @@ import {
 import { toast } from "sonner"
 
 export default function ThemesPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale: "en" | "es" =
+    i18n.language?.split("-")[0] === "es" ? "es" : "en"
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -195,7 +197,9 @@ export default function ThemesPage() {
                   <TableCell className="font-mono text-sm">
                     {theme.slug}
                   </TableCell>
-                  <TableCell className="font-medium">{theme.label}</TableCell>
+                  <TableCell className="font-medium">
+                    {theme.labels[locale]}
+                  </TableCell>
                   <TableCell>{theme.sortOrder}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">

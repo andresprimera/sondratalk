@@ -8,7 +8,12 @@ import { CreateCircleInput, UpdateCircleInput } from './dto';
 // Name of the Atlas Search index defined on the `circles` collection.
 // Must match the index name shown in Atlas → Search tab. The index
 // definition itself is documented in backend/src/circles/atlas-search-index.json.
-const CIRCLES_SEARCH_INDEX = 'circle_search';
+const CIRCLES_SEARCH_INDEX = 'circles_search';
+
+export interface ThemeLabelsSnapshot {
+  en: string;
+  es: string;
+}
 
 @Injectable()
 export class CirclesService {
@@ -16,9 +21,12 @@ export class CirclesService {
     @InjectModel(Circle.name) private circleModel: Model<Circle>,
   ) {}
 
-  async create(dto: CreateCircleInput): Promise<CircleDocument> {
+  async create(
+    dto: CreateCircleInput,
+    themeLabels: ThemeLabelsSnapshot,
+  ): Promise<CircleDocument> {
     const aliases = dto.aliases ?? { en: [], es: [] };
-    return this.circleModel.create({ ...dto, aliases });
+    return this.circleModel.create({ ...dto, aliases, themeLabels });
   }
 
   async findAllPaginated(
@@ -52,11 +60,13 @@ export class CirclesService {
 
     const labelPath = `labels.${locale}`;
     const aliasPath = `aliases.${locale}`;
+    const themePath = `themeLabels.${locale}`;
 
     const compound = {
       should: [
         { autocomplete: { query: q, path: labelPath } },
         { autocomplete: { query: q, path: aliasPath } },
+        { autocomplete: { query: q, path: themePath } },
         { text: { query: q, path: labelPath, fuzzy: { maxEdits: 1 } } },
       ],
       minimumShouldMatch: 1,
@@ -115,18 +125,21 @@ export class CirclesService {
   async update(
     id: string,
     dto: UpdateCircleInput,
+    themeLabels?: ThemeLabelsSnapshot,
   ): Promise<CircleDocument | null> {
-    return this.circleModel.findByIdAndUpdate(id, dto, { new: true });
+    const update = themeLabels ? { ...dto, themeLabels } : dto;
+    return this.circleModel.findByIdAndUpdate(id, update, { new: true });
   }
 
   async upsertById(
     id: string,
     data: CreateCircleInput,
+    themeLabels: ThemeLabelsSnapshot,
   ): Promise<CircleDocument | null> {
     const aliases = data.aliases ?? { en: [], es: [] };
     return this.circleModel.findByIdAndUpdate(
       id,
-      { ...data, aliases },
+      { ...data, aliases, themeLabels },
       {
         upsert: true,
         setDefaultsOnInsert: true,

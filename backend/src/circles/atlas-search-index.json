@@ -28,6 +28,19 @@
           ]
         }
       },
+      "themeLabels": {
+        "type": "document",
+        "fields": {
+          "en": [
+            { "type": "autocomplete" },
+            { "type": "string" }
+          ],
+          "es": [
+            { "type": "autocomplete" },
+            { "type": "string" }
+          ]
+        }
+      },
       "themeId": { "type": "objectId" },
       "popularity": { "type": "number" }
     }

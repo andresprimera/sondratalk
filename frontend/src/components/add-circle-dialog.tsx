@@ -47,7 +47,9 @@ export function AddCircleDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale: "en" | "es" =
+    i18n.language?.split("-")[0] === "es" ? "es" : "en"
   const queryClient = useQueryClient()
 
   const { data: themes = [] } = useQuery({
@@ -136,7 +138,7 @@ export function AddCircleDialog({
                     <SelectContent>
                       {themes.map((theme) => (
                         <SelectItem key={theme.id} value={theme.id}>
-                          {theme.label}
+                          {theme.labels[locale]}
                         </SelectItem>
                       ))}
                     </SelectContent>

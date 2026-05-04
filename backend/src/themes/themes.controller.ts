@@ -35,7 +35,7 @@ function toTheme(doc: ThemeDocument): Theme {
   return {
     id: doc.id,
     slug: doc.slug,
-    label: doc.label,
+    labels: { en: doc.labels.en, es: doc.labels.es },
     sortOrder: doc.sortOrder,
   };
 }

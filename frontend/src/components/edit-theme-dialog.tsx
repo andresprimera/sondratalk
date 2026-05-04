@@ -50,7 +50,7 @@ export function EditThemeDialog({
     if (theme) {
       reset({
         slug: theme.slug,
-        label: theme.label,
+        labels: { en: theme.labels.en, es: theme.labels.es },
         sortOrder: theme.sortOrder,
       })
     }
@@ -99,15 +99,32 @@ export function EditThemeDialog({
               </FieldDescription>
             </Field>
             <Field>
-              <FieldLabel htmlFor="edit-theme-label">{t("Label")}</FieldLabel>
+              <FieldLabel htmlFor="edit-theme-label-en">
+                {t("English label")}
+              </FieldLabel>
               <Input
-                id="edit-theme-label"
+                id="edit-theme-label-en"
                 type="text"
-                {...register("label")}
+                {...register("labels.en")}
               />
-              {errors.label && (
+              {errors.labels?.en && (
                 <FieldDescription className="text-destructive">
-                  {t(errors.label.message ?? "")}
+                  {t(errors.labels.en.message ?? "")}
+                </FieldDescription>
+              )}
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="edit-theme-label-es">
+                {t("Spanish label")}
+              </FieldLabel>
+              <Input
+                id="edit-theme-label-es"
+                type="text"
+                {...register("labels.es")}
+              />
+              {errors.labels?.es && (
+                <FieldDescription className="text-destructive">
+                  {t(errors.labels.es.message ?? "")}
                 </FieldDescription>
               )}
             </Field>

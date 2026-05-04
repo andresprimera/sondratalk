@@ -26,6 +26,21 @@ export class CircleAliases {
 }
 const CircleAliasesSchema = SchemaFactory.createForClass(CircleAliases);
 
+// Denormalized copy of the parent Theme's labels. Kept on the Circle so
+// Atlas Search can match circles by their theme's localized name (e.g.,
+// typing "perros" in Spanish UI surfaces all circles in the "Perros"
+// theme). Cascade-updated by a post-findOneAndUpdate hook on Theme — see
+// backend/src/themes/schemas/theme.schema.ts.
+@Schema({ _id: false })
+export class CircleThemeLabels {
+  @Prop({ required: true, trim: true })
+  en: string;
+
+  @Prop({ required: true, trim: true })
+  es: string;
+}
+const CircleThemeLabelsSchema = SchemaFactory.createForClass(CircleThemeLabels);
+
 @Schema({ timestamps: true })
 export class Circle {
   @Prop({ required: true, unique: true, lowercase: true, trim: true })
@@ -44,6 +59,9 @@ export class Circle {
 
   @Prop({ type: CircleAliasesSchema, default: () => ({ en: [], es: [] }) })
   aliases: CircleAliases;
+
+  @Prop({ type: CircleThemeLabelsSchema, required: true })
+  themeLabels: CircleThemeLabels;
 
   @Prop({ required: true, default: 0, min: 0 })
   popularity: number;

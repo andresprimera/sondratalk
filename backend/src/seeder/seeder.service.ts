@@ -60,9 +60,23 @@ export class SeederService implements OnModuleInit {
   }
 
   private async seedCircles(): Promise<void> {
+    // Build an in-memory map of theme id → labels so we can denormalize
+    // themeLabels onto each seeded circle. Source of truth is SEED_THEMES,
+    // which seedThemes() upserted just before this call.
+    const themeLabelsById = new Map(
+      SEED_THEMES.map((t) => [t.id, { en: t.labels.en, es: t.labels.es }]),
+    );
+
     for (const seed of SEED_CIRCLES) {
       const { id, ...data } = seed;
-      await this.circlesService.upsertById(id, data);
+      const themeLabels = themeLabelsById.get(data.themeId);
+      if (!themeLabels) {
+        this.logger.warn(
+          `Skipping circle ${seed.slug}: theme ${data.themeId} not in SEED_THEMES`,
+        );
+        continue;
+      }
+      await this.circlesService.upsertById(id, data, themeLabels);
     }
     this.logger.log(`Seeded ${SEED_CIRCLES.length} circles`);
   }

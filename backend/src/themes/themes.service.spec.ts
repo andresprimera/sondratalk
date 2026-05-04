@@ -10,7 +10,7 @@ describe('ThemesService', () => {
   const mockTheme = {
     id: 'theme-1',
     slug: 'dogs',
-    label: 'Dogs',
+    labels: { en: 'Dogs', es: 'Perros' },
     sortOrder: 0,
   };
 
@@ -37,7 +37,7 @@ describe('ThemesService', () => {
 
   describe('create', () => {
     it('should create a theme', async () => {
-      const dto = { slug: 'dogs', label: 'Dogs', sortOrder: 0 };
+      const dto = { slug: 'dogs', labels: { en: 'Dogs', es: 'Perros' }, sortOrder: 0 };
       model.create.mockResolvedValue(mockTheme);
 
       const result = await service.create(dto);
@@ -48,13 +48,16 @@ describe('ThemesService', () => {
   });
 
   describe('findAll', () => {
-    it('should return all themes sorted by sortOrder then label', async () => {
+    it('should return all themes sorted by sortOrder then English label', async () => {
       const chainable = { sort: jest.fn().mockResolvedValue([mockTheme]) };
       model.find.mockReturnValue(chainable);
 
       const result = await service.findAll();
 
-      expect(chainable.sort).toHaveBeenCalledWith({ sortOrder: 1, label: 1 });
+      expect(chainable.sort).toHaveBeenCalledWith({
+        sortOrder: 1,
+        'labels.en': 1,
+      });
       expect(result).toEqual([mockTheme]);
     });
   });
@@ -130,14 +133,15 @@ describe('ThemesService', () => {
 
   describe('update', () => {
     it('should update theme and return updated doc', async () => {
-      const updated = { ...mockTheme, label: 'Doggos' };
+      const newLabels = { en: 'Doggos', es: 'Perritos' };
+      const updated = { ...mockTheme, labels: newLabels };
       model.findByIdAndUpdate.mockResolvedValue(updated);
 
-      const result = await service.update('theme-1', { label: 'Doggos' });
+      const result = await service.update('theme-1', { labels: newLabels });
 
       expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
         'theme-1',
-        { label: 'Doggos' },
+        { labels: newLabels },
         { new: true },
       );
       expect(result).toEqual(updated);
@@ -146,7 +150,9 @@ describe('ThemesService', () => {
     it('should return null when not found', async () => {
       model.findByIdAndUpdate.mockResolvedValue(null);
 
-      const result = await service.update('missing', { label: 'X' });
+      const result = await service.update('missing', {
+        labels: { en: 'X', es: 'X' },
+      });
 
       expect(result).toBeNull();
     });
@@ -154,7 +160,7 @@ describe('ThemesService', () => {
 
   describe('upsertById', () => {
     it('upserts by id with setDefaultsOnInsert', async () => {
-      const seed = { slug: 'dogs', label: 'Dogs', sortOrder: 1 };
+      const seed = { slug: 'dogs', labels: { en: 'Dogs', es: 'Perros' }, sortOrder: 1 };
       model.findByIdAndUpdate.mockResolvedValue({ id: 'theme-1', ...seed });
 
       const result = await service.upsertById('theme-1', seed);

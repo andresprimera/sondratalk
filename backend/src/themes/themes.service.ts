@@ -15,7 +15,7 @@ export class ThemesService {
   }
 
   async findAll(): Promise<ThemeDocument[]> {
-    return this.themeModel.find().sort({ sortOrder: 1, label: 1 });
+    return this.themeModel.find().sort({ sortOrder: 1, 'labels.en': 1 });
   }
 
   async findAllPaginated(
@@ -26,7 +26,7 @@ export class ThemesService {
     const [data, total] = await Promise.all([
       this.themeModel
         .find()
-        .sort({ sortOrder: 1, label: 1 })
+        .sort({ sortOrder: 1, 'labels.en': 1 })
         .skip(skip)
         .limit(limit),
       this.themeModel.countDocuments(),

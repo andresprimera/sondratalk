@@ -37,7 +37,7 @@ describe("themes API", () => {
 
   describe("fetchAllThemesApi", () => {
     it("GETs /api/themes/all", async () => {
-      const themes = [{ id: "t1", slug: "dogs", label: "Dogs", sortOrder: 0 }]
+      const themes = [{ id: "t1", slug: "dogs", labels: { en: "Dogs", es: "Perros" }, sortOrder: 0 }]
       vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(themes))
 
       const result = await fetchAllThemesApi()
@@ -49,7 +49,7 @@ describe("themes API", () => {
 
   describe("fetchThemeByIdApi", () => {
     it("GETs /api/themes/:id", async () => {
-      const theme = { id: "t1", slug: "dogs", label: "Dogs", sortOrder: 0 }
+      const theme = { id: "t1", slug: "dogs", labels: { en: "Dogs", es: "Perros" }, sortOrder: 0 }
       vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(theme))
 
       const result = await fetchThemeByIdApi("t1")
@@ -61,10 +61,10 @@ describe("themes API", () => {
 
   describe("createThemeApi", () => {
     it("POSTs /api/themes with the body", async () => {
-      const theme = { id: "t1", slug: "dogs", label: "Dogs", sortOrder: 0 }
+      const theme = { id: "t1", slug: "dogs", labels: { en: "Dogs", es: "Perros" }, sortOrder: 0 }
       vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(theme))
 
-      const dto = { slug: "dogs", label: "Dogs", sortOrder: 0 }
+      const dto = { slug: "dogs", labels: { en: "Dogs", es: "Perros" }, sortOrder: 0 }
       const result = await createThemeApi(dto)
 
       expect(authFetch).toHaveBeenCalledWith("/api/themes", {
@@ -77,14 +77,14 @@ describe("themes API", () => {
 
   describe("updateThemeApi", () => {
     it("PATCHes /api/themes/:id with the body", async () => {
-      const theme = { id: "t1", slug: "dogs", label: "Doggos", sortOrder: 0 }
+      const theme = { id: "t1", slug: "dogs", labels: { en: "Doggos", es: "Perritos" }, sortOrder: 0 }
       vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(theme))
 
-      const result = await updateThemeApi("t1", { label: "Doggos" })
+      const result = await updateThemeApi("t1", { labels: { en: "Doggos", es: "Perritos" } })
 
       expect(authFetch).toHaveBeenCalledWith("/api/themes/t1", {
         method: "PATCH",
-        body: JSON.stringify({ label: "Doggos" }),
+        body: JSON.stringify({ labels: { en: "Doggos", es: "Perritos" } }),
       })
       expect(result).toEqual(theme)
     })

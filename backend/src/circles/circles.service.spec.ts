@@ -39,21 +39,27 @@ describe('CirclesService', () => {
   });
 
   describe('create', () => {
-    it('persists the circle with default aliases when none are passed', async () => {
+    const themeLabels = { en: 'Dogs', es: 'Perros' };
+
+    it('persists the circle with default aliases and the snapshot themeLabels', async () => {
       model.create.mockResolvedValue(mockCircle);
 
-      const result = await service.create({
-        slug: 'german-shepherd',
-        themeId: 'theme-1',
-        labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
-        popularity: 0,
-      });
+      const result = await service.create(
+        {
+          slug: 'german-shepherd',
+          themeId: 'theme-1',
+          labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
+          popularity: 0,
+        },
+        themeLabels,
+      );
 
       expect(model.create).toHaveBeenCalledWith({
         slug: 'german-shepherd',
         themeId: 'theme-1',
         labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
         aliases: { en: [], es: [] },
+        themeLabels,
         popularity: 0,
       });
       expect(result).toEqual(mockCircle);
@@ -62,13 +68,16 @@ describe('CirclesService', () => {
     it('persists aliases passed by the caller', async () => {
       model.create.mockResolvedValue(mockCircle);
 
-      await service.create({
-        slug: 'german-shepherd',
-        themeId: 'theme-1',
-        labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
-        aliases: { en: ['GSD'], es: [] },
-        popularity: 0,
-      });
+      await service.create(
+        {
+          slug: 'german-shepherd',
+          themeId: 'theme-1',
+          labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
+          aliases: { en: ['GSD'], es: [] },
+          popularity: 0,
+        },
+        themeLabels,
+      );
 
       expect(model.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -137,7 +146,7 @@ describe('CirclesService', () => {
       expect(searchPipeline).toEqual([
         {
           $search: {
-            index: 'circle_search',
+            index: 'circles_search',
             compound: expect.objectContaining({
               should: expect.arrayContaining([
                 { autocomplete: { query: 'ger', path: 'labels.en' } },
@@ -171,7 +180,7 @@ describe('CirclesService', () => {
       expect(metaPipeline).toEqual([
         {
           $searchMeta: expect.objectContaining({
-            index: 'circle_search',
+            index: 'circles_search',
             compound: expect.objectContaining({ minimumShouldMatch: 1 }),
             count: { type: 'total' },
           }),
@@ -307,7 +316,9 @@ describe('CirclesService', () => {
   });
 
   describe('upsertById', () => {
-    it('upserts by id with setDefaultsOnInsert and default aliases', async () => {
+    const themeLabels = { en: 'Dogs', es: 'Perros' };
+
+    it('upserts by id with setDefaultsOnInsert, default aliases, and themeLabels', async () => {
       const seed = {
         slug: 'german-shepherd',
         themeId: 'theme-1',
@@ -316,11 +327,11 @@ describe('CirclesService', () => {
       };
       model.findByIdAndUpdate.mockResolvedValue({ id: 'circle-1', ...seed });
 
-      const result = await service.upsertById('circle-1', seed);
+      const result = await service.upsertById('circle-1', seed, themeLabels);
 
       expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
         'circle-1',
-        { ...seed, aliases: { en: [], es: [] } },
+        { ...seed, aliases: { en: [], es: [] }, themeLabels },
         { upsert: true, setDefaultsOnInsert: true, new: true },
       );
       expect(result).toEqual({ id: 'circle-1', ...seed });
@@ -336,11 +347,11 @@ describe('CirclesService', () => {
       };
       model.findByIdAndUpdate.mockResolvedValue({ id: 'circle-1', ...seed });
 
-      await service.upsertById('circle-1', seed);
+      await service.upsertById('circle-1', seed, themeLabels);
 
       expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
         'circle-1',
-        seed,
+        { ...seed, themeLabels },
         { upsert: true, setDefaultsOnInsert: true, new: true },
       );
     });

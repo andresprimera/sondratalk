@@ -95,16 +95,34 @@ export function AddThemeDialog({
               )}
             </Field>
             <Field>
-              <FieldLabel htmlFor="add-theme-label">{t("Label")}</FieldLabel>
+              <FieldLabel htmlFor="add-theme-label-en">
+                {t("English label")}
+              </FieldLabel>
               <Input
-                id="add-theme-label"
+                id="add-theme-label-en"
                 type="text"
                 placeholder="Dogs"
-                {...register("label")}
+                {...register("labels.en")}
               />
-              {errors.label && (
+              {errors.labels?.en && (
                 <FieldDescription className="text-destructive">
-                  {t(errors.label.message ?? "")}
+                  {t(errors.labels.en.message ?? "")}
+                </FieldDescription>
+              )}
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="add-theme-label-es">
+                {t("Spanish label")}
+              </FieldLabel>
+              <Input
+                id="add-theme-label-es"
+                type="text"
+                placeholder="Perros"
+                {...register("labels.es")}
+              />
+              {errors.labels?.es && (
+                <FieldDescription className="text-destructive">
+                  {t(errors.labels.es.message ?? "")}
                 </FieldDescription>
               )}
             </Field>

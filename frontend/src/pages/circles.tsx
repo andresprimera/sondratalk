@@ -167,7 +167,7 @@ export default function CirclesPage() {
           <SelectItem value={ALL_THEMES_VALUE}>{t("All themes")}</SelectItem>
           {allThemes.map((theme) => (
             <SelectItem key={theme.id} value={theme.id}>
-              {theme.label}
+              {theme.labels[locale]}
             </SelectItem>
           ))}
         </SelectContent>
@@ -281,7 +281,9 @@ export default function CirclesPage() {
                   <TableCell className="font-medium">{c.labels.en}</TableCell>
                   <TableCell>{c.labels.es}</TableCell>
                   <TableCell>
-                    {allThemes.find((th) => th.id === c.themeId)?.label ??
+                    {allThemes.find((th) => th.id === c.themeId)?.labels[
+                      locale
+                    ] ??
                       c.themeId}
                   </TableCell>
                   <TableCell>{c.popularity}</TableCell>

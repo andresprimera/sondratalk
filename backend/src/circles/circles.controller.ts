@@ -95,7 +95,10 @@ export class CirclesController {
     if (!theme) {
       throw new BadRequestException('Theme not found');
     }
-    const doc = await this.circlesService.create(dto);
+    const doc = await this.circlesService.create(dto, {
+      en: theme.labels.en,
+      es: theme.labels.es,
+    });
     return toCircle(doc);
   }
 
@@ -147,13 +150,15 @@ export class CirclesController {
         throw new ConflictException('Slug already in use');
       }
     }
+    let themeLabels: { en: string; es: string } | undefined;
     if (dto.themeId) {
       const theme = await this.themesService.findById(dto.themeId);
       if (!theme) {
         throw new BadRequestException('Theme not found');
       }
+      themeLabels = { en: theme.labels.en, es: theme.labels.es };
     }
-    const doc = await this.circlesService.update(id, dto);
+    const doc = await this.circlesService.update(id, dto, themeLabels);
     if (!doc) {
       throw new NotFoundException('Circle not found');
     }
