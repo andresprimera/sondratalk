@@ -51,6 +51,9 @@
     /* Global corner radius — drives all rounded-* utilities via @theme inline */
     --radius: 0.625rem;
 
+    /* Global base font size — scales the entire UI (all rem-based sizing). */
+    --font-size-base: 19px;
+
     /* BASE — warm beige (NOT white) */
     --background: oklch(0.94 0.03 85);
     --foreground: oklch(0.25 0.04 140); /* deep olive/greenish */
@@ -155,12 +158,12 @@
 
   html {
     @apply font-sans antialiased;
+    font-size: var(--font-size-base);
   }
 
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
-    font-size: 16px;
     font-weight: 400;
     line-height: 1.7;
     letter-spacing: -0.01em;

@@ -19,6 +19,8 @@ import {
 import * as bcrypt from 'bcrypt';
 import { UsersService } from './users.service';
 import { MembershipsService } from '../memberships/memberships.service';
+import { AvailabilityService } from '../availability/availability.service';
+import { toAvailability } from '../availability/availability.mapper';
 import { toCircle } from '../circles/circle.mapper';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -28,9 +30,12 @@ import {
   updateUserRoleSchema,
   type UpdateUserRoleInput,
   type Role,
+  type Availability,
   type Circle,
   type PaginatedResponse,
   type User,
+  updateAvailabilitySchema,
+  type UpdateAvailabilityInput,
 } from '@base-dashboard/shared';
 import {
   paginationQuerySchema,
@@ -58,6 +63,7 @@ export class UsersController {
   constructor(
     private usersService: UsersService,
     private membershipsService: MembershipsService,
+    private availabilityService: AvailabilityService,
   ) {}
 
   // --- Current user endpoints (all authenticated users) ---
@@ -137,6 +143,24 @@ export class UsersController {
       dto.circleIds,
     );
     return docs.map(toCircle);
+  }
+
+  @Get('me/availability')
+  async getMyAvailability(
+    @CurrentUser('userId') userId: string,
+  ): Promise<Availability> {
+    const doc = await this.availabilityService.findByUserId(userId);
+    return toAvailability(doc);
+  }
+
+  @Patch('me/availability')
+  async updateMyAvailability(
+    @CurrentUser('userId') userId: string,
+    @Body(new ZodValidationPipe(updateAvailabilitySchema))
+    dto: UpdateAvailabilityInput,
+  ): Promise<Availability> {
+    const doc = await this.availabilityService.upsertByUserId(userId, dto);
+    return toAvailability(doc);
   }
 
   // --- Admin-only endpoints ---

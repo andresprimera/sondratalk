@@ -4,6 +4,7 @@ import DashboardPage from "@/pages/dashboard"
 import UsersPage from "@/pages/users"
 import ThemesPage from "@/pages/themes"
 import CirclesPage from "@/pages/circles"
+import AvailabilityPage from "@/pages/availability"
 import LoginPage from "@/pages/login"
 import SignupPage from "@/pages/signup"
 import ForgotPasswordPage from "@/pages/forgot-password"
@@ -78,6 +79,10 @@ export const router = createBrowserRouter([
             <CirclesPage />
           </AdminRoute>
         ),
+      },
+      {
+        path: "availability",
+        element: <AvailabilityPage />,
       },
       {
         path: "settings",

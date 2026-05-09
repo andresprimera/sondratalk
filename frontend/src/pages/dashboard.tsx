@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { useQuery } from "@tanstack/react-query"
 import { AlertCircleIcon, ArrowRight } from "lucide-react"
+import { AvailabilitySection } from "@/components/availability-section"
 import { ConversationCard } from "@/components/conversation-card"
 import { CopyableInput } from "@/components/copyable-input"
 import { SectionHeader } from "@/components/section-header"
@@ -17,8 +18,13 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/hooks/use-auth"
+import {
+  useMyAvailabilityQuery,
+  useUpdateMyAvailability,
+} from "@/hooks/use-my-availability"
 import i18n from "@/lib/i18n"
 import { fetchMyCirclesApi } from "@/lib/memberships"
+import { cn } from "@/lib/utils"
 
 const stats = { conversations: 23, activeSince: "Mar 2024", hosted: 8 }
 const lastConversation = {
@@ -41,6 +47,10 @@ export default function DashboardPage() {
     queryKey: ["users", "me", "circles"] as const,
     queryFn: fetchMyCirclesApi,
   })
+
+  const availabilityQuery = useMyAvailabilityQuery()
+  const updateAvailability = useUpdateMyAvailability()
+  const isAvailableNow = availabilityQuery.data?.isAvailableNow ?? false
 
   const hour = new Date().getHours()
   const greeting =
@@ -68,6 +78,38 @@ export default function DashboardPage() {
           </Button>
           <Button variant="outline">{t("Talk Now")}</Button>
         </div>
+        {availabilityQuery.isLoading ? (
+          <Skeleton className="mt-4 h-5 w-64" />
+        ) : (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span
+              className={cn(
+                "size-2 rounded-full",
+                isAvailableNow
+                  ? "bg-primary shadow-[0_0_6px_var(--color-primary)]"
+                  : "bg-muted-foreground/30",
+              )}
+              aria-hidden
+            />
+            <span className="text-sm text-muted-foreground">
+              {isAvailableNow
+                ? t("You're available for Talk Now")
+                : t("You're offline for Talk Now")}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={updateAvailability.isPending}
+              onClick={() =>
+                updateAvailability.mutate({
+                  isAvailableNow: !isAvailableNow,
+                })
+              }
+            >
+              {isAvailableNow ? t("Go offline") : t("Go online")}
+            </Button>
+          </div>
+        )}
       </section>
 
       <Separator className="my-8" />
@@ -131,6 +173,10 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
+
+      <Separator className="my-8" />
+
+      <AvailabilitySection />
 
       <Separator className="my-8" />
 

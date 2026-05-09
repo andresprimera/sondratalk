@@ -30,8 +30,8 @@ export class User {
 export const UserSchema = SchemaFactory.createForClass(User);
 
 // Cascade delete: when a user is removed (admin deletes them), wipe their
-// memberships from the `circle_memberships` collection. Mirror the same
-// pattern in circle.schema.ts.
+// memberships from the `circle_memberships` collection and their availability
+// doc from `user_availability`. Mirror the same pattern in circle.schema.ts.
 UserSchema.post(
   'findOneAndDelete',
   async function (
@@ -42,5 +42,8 @@ UserSchema.post(
     await this.model.db
       .model('Membership')
       .deleteMany({ userId: res._id });
+    await this.model.db
+      .model('Availability')
+      .deleteOne({ userId: res._id });
   },
 );

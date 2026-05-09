@@ -39,9 +39,9 @@ export default function LandingPage() {
             {t("Real human conversation, always within reach")}
           </h6>
 
-          <h1 className="mb-[3.2rem] text-balance text-[clamp(3.2rem,8.5vw,7.6rem)] font-normal leading-[1.04] tracking-[-0.005em]">
+          <h1 className="mb-[3.2rem] text-balance text-[clamp(44px,7vw,104px)] font-normal leading-[1.04] tracking-[-0.005em]">
             {t("Someone is waiting")}
-            <em className="landing-accent mt-[0.15em] block font-normal">
+            <em className="landing-accent mt-[0.15em] block text-[0.75em] font-normal">
               {t("to listen.")}
             </em>
           </h1>
@@ -49,7 +49,7 @@ export default function LandingPage() {
           <p className="mb-[3.8rem] max-w-155 text-balance text-[1.35rem] font-light leading-[1.7] text-muted-foreground">
             {t("No chatbot. No hold music. No 'your call is important to us.'")}
             <br />
-            <span className="mt-2 block text-[1.45rem] font-normal italic text-foreground">
+            <span className="mt-2 block text-[20px] font-normal italic text-foreground">
               {t("Just a real person, present with you.")}
             </span>
           </p>
@@ -75,7 +75,7 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 text-xs text-muted-foreground md:px-10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 text-sm text-muted-foreground md:px-10">
           <span className="font-heading text-sm italic tracking-tight text-foreground">
             Sondra
           </span>
