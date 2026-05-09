@@ -21,3 +21,11 @@ export async function changePasswordApi(
     body: JSON.stringify({ currentPassword, newPassword }),
   })
 }
+
+export async function updateTimezoneApi(timezone: string): Promise<User> {
+  const res = await authFetch("/api/users/me/timezone", {
+    method: "PATCH",
+    body: JSON.stringify({ timezone }),
+  })
+  return res.json()
+}

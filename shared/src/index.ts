@@ -19,7 +19,14 @@ export {
   type CreateUserInput,
 } from "./schemas/auth";
 
-export { userSchema, roleEnum, type User, type Role } from "./schemas/user";
+export {
+  userSchema,
+  roleEnum,
+  type User,
+  type Role,
+  updateTimezoneSchema,
+  type UpdateTimezoneInput,
+} from "./schemas/user";
 
 export {
   paginationQuerySchema,
@@ -74,3 +81,14 @@ export {
   updateAvailabilitySchema,
   type UpdateAvailabilityInput,
 } from "./schemas/availability";
+
+export {
+  findTalkMatchInputSchema,
+  type FindTalkMatchInput,
+  findHeardMatchInputSchema,
+  type FindHeardMatchInput,
+  talkMatchSchema,
+  type TalkMatch,
+  heardMatchSchema,
+  type HeardMatch,
+} from "./schemas/matching";

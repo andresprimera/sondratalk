@@ -12,6 +12,7 @@ import { ThemesModule } from './themes/themes.module';
 import { AvailabilityModule } from './availability/availability.module';
 import { CirclesModule } from './circles/circles.module';
 import { MembershipsModule } from './memberships/memberships.module';
+import { MatchingModule } from './matching/matching.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { SeederModule } from './seeder/seeder.module';
 
@@ -37,6 +38,7 @@ import { SeederModule } from './seeder/seeder.module';
     CirclesModule,
     MembershipsModule,
     AvailabilityModule,
+    MatchingModule,
     SeederModule,
   ],
   controllers: [AppController],

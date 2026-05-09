@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { ProfileForm } from "@/components/profile-form"
 import { ChangePasswordForm } from "@/components/change-password-form"
+import { TimezoneForm } from "@/components/timezone-form"
 
 export default function SettingsPage() {
   const { t } = useTranslation()
@@ -15,6 +16,7 @@ export default function SettingsPage() {
       </div>
       <div className="flex flex-col gap-6 max-w-2xl">
         <ProfileForm />
+        <TimezoneForm />
         <ChangePasswordForm />
       </div>
     </div>

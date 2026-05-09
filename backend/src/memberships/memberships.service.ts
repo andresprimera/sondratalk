@@ -77,4 +77,24 @@ export class MembershipsService {
       .map((m) => m.circleId)
       .filter((c): c is CircleDocument => c !== null && c !== undefined);
   }
+
+  async findCircleIdsForUser(userId: string): Promise<Types.ObjectId[]> {
+    const memberships = await this.membershipModel
+      .find({ userId: new Types.ObjectId(userId) })
+      .select('circleId');
+    return memberships.map((m) => m.circleId);
+  }
+
+  async findOtherUserIdsInCircles(
+    circleIds: Types.ObjectId[],
+    excludeUserId: string,
+  ): Promise<Types.ObjectId[]> {
+    const ids = await this.membershipModel.distinct('userId', {
+      circleId: { $in: circleIds },
+      userId: { $ne: new Types.ObjectId(excludeUserId) },
+    });
+    // Mongoose distinct() returns the field's underlying type (ObjectId) but is typed as unknown[].
+    // eslint-disable-next-line no-restricted-syntax
+    return ids as Types.ObjectId[];
+  }
 }

@@ -1,4 +1,8 @@
-import { updateProfileApi, changePasswordApi } from "@/lib/profile"
+import {
+  updateProfileApi,
+  changePasswordApi,
+  updateTimezoneApi,
+} from "@/lib/profile"
 import { authFetch } from "@/lib/api"
 
 vi.mock("@/lib/api", () => ({
@@ -38,6 +42,27 @@ describe("profile API", () => {
         method: "PATCH",
         body: JSON.stringify({ currentPassword: "oldpass", newPassword: "newpass" }),
       })
+    })
+  })
+
+  describe("updateTimezoneApi", () => {
+    it("should PATCH /api/users/me/timezone with the timezone string", async () => {
+      const user = {
+        id: "u1",
+        name: "Test",
+        email: "t@test.com",
+        role: "user",
+        timezone: "Europe/Madrid",
+      }
+      vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(user))
+
+      const result = await updateTimezoneApi("Europe/Madrid")
+
+      expect(authFetch).toHaveBeenCalledWith("/api/users/me/timezone", {
+        method: "PATCH",
+        body: JSON.stringify({ timezone: "Europe/Madrid" }),
+      })
+      expect(result).toEqual(user)
     })
   })
 })

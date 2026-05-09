@@ -8,6 +8,25 @@ export const userSchema = z.object({
   email: z.string().email(),
   name: z.string(),
   role: roleEnum,
+  timezone: z.string().optional(),
 });
 
 export type User = z.infer<typeof userSchema>;
+
+export const updateTimezoneSchema = z.object({
+  timezone: z
+    .string()
+    .min(1)
+    .refine(
+      (v) => {
+        try {
+          new Intl.DateTimeFormat(undefined, { timeZone: v });
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { message: "Invalid timezone" },
+    ),
+});
+export type UpdateTimezoneInput = z.infer<typeof updateTimezoneSchema>;

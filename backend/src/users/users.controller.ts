@@ -36,6 +36,8 @@ import {
   type User,
   updateAvailabilitySchema,
   type UpdateAvailabilityInput,
+  updateTimezoneSchema,
+  type UpdateTimezoneInput,
 } from '@base-dashboard/shared';
 import {
   paginationQuerySchema,
@@ -79,6 +81,7 @@ export class UsersController {
       email: user.email,
       name: user.name,
       role: user.role as Role,
+      timezone: user.timezone ?? undefined,
     };
   }
 
@@ -100,6 +103,26 @@ export class UsersController {
       email: user.email,
       name: user.name,
       role: user.role as Role,
+      timezone: user.timezone ?? undefined,
+    };
+  }
+
+  @Patch('me/timezone')
+  async updateTimezone(
+    @CurrentUser('userId') userId: string,
+    @Body(new ZodValidationPipe(updateTimezoneSchema))
+    dto: UpdateTimezoneInput,
+  ): Promise<User> {
+    const user = await this.usersService.updateTimezone(userId, dto.timezone);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role as Role,
+      timezone: user.timezone ?? undefined,
     };
   }
 
@@ -185,6 +208,7 @@ export class UsersController {
       email: user.email,
       name: user.name,
       role: user.role as Role,
+      timezone: user.timezone ?? undefined,
     };
   }
 
@@ -205,6 +229,7 @@ export class UsersController {
         email: u.email,
         name: u.name,
         role: u.role as Role,
+        timezone: u.timezone ?? undefined,
       })),
       meta: {
         page: query.page,
@@ -235,6 +260,7 @@ export class UsersController {
       email: user.email,
       name: user.name,
       role: user.role as Role,
+      timezone: user.timezone ?? undefined,
     };
   }
 

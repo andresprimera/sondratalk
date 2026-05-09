@@ -5,6 +5,9 @@ import UsersPage from "@/pages/users"
 import ThemesPage from "@/pages/themes"
 import CirclesPage from "@/pages/circles"
 import AvailabilityPage from "@/pages/availability"
+import FindConversationPage from "@/pages/find-conversation"
+import MyCirclesPage from "@/pages/my-circles"
+import CallPage from "@/pages/call"
 import LoginPage from "@/pages/login"
 import SignupPage from "@/pages/signup"
 import ForgotPasswordPage from "@/pages/forgot-password"
@@ -41,6 +44,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <OnboardingPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/call/:id",
+    element: (
+      <ProtectedRoute>
+        <CallPage />
       </ProtectedRoute>
     ),
   },
@@ -83,6 +94,14 @@ export const router = createBrowserRouter([
       {
         path: "availability",
         element: <AvailabilityPage />,
+      },
+      {
+        path: "find-conversation",
+        element: <FindConversationPage />,
+      },
+      {
+        path: "my-circles",
+        element: <MyCirclesPage />,
       },
       {
         path: "settings",

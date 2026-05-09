@@ -52,6 +52,19 @@ export class AvailabilityService {
       userId: new Types.ObjectId(userId),
     });
   }
+
+  async findAvailableNowUserIds(
+    candidateIds: Types.ObjectId[],
+  ): Promise<Types.ObjectId[]> {
+    if (candidateIds.length === 0) return [];
+    const docs = await this.availabilityModel
+      .find({
+        userId: { $in: candidateIds },
+        isAvailableNow: true,
+      })
+      .select('userId');
+    return docs.map((d) => d.userId);
+  }
 }
 
 function dedupeWindows(

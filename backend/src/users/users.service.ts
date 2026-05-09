@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User, UserDocument } from './schemas/user.schema';
 
 @Injectable()
@@ -111,7 +111,28 @@ export class UsersService {
     return this.userModel.findByIdAndUpdate(userId, data, { new: true });
   }
 
+  async updateTimezone(
+    userId: string,
+    timezone: string,
+  ): Promise<UserDocument | null> {
+    return this.userModel.findByIdAndUpdate(
+      userId,
+      { timezone },
+      { new: true },
+    );
+  }
+
   async findByIdWithPassword(id: string): Promise<UserDocument | null> {
     return this.userModel.findById(id).select('+password');
+  }
+
+  async filterByHasHostExp(
+    candidateIds: Types.ObjectId[],
+  ): Promise<Types.ObjectId[]> {
+    if (candidateIds.length === 0) return [];
+    const docs = await this.userModel
+      .find({ _id: { $in: candidateIds }, hostExp: { $gt: 0 } })
+      .select('_id');
+    return docs.map((d) => d._id);
   }
 }

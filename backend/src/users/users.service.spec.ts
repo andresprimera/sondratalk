@@ -206,6 +206,22 @@ describe('UsersService', () => {
     });
   });
 
+  describe('updateTimezone', () => {
+    it('updates only the timezone field and returns the new doc', async () => {
+      const updated = { ...mockUser, timezone: 'Europe/Madrid' };
+      model.findByIdAndUpdate.mockResolvedValue(updated);
+
+      const result = await service.updateTimezone('user-1', 'Europe/Madrid');
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
+        'user-1',
+        { timezone: 'Europe/Madrid' },
+        { new: true },
+      );
+      expect(result).toEqual(updated);
+    });
+  });
+
   describe('updatePassword', () => {
     it('should update the password hash', async () => {
       model.findByIdAndUpdate.mockResolvedValue(undefined);

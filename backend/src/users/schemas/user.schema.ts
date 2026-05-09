@@ -25,6 +25,15 @@ export class User {
 
   @Prop({ select: false })
   passwordResetExpires?: Date;
+
+  // Number of past conversations where this user showed up as a listener
+  // or adviser. Populated later by the post-call role tag; until then it's
+  // 0 unless seeded/admin-edited. Read by the `heard` matching intent.
+  @Prop({ type: Number, default: 0, min: 0 })
+  hostExp!: number;
+
+  @Prop({ type: String, default: null })
+  timezone?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

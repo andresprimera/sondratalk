@@ -1,6 +1,6 @@
-// Onboarding is a transient pre-dashboard ceremony. Step 3 persists circle
-// memberships; steps 1 and 2 are still local-state-only (location and
-// languages persistence is a follow-up).
+// Onboarding is a transient pre-dashboard ceremony. Step 1 persists timezone
+// and step 3 persists circle memberships; languages (step 2) is still
+// local-state-only.
 import { useState } from "react"
 import { Navigate } from "react-router"
 import { useTranslation } from "react-i18next"
@@ -27,6 +27,8 @@ import {
   fetchMyCirclesApi,
   updateMyCirclesApi,
 } from "@/lib/memberships"
+import { updateTimezoneApi } from "@/lib/profile"
+import { useAuth } from "@/hooks/use-auth"
 
 type Step = 1 | 2 | 3 | 4
 
@@ -45,6 +47,7 @@ function detectInitialLanguages(): OnboardingLanguage[] {
 export default function OnboardingPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const { updateUser, user } = useAuth()
 
   const [step, setStep] = useState<Step>(1)
   const [detectedIana] = useState(detectInitialIana)
@@ -69,6 +72,18 @@ export default function OnboardingPage() {
     },
     onError: () => {
       toast.error(t("Failed to save your circles"))
+    },
+  })
+
+  const timezoneMutation = useMutation({
+    mutationFn: updateTimezoneApi,
+    onSuccess: (data) => {
+      if (user) updateUser({ ...user, timezone: data.timezone })
+      setStep(2)
+      window.scrollTo(0, 0)
+    },
+    onError: () => {
+      toast.error(t("Failed to save your timezone"))
     },
   })
 
@@ -110,7 +125,8 @@ export default function OnboardingPage() {
             selectedIana={selectedIana}
             onSelectIana={setSelectedIana}
             detectedIana={detectedIana}
-            onNext={() => go(2)}
+            onNext={() => timezoneMutation.mutate(selectedIana)}
+            isSubmitting={timezoneMutation.isPending}
           />
         )}
         {step === 2 && (

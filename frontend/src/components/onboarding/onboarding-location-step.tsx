@@ -25,6 +25,7 @@ interface OnboardingLocationStepProps {
   onSelectIana: (iana: string) => void
   detectedIana: string
   onNext: () => void
+  isSubmitting?: boolean
 }
 
 export function OnboardingLocationStep({
@@ -32,6 +33,7 @@ export function OnboardingLocationStep({
   onSelectIana,
   detectedIana,
   onNext,
+  isSubmitting,
 }: OnboardingLocationStepProps) {
   const { t, i18n } = useTranslation()
   const locale = i18n.language
@@ -131,8 +133,9 @@ export function OnboardingLocationStep({
           size="xl"
           className="landing-flicker tracking-[0.05em]"
           onClick={onNext}
+          disabled={isSubmitting}
         >
-          {t("Looks right →")}
+          {isSubmitting ? t("Saving...") : t("Looks right →")}
         </Button>
       </div>
     </section>

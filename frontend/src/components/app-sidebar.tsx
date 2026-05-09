@@ -41,6 +41,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   ]
 
   const navSecondary = [
+    { title: t("My Circles"), url: "/dashboard/my-circles", icon: <CircleDotIcon /> },
     { title: t("Settings"), url: "/dashboard/settings", icon: <Settings2Icon /> },
   ]
 
