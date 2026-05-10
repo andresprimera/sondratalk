@@ -25,6 +25,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 const signupFormSchema = signupSchema
+  .omit({ timezone: true })
   .extend({ confirmPassword: z.string() })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -32,6 +33,10 @@ const signupFormSchema = signupSchema
   })
 
 type SignupValues = z.infer<typeof signupFormSchema>
+
+function detectTimezone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone
+}
 
 export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   const { t } = useTranslation()
@@ -50,7 +55,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   async function onSubmit(values: SignupValues) {
     setIsSubmitting(true)
     try {
-      await signup(values.name, values.email, values.password)
+      await signup(values.name, values.email, values.password, detectTimezone())
       navigate("/onboarding")
     } catch (error) {
       toast.error(error instanceof Error ? t(error.message) : t("Signup failed"))

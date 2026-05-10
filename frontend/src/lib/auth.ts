@@ -18,10 +18,11 @@ export async function signupApi(
   name: string,
   email: string,
   password: string,
+  timezone: string,
 ): Promise<AuthResponse> {
   const res = await publicFetch("/api/auth/signup", {
     method: "POST",
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify({ name, email, password, timezone }),
   })
   return res.json()
 }

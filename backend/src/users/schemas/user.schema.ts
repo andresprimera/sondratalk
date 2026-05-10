@@ -32,8 +32,8 @@ export class User {
   @Prop({ type: Number, default: 0, min: 0 })
   hostExp!: number;
 
-  @Prop({ type: String, default: null })
-  timezone?: string;
+  @Prop({ required: true, default: 'UTC' })
+  timezone!: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

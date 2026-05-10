@@ -24,6 +24,7 @@ export {
   roleEnum,
   type User,
   type Role,
+  timezoneSchema,
   updateTimezoneSchema,
   type UpdateTimezoneInput,
 } from "./schemas/user";

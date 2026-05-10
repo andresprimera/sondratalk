@@ -49,7 +49,7 @@ export class AuthService {
 
     return {
       ...tokens,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role as Role, timezone: user.timezone ?? undefined },
+      user: { id: user.id, email: user.email, name: user.name, role: user.role as Role, timezone: user.timezone },
     };
   }
 
@@ -69,7 +69,7 @@ export class AuthService {
 
     return {
       ...tokens,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role as Role, timezone: user.timezone ?? undefined },
+      user: { id: user.id, email: user.email, name: user.name, role: user.role as Role, timezone: user.timezone },
     };
   }
 
@@ -95,7 +95,7 @@ export class AuthService {
 
     return {
       ...tokens,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role as Role, timezone: user.timezone ?? undefined },
+      user: { id: user.id, email: user.email, name: user.name, role: user.role as Role, timezone: user.timezone },
     };
   }
 

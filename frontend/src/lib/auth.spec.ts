@@ -31,16 +31,21 @@ describe("auth API", () => {
   })
 
   describe("signupApi", () => {
-    it("should POST to /api/auth/signup with name, email, password", async () => {
+    it("should POST to /api/auth/signup with name, email, password, timezone", async () => {
       vi.mocked(publicFetch).mockResolvedValue(
         mockJsonResponse({ accessToken: "t", refreshToken: "r", user: {} }),
       )
 
-      await signupApi("John", "j@b.com", "pass")
+      await signupApi("John", "j@b.com", "pass", "Europe/Madrid")
 
       expect(publicFetch).toHaveBeenCalledWith("/api/auth/signup", {
         method: "POST",
-        body: JSON.stringify({ name: "John", email: "j@b.com", password: "pass" }),
+        body: JSON.stringify({
+          name: "John",
+          email: "j@b.com",
+          password: "pass",
+          timezone: "Europe/Madrid",
+        }),
       })
     })
   })

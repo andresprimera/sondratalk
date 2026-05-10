@@ -1,6 +1,6 @@
-// Onboarding is a transient pre-dashboard ceremony. Step 1 persists timezone
-// and step 3 persists circle memberships; languages (step 2) is still
-// local-state-only.
+// Onboarding is a transient pre-dashboard ceremony. Step 1 confirms the
+// timezone we inferred at signup (user can change it) and step 3 persists
+// circle memberships; languages (step 2) is still local-state-only.
 import { useState } from "react"
 import { Navigate } from "react-router"
 import { useTranslation } from "react-i18next"
@@ -32,10 +32,10 @@ import { useAuth } from "@/hooks/use-auth"
 
 type Step = 1 | 2 | 3 | 4
 
-function detectInitialIana(): string {
+function detectInitialIana(fallback: string): string {
   const detected = detectTimezone()
   if (detected) return detected.iana
-  return Intl.DateTimeFormat().resolvedOptions().timeZone
+  return fallback
 }
 
 function detectInitialLanguages(): OnboardingLanguage[] {
@@ -50,8 +50,14 @@ export default function OnboardingPage() {
   const { updateUser, user } = useAuth()
 
   const [step, setStep] = useState<Step>(1)
-  const [detectedIana] = useState(detectInitialIana)
-  const [selectedIana, setSelectedIana] = useState(detectedIana)
+  const [detectedIana] = useState(() =>
+    detectInitialIana(
+      user?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+    ),
+  )
+  const [selectedIana, setSelectedIana] = useState(
+    () => user?.timezone ?? detectedIana,
+  )
   const [languages, setLanguages] = useState<OnboardingLanguage[]>(
     detectInitialLanguages
   )

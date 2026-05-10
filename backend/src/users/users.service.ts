@@ -12,6 +12,7 @@ export class UsersService {
     email: string;
     password: string;
     role: string;
+    timezone?: string;
   }): Promise<UserDocument> {
     return this.userModel.create(data);
   }

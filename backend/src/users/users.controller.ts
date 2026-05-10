@@ -81,7 +81,7 @@ export class UsersController {
       email: user.email,
       name: user.name,
       role: user.role as Role,
-      timezone: user.timezone ?? undefined,
+      timezone: user.timezone,
     };
   }
 
@@ -103,7 +103,7 @@ export class UsersController {
       email: user.email,
       name: user.name,
       role: user.role as Role,
-      timezone: user.timezone ?? undefined,
+      timezone: user.timezone,
     };
   }
 
@@ -122,7 +122,7 @@ export class UsersController {
       email: user.email,
       name: user.name,
       role: user.role as Role,
-      timezone: user.timezone ?? undefined,
+      timezone: user.timezone,
     };
   }
 
@@ -208,7 +208,7 @@ export class UsersController {
       email: user.email,
       name: user.name,
       role: user.role as Role,
-      timezone: user.timezone ?? undefined,
+      timezone: user.timezone,
     };
   }
 
@@ -229,7 +229,7 @@ export class UsersController {
         email: u.email,
         name: u.name,
         role: u.role as Role,
-        timezone: u.timezone ?? undefined,
+        timezone: u.timezone,
       })),
       meta: {
         page: query.page,
@@ -260,7 +260,7 @@ export class UsersController {
       email: user.email,
       name: user.name,
       role: user.role as Role,
-      timezone: user.timezone ?? undefined,
+      timezone: user.timezone,
     };
   }
 

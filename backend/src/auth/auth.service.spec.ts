@@ -16,6 +16,7 @@ const mockUser = {
   email: 'test@example.com',
   name: 'Test User',
   role: 'user',
+  timezone: 'UTC',
   password: 'hashed-password',
   hashedRefreshToken: 'hashed-refresh-token',
   hashedPasswordResetToken: 'hashed-reset-token',
@@ -71,7 +72,12 @@ describe('AuthService', () => {
   });
 
   describe('signup', () => {
-    const dto = { name: 'Test', email: 'test@example.com', password: 'Password1!' };
+    const dto = {
+      name: 'Test',
+      email: 'test@example.com',
+      password: 'Password1!',
+      timezone: 'UTC',
+    };
 
     it('should throw ConflictException if email already exists', async () => {
       usersService.findByEmail.mockResolvedValue(mockUser);
@@ -113,7 +119,13 @@ describe('AuthService', () => {
       expect(result).toEqual({
         accessToken: 'mock-token',
         refreshToken: 'mock-token',
-        user: { id: 'user-1', email: 'test@example.com', name: 'Test User', role: 'user' },
+        user: {
+          id: 'user-1',
+          email: 'test@example.com',
+          name: 'Test User',
+          role: 'user',
+          timezone: 'UTC',
+        },
       });
     });
 
