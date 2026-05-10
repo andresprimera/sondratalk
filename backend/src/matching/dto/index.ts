@@ -3,8 +3,9 @@ export {
   type FindTalkMatchInput,
   findHeardMatchInputSchema,
   type FindHeardMatchInput,
-  talkMatchSchema,
-  type TalkMatch,
-  heardMatchSchema,
-  type HeardMatch,
+  type ProjectedSlot,
+  type MatchCandidate,
+  type HeardCandidate,
+  type TalkMatchesResponse,
+  type HeardMatchesResponse,
 } from '@base-dashboard/shared';

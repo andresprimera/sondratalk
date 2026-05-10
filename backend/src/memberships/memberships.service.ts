@@ -97,4 +97,25 @@ export class MembershipsService {
     // eslint-disable-next-line no-restricted-syntax
     return ids as Types.ObjectId[];
   }
+
+  async findCircleMembershipsForUsers(
+    userIds: Types.ObjectId[],
+    withinCircleIds: Types.ObjectId[],
+  ): Promise<Map<string, Types.ObjectId[]>> {
+    const out = new Map<string, Types.ObjectId[]>();
+    if (userIds.length === 0 || withinCircleIds.length === 0) return out;
+    const docs = await this.membershipModel
+      .find({
+        userId: { $in: userIds },
+        circleId: { $in: withinCircleIds },
+      })
+      .select('userId circleId');
+    for (const doc of docs) {
+      const key = doc.userId.toString();
+      const list = out.get(key) ?? [];
+      list.push(doc.circleId);
+      out.set(key, list);
+    }
+    return out;
+  }
 }

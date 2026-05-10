@@ -14,10 +14,21 @@ import { MembershipsService } from '../memberships/memberships.service';
 import { AvailabilityService } from '../availability/availability.service';
 import { UsersService } from '../users/users.service';
 import { CirclesService } from '../circles/circles.service';
+import { CircleDocument } from '../circles/schemas/circle.schema';
 import { toCircle } from '../circles/circle.mapper';
-import type { HeardMatch, TalkMatch } from './dto';
+import type {
+  HeardCandidate,
+  HeardMatchesResponse,
+  MatchCandidate,
+  ProjectedSlot,
+  TalkMatchesResponse,
+} from './dto';
+import type { AvailabilityWindow } from '@base-dashboard/shared';
+import { projectSlotsForCandidate } from './slot-projection';
 
 type Intent = 'talk' | 'heard';
+
+const MAX_CANDIDATES = 5;
 
 @Injectable()
 export class MatchingService {
@@ -35,62 +46,156 @@ export class MatchingService {
   async findTalkMatch(
     userId: string,
     circleIds: string[],
-  ): Promise<TalkMatch> {
-    const requestedCircleIds = await this.authorizeCircleFilter(
-      userId,
-      circleIds,
-    );
-    const availableUserIds = await this.findAvailableCandidates(
-      userId,
-      requestedCircleIds,
-    );
-    if (availableUserIds.length === 0) {
-      await this.logAttempt(userId, requestedCircleIds, null, 'talk');
-      throw new NotFoundException('No one available right now');
-    }
-    return this.pickAndShape(
-      availableUserIds,
-      userId,
-      requestedCircleIds,
-      'talk',
-      (user, sharedCircles) => ({
-        id: user.id,
-        firstName: extractFirstName(user.name),
-        sharedCircles,
-      }),
-    );
+  ): Promise<TalkMatchesResponse> {
+    const candidates = await this.collectCandidates(userId, circleIds, 'talk');
+    return { candidates };
   }
 
   async findHeardMatch(
     userId: string,
     circleIds: string[],
-  ): Promise<HeardMatch> {
+  ): Promise<HeardMatchesResponse> {
+    const base = await this.collectCandidates(userId, circleIds, 'heard');
+    const candidates: HeardCandidate[] = await this.attachHostExp(base);
+    return { candidates };
+  }
+
+  private async collectCandidates(
+    userId: string,
+    circleIds: string[],
+    intent: Intent,
+  ): Promise<MatchCandidate[]> {
     const requestedCircleIds = await this.authorizeCircleFilter(
       userId,
       circleIds,
     );
-    const availableUserIds = await this.findAvailableCandidates(
-      userId,
-      requestedCircleIds,
-    );
-    const hostUserIds =
-      await this.usersService.filterByHasHostExp(availableUserIds);
-    if (hostUserIds.length === 0) {
-      await this.logAttempt(userId, requestedCircleIds, null, 'heard');
-      throw new NotFoundException('No experienced listeners available right now');
+    const requester = await this.usersService.findById(userId);
+    if (!requester) throw new NotFoundException('User not found');
+
+    const candidateUserIds =
+      await this.membershipsService.findOtherUserIdsInCircles(
+        requestedCircleIds,
+        userId,
+      );
+
+    let nowEligible =
+      await this.availabilityService.findAvailableNowUserIds(candidateUserIds);
+    let scheduledEligible = subtract(candidateUserIds, nowEligible);
+
+    if (intent === 'heard') {
+      [nowEligible, scheduledEligible] = await Promise.all([
+        this.usersService.filterByHasHostExp(nowEligible),
+        this.usersService.filterByHasHostExp(scheduledEligible),
+      ]);
     }
-    return this.pickAndShape(
-      hostUserIds,
-      userId,
-      requestedCircleIds,
-      'heard',
-      (user, sharedCircles) => ({
+
+    const nowPicked = this.shuffle(nowEligible).slice(0, MAX_CANDIDATES);
+    const scheduledBudget = MAX_CANDIDATES - nowPicked.length;
+    const scheduledPicked =
+      scheduledBudget > 0
+        ? this.shuffle(scheduledEligible).slice(0, scheduledBudget * 2)
+        : [];
+
+    const allPickedIds = [...nowPicked, ...scheduledPicked];
+    if (allPickedIds.length === 0) {
+      await this.logAttempt(userId, requestedCircleIds, [], intent);
+      throw new NotFoundException('No one available right now');
+    }
+
+    const [users, availabilities, sharedCirclesByUser] = await Promise.all([
+      this.usersService.findByIds(allPickedIds),
+      this.availabilityService.findByUserIds(scheduledPicked),
+      this.membershipsService.findCircleMembershipsForUsers(
+        allPickedIds,
+        requestedCircleIds,
+      ),
+    ]);
+
+    const usersById = new Map(users.map((u) => [u.id.toString(), u]));
+    const availabilityByUser = new Map(
+      availabilities.map((a) => [a.userId.toString(), a]),
+    );
+
+    const allSharedCircleIds = new Set<string>();
+    for (const list of sharedCirclesByUser.values()) {
+      for (const id of list) allSharedCircleIds.add(id.toString());
+    }
+    const sharedCircleDocs = await this.circlesService.findByIds([
+      ...allSharedCircleIds,
+    ]);
+    const circleById = new Map(
+      sharedCircleDocs.map((c) => [c.id.toString(), c]),
+    );
+
+    const now = new Date();
+    const candidates: MatchCandidate[] = [];
+
+    for (const id of nowPicked) {
+      const user = usersById.get(id.toString());
+      if (!user) continue;
+      candidates.push({
         id: user.id,
         firstName: extractFirstName(user.name),
-        hostExp: user.hostExp,
-        sharedCircles,
-      }),
+        sharedCircles: this.shapeSharedCircles(
+          sharedCirclesByUser.get(id.toString()) ?? [],
+          circleById,
+        ),
+        availableNow: true,
+        slots: [],
+      });
+    }
+
+    for (const id of scheduledPicked) {
+      if (candidates.length >= MAX_CANDIDATES) break;
+      const user = usersById.get(id.toString());
+      if (!user) continue;
+      const availability = availabilityByUser.get(id.toString());
+      if (!availability || availability.windows.length === 0) continue;
+      const slots = projectSlotsForCandidate({
+        // Mongoose stores period/day as `string`; the schema enum keeps values aligned with shared.
+        // eslint-disable-next-line no-restricted-syntax
+        windows: availability.windows as AvailabilityWindow[],
+        candidateTz: user.timezone,
+        requesterTz: requester.timezone,
+        now,
+      });
+      if (slots.length === 0) continue;
+      candidates.push({
+        id: user.id,
+        firstName: extractFirstName(user.name),
+        sharedCircles: this.shapeSharedCircles(
+          sharedCirclesByUser.get(id.toString()) ?? [],
+          circleById,
+        ),
+        availableNow: false,
+        slots: slots.map(toProjectedSlot),
+      });
+    }
+
+    if (candidates.length === 0) {
+      await this.logAttempt(userId, requestedCircleIds, [], intent);
+      throw new NotFoundException('No one available right now');
+    }
+
+    await this.logAttempt(
+      userId,
+      requestedCircleIds,
+      candidates.map((c) => new Types.ObjectId(c.id)),
+      intent,
     );
+    return candidates;
+  }
+
+  private async attachHostExp(
+    base: MatchCandidate[],
+  ): Promise<HeardCandidate[]> {
+    if (base.length === 0) return [];
+    const ids = base.map((c) => new Types.ObjectId(c.id));
+    const users = await this.usersService.findByIds(ids);
+    const expById = new Map(
+      users.map((u) => [u.id.toString(), u.hostExp ?? 0]),
+    );
+    return base.map((c) => ({ ...c, hostExp: expById.get(c.id) ?? 0 }));
   }
 
   private async authorizeCircleFilter(
@@ -111,73 +216,32 @@ export class MatchingService {
     return requestedCircleIds;
   }
 
-  private async findAvailableCandidates(
-    userId: string,
-    requestedCircleIds: Types.ObjectId[],
-  ): Promise<Types.ObjectId[]> {
-    const candidateUserIds =
-      await this.membershipsService.findOtherUserIdsInCircles(
-        requestedCircleIds,
-        userId,
-      );
-    return this.availabilityService.findAvailableNowUserIds(candidateUserIds);
+  private shapeSharedCircles(
+    sharedIds: Types.ObjectId[],
+    circleById: Map<string, CircleDocument>,
+  ): ReturnType<typeof toCircle>[] {
+    const out: ReturnType<typeof toCircle>[] = [];
+    for (const id of sharedIds) {
+      const doc = circleById.get(id.toString());
+      if (doc) out.push(toCircle(doc));
+    }
+    return out;
   }
 
-  private async pickAndShape<T>(
-    eligibleUserIds: Types.ObjectId[],
-    requesterId: string,
-    requestedCircleIds: Types.ObjectId[],
-    intent: Intent,
-    shape: (
-      user: { id: string; name: string; hostExp: number },
-      sharedCircles: ReturnType<typeof toCircle>[],
-    ) => T,
-  ): Promise<T> {
-    const pickedUserId =
-      eligibleUserIds[Math.floor(Math.random() * eligibleUserIds.length)];
-
-    const [pickedUser, pickedCircleIds] = await Promise.all([
-      this.usersService.findById(pickedUserId.toString()),
-      this.membershipsService.findCircleIdsForUser(pickedUserId.toString()),
-    ]);
-
-    if (!pickedUser) {
-      // Picked user disappeared between queries — treat as no match.
-      await this.logAttempt(requesterId, requestedCircleIds, null, intent);
-      throw new NotFoundException('No one available right now');
+  // Extracted so tests can spy on it for deterministic ordering.
+  private shuffle<T>(arr: T[]): T[] {
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
     }
-
-    const pickedCircleIdSet = new Set(
-      pickedCircleIds.map((id) => id.toString()),
-    );
-    const sharedCircleIds = requestedCircleIds.filter((id) =>
-      pickedCircleIdSet.has(id.toString()),
-    );
-    const sharedCircleDocs = await this.circlesService.findByIds(
-      sharedCircleIds.map((id) => id.toString()),
-    );
-
-    await this.logAttempt(
-      requesterId,
-      requestedCircleIds,
-      pickedUserId,
-      intent,
-    );
-
-    return shape(
-      {
-        id: pickedUser.id,
-        name: pickedUser.name,
-        hostExp: pickedUser.hostExp ?? 0,
-      },
-      sharedCircleDocs.map(toCircle),
-    );
+    return copy;
   }
 
   private async logAttempt(
     userId: string,
     circleIds: Types.ObjectId[],
-    matchedUserId: Types.ObjectId | null,
+    matchedUserIds: Types.ObjectId[],
     intent: Intent,
   ): Promise<MatchAttemptDocument | null> {
     try {
@@ -185,13 +249,35 @@ export class MatchingService {
         userId: new Types.ObjectId(userId),
         intent,
         circleIds,
-        matchedUserId,
+        matchedUserId: matchedUserIds[0] ?? null,
+        matchedUserIds,
       });
     } catch (err) {
       this.logger.error('Failed to log match attempt', err);
       return null;
     }
   }
+}
+
+function subtract(
+  all: Types.ObjectId[],
+  remove: Types.ObjectId[],
+): Types.ObjectId[] {
+  if (remove.length === 0) return all;
+  const removeSet = new Set(remove.map((id) => id.toString()));
+  return all.filter((id) => !removeSet.has(id.toString()));
+}
+
+function toProjectedSlot(slot: {
+  startsAt: string;
+  requesterDate: string;
+  requesterTime: string;
+}): ProjectedSlot {
+  return {
+    startsAt: slot.startsAt,
+    requesterDate: slot.requesterDate,
+    requesterTime: slot.requesterTime,
+  };
 }
 
 function extractFirstName(fullName: string): string {

@@ -7,8 +7,8 @@ import {
   type FindTalkMatchInput,
   findHeardMatchInputSchema,
   type FindHeardMatchInput,
-  type HeardMatch,
-  type TalkMatch,
+  type HeardMatchesResponse,
+  type TalkMatchesResponse,
 } from './dto';
 
 @Controller('matching')
@@ -20,7 +20,7 @@ export class MatchingController {
     @CurrentUser('userId') userId: string,
     @Body(new ZodValidationPipe(findTalkMatchInputSchema))
     dto: FindTalkMatchInput,
-  ): Promise<TalkMatch> {
+  ): Promise<TalkMatchesResponse> {
     return this.matchingService.findTalkMatch(userId, dto.circleIds);
   }
 
@@ -29,7 +29,7 @@ export class MatchingController {
     @CurrentUser('userId') userId: string,
     @Body(new ZodValidationPipe(findHeardMatchInputSchema))
     dto: FindHeardMatchInput,
-  ): Promise<HeardMatch> {
+  ): Promise<HeardMatchesResponse> {
     return this.matchingService.findHeardMatch(userId, dto.circleIds);
   }
 }

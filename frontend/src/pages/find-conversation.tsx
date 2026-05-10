@@ -4,7 +4,11 @@ import { useTranslation } from "react-i18next"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { AlertCircleIcon, ArrowRight, ChevronLeft } from "lucide-react"
-import type { Circle, HeardMatch, TalkMatch } from "@base-dashboard/shared"
+import type {
+  Circle,
+  HeardCandidate,
+  MatchCandidate,
+} from "@base-dashboard/shared"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -124,8 +128,8 @@ function suggestCircles(text: string): string[] {
   return FALLBACK_SUGGESTIONS
 }
 
-interface MockSlotDay {
-  dayKey: string
+interface SlotDay {
+  dayKey: string // translation key: "Today", "Tomorrow", or "" (no relative prefix)
   date: Date
   times: string[]
 }
@@ -137,7 +141,7 @@ interface CardMatch {
   hostExp?: number
   circles?: string[]
   name?: string
-  slots?: MockSlotDay[]
+  slots?: SlotDay[]
 }
 
 function daysFromNow(n: number): Date {
@@ -158,8 +162,16 @@ const SPECIFIC_MOCK_POOL: CardMatch[] = [
     available: false,
     circles: ["Accountant", "Tax Adviser"],
     slots: [
-      { dayKey: "Tomorrow", date: daysFromNow(1), times: ["09:00", "11:30", "15:00"] },
-      { dayKey: "In a few days", date: daysFromNow(3), times: ["10:00", "14:30"] },
+      {
+        dayKey: "Tomorrow",
+        date: daysFromNow(1),
+        times: ["09:00", "11:30", "15:00"],
+      },
+      {
+        dayKey: "In a few days",
+        date: daysFromNow(3),
+        times: ["10:00", "14:30"],
+      },
     ],
   },
   { id: 3, available: true, circles: ["Financial Coach"] },
@@ -172,35 +184,78 @@ interface SelectedSlot {
   time: string
 }
 
+function todayInRequesterTz(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
+}
+
+function relativeDayKey(requesterDate: string, todayYmd: string): string {
+  if (requesterDate === todayYmd) return "Today"
+  const today = new Date(`${todayYmd}T00:00:00`)
+  const target = new Date(`${requesterDate}T00:00:00`)
+  const offsetDays = Math.round(
+    (target.getTime() - today.getTime()) / 86_400_000,
+  )
+  if (offsetDays === 1) return "Tomorrow"
+  return ""
+}
+
+function groupSlotsByDate(
+  slots: { startsAt: string; requesterDate: string; requesterTime: string }[],
+): SlotDay[] {
+  const todayYmd = todayInRequesterTz()
+  const byDate = new Map<string, string[]>()
+  for (const s of slots) {
+    const list = byDate.get(s.requesterDate) ?? []
+    list.push(s.requesterTime)
+    byDate.set(s.requesterDate, list)
+  }
+  const out: SlotDay[] = []
+  for (const [date, times] of byDate) {
+    out.push({
+      dayKey: relativeDayKey(date, todayYmd),
+      date: new Date(`${date}T00:00:00`),
+      times,
+    })
+  }
+  out.sort((a, b) => a.date.getTime() - b.date.getTime())
+  return out
+}
+
 function realTalkToCardMatch(
-  real: TalkMatch,
+  candidate: MatchCandidate,
   locale: "en" | "es",
 ): CardMatch {
   return {
-    id: real.id,
-    available: true,
-    name: real.firstName,
-    circles: real.sharedCircles.map((c) => c.labels[locale]),
+    id: candidate.id,
+    available: candidate.availableNow,
+    name: candidate.firstName,
+    circles: candidate.sharedCircles.map((c) => c.labels[locale]),
+    slots: candidate.availableNow ? undefined : groupSlotsByDate(candidate.slots),
   }
 }
 
 function realHeardToCardMatch(
-  real: HeardMatch,
+  candidate: HeardCandidate,
   locale: "en" | "es",
 ): CardMatch {
   return {
-    id: real.id,
-    available: true,
-    name: real.firstName,
+    id: candidate.id,
+    available: candidate.availableNow,
+    name: candidate.firstName,
     isHost: true,
-    hostExp: real.hostExp,
-    circles: real.sharedCircles.map((c) => c.labels[locale]),
+    hostExp: candidate.hostExp,
+    circles: candidate.sharedCircles.map((c) => c.labels[locale]),
+    slots: candidate.availableNow ? undefined : groupSlotsByDate(candidate.slots),
   }
 }
 
 type SimulatedMatch =
-  | { intent: "talk"; data: TalkMatch }
-  | { intent: "heard"; data: HeardMatch }
+  | { intent: "talk"; data: MatchCandidate }
+  | { intent: "heard"; data: HeardCandidate }
 
 export default function FindConversationPage() {
   const { t } = useTranslation()
@@ -343,11 +398,19 @@ export default function FindConversationPage() {
               firstName: "Marta",
               hostExp: 32,
               sharedCircles,
+              availableNow: true,
+              slots: [],
             },
           }
         : {
             intent: "talk",
-            data: { id: "simulated", firstName: "Ana", sharedCircles },
+            data: {
+              id: "simulated",
+              firstName: "Ana",
+              sharedCircles,
+              availableNow: true,
+              slots: [],
+            },
           }
     setIntent(resolvedIntent)
     setSelectedSlot(null)
@@ -358,6 +421,16 @@ export default function FindConversationPage() {
       setSimulatedMatch(fake)
       setStage("matches")
     }, 1600)
+  }
+
+  function confirmSelectedSlot() {
+    if (!selectedSlot) return
+    const match = cardMatches.find((m) => m.id === selectedSlot.matchId)
+    const name = match?.name ?? t("them")
+    toast.success(
+      t("We'll let {{name}} know and ping you when they confirm.", { name }),
+    )
+    reset()
   }
 
   if (stage === "searching") {
@@ -389,6 +462,30 @@ export default function FindConversationPage() {
     )
   }
 
+  let cardMatches: CardMatch[] = []
+  if (stage === "matches") {
+    const resolvedIntent: Intent = intent ?? "talk"
+    if (resolvedIntent === "talk") {
+      const data =
+        simulatedMatch?.intent === "talk"
+          ? { candidates: [simulatedMatch.data] }
+          : talkMatch.data
+      cardMatches = data
+        ? data.candidates.map((c) => realTalkToCardMatch(c, locale))
+        : []
+    } else if (resolvedIntent === "heard") {
+      const data =
+        simulatedMatch?.intent === "heard"
+          ? { candidates: [simulatedMatch.data] }
+          : heardMatch.data
+      cardMatches = data
+        ? data.candidates.map((c) => realHeardToCardMatch(c, locale))
+        : []
+    } else {
+      cardMatches = SPECIFIC_MOCK_POOL
+    }
+  }
+
   if (stage === "matches") {
     const resolvedIntent: Intent = intent ?? "talk"
     const activeMutation =
@@ -403,24 +500,6 @@ export default function FindConversationPage() {
       activeMutation.isError &&
       activeMutation.error instanceof ApiError &&
       activeMutation.error.statusCode === 404
-
-    const cardMatches: CardMatch[] = (() => {
-      if (resolvedIntent === "talk") {
-        const data =
-          simulatedMatch?.intent === "talk"
-            ? simulatedMatch.data
-            : talkMatch.data
-        return data ? [realTalkToCardMatch(data, locale)] : []
-      }
-      if (resolvedIntent === "heard") {
-        const data =
-          simulatedMatch?.intent === "heard"
-            ? simulatedMatch.data
-            : heardMatch.data
-        return data ? [realHeardToCardMatch(data, locale)] : []
-      }
-      return SPECIFIC_MOCK_POOL
-    })()
 
     const headingMap: Record<Intent, string> = {
       specific: t("Here's who can help."),
@@ -495,13 +574,32 @@ export default function FindConversationPage() {
               <Card className="mt-6">
                 <CardContent className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-sm text-muted-foreground italic">
-                    {t("Scheduling with Match {{matchId}} — {{day}} at {{time}}", {
-                      matchId: selectedSlot.matchId,
-                      day: t(selectedSlot.dayKey),
-                      time: selectedSlot.time,
-                    })}
+                    {(() => {
+                      const match = cardMatches.find(
+                        (c) => c.id === selectedSlot.matchId,
+                      )
+                      const dayLabel = selectedSlot.date.toLocaleDateString(
+                        i18n.language,
+                        {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "short",
+                        },
+                      )
+                      const day = selectedSlot.dayKey
+                        ? `${t(selectedSlot.dayKey)} · ${dayLabel}`
+                        : dayLabel
+                      return t(
+                        "Scheduling with {{name}} — {{day}} at {{time}}",
+                        {
+                          name: match?.name ?? `#${selectedSlot.matchId}`,
+                          day,
+                          time: selectedSlot.time,
+                        },
+                      )
+                    })()}
                   </p>
-                  <Button>
+                  <Button onClick={confirmSelectedSlot}>
                     {t("Confirm")} <ArrowRight />
                   </Button>
                 </CardContent>
@@ -898,10 +996,13 @@ function MatchCard({
                     day: "numeric",
                     month: "short",
                   })
+                  const heading = day.dayKey
+                    ? `${t(day.dayKey)} · ${dayLabel}`
+                    : dayLabel
                   return (
-                    <div key={day.dayKey}>
+                    <div key={day.date.toISOString()}>
                       <div className="mb-1.5 text-xs text-muted-foreground">
-                        {t(day.dayKey)} · {dayLabel}
+                        {heading}
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {day.times.map((time) => {

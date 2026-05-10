@@ -81,6 +81,7 @@ export {
   type Availability,
   updateAvailabilitySchema,
   type UpdateAvailabilityInput,
+  PERIOD_SLOTS,
 } from "./schemas/availability";
 
 export {
@@ -88,8 +89,14 @@ export {
   type FindTalkMatchInput,
   findHeardMatchInputSchema,
   type FindHeardMatchInput,
-  talkMatchSchema,
-  type TalkMatch,
-  heardMatchSchema,
-  type HeardMatch,
+  projectedSlotSchema,
+  type ProjectedSlot,
+  matchCandidateSchema,
+  type MatchCandidate,
+  heardCandidateSchema,
+  type HeardCandidate,
+  talkMatchesResponseSchema,
+  type TalkMatchesResponse,
+  heardMatchesResponseSchema,
+  type HeardMatchesResponse,
 } from "./schemas/matching";

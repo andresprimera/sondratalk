@@ -65,6 +65,13 @@ export class AvailabilityService {
       .select('userId');
     return docs.map((d) => d.userId);
   }
+
+  async findByUserIds(
+    userIds: Types.ObjectId[],
+  ): Promise<AvailabilityDocument[]> {
+    if (userIds.length === 0) return [];
+    return this.availabilityModel.find({ userId: { $in: userIds } });
+  }
 }
 
 function dedupeWindows(

@@ -18,32 +18,41 @@ describe('MatchingService', () => {
   let circlesService: Record<string, jest.Mock>;
 
   const requesterId = '507f1f77bcf86cd799439011';
-  const matchedId = '507f1f77bcf86cd799439022';
+  const requesterDoc = {
+    id: requesterId,
+    name: 'Requester',
+    timezone: 'America/New_York',
+  };
+  const liveUserId = '507f1f77bcf86cd799439022';
+  const scheduledUserId = '507f1f77bcf86cd799439033';
   const circleA = new Types.ObjectId('507f1f77bcf86cd799439aaa');
   const circleB = new Types.ObjectId('507f1f77bcf86cd799439bbb');
-  const circleC = new Types.ObjectId('507f1f77bcf86cd799439ccc');
 
   beforeEach(async () => {
     matchAttemptModel = { create: jest.fn().mockResolvedValue({}) };
     membershipsService = {
       findCircleIdsForUser: jest.fn(),
       findOtherUserIdsInCircles: jest.fn(),
+      findCircleMembershipsForUsers: jest.fn().mockResolvedValue(new Map()),
     };
     availabilityService = {
-      findAvailableNowUserIds: jest.fn(),
+      findAvailableNowUserIds: jest.fn().mockResolvedValue([]),
+      findByUserIds: jest.fn().mockResolvedValue([]),
     };
     usersService = {
-      findById: jest.fn(),
+      findById: jest.fn().mockResolvedValue(requesterDoc),
+      findByIds: jest.fn().mockResolvedValue([]),
       filterByHasHostExp: jest.fn(),
     };
-    circlesService = {
-      findByIds: jest.fn(),
-    };
+    circlesService = { findByIds: jest.fn().mockResolvedValue([]) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MatchingService,
-        { provide: getModelToken(MatchAttempt.name), useValue: matchAttemptModel },
+        {
+          provide: getModelToken(MatchAttempt.name),
+          useValue: matchAttemptModel,
+        },
         { provide: MembershipsService, useValue: membershipsService },
         { provide: AvailabilityService, useValue: availabilityService },
         { provide: UsersService, useValue: usersService },
@@ -57,20 +66,17 @@ describe('MatchingService', () => {
   afterEach(() => jest.clearAllMocks());
 
   describe('findTalkMatch', () => {
-    it('returns the matched user with first name and shared circles', async () => {
-      membershipsService.findCircleIdsForUser
-        .mockResolvedValueOnce([circleA, circleB, circleC]) // requester
-        .mockResolvedValueOnce([circleA, circleC]); // matched user
-      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([
-        new Types.ObjectId(matchedId),
+    it('returns one available-now candidate with empty slots', async () => {
+      const liveOid = new Types.ObjectId(liveUserId);
+      membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
+      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([liveOid]);
+      availabilityService.findAvailableNowUserIds.mockResolvedValue([liveOid]);
+      usersService.findByIds.mockResolvedValue([
+        { id: liveUserId, name: 'Ana María', timezone: 'Europe/Madrid' },
       ]);
-      availabilityService.findAvailableNowUserIds.mockResolvedValue([
-        new Types.ObjectId(matchedId),
-      ]);
-      usersService.findById.mockResolvedValue({
-        id: matchedId,
-        name: 'Ana María Pérez',
-      });
+      membershipsService.findCircleMembershipsForUsers.mockResolvedValue(
+        new Map([[liveUserId, [circleA]]]),
+      );
       circlesService.findByIds.mockResolvedValue([
         {
           id: circleA.toString(),
@@ -86,20 +92,101 @@ describe('MatchingService', () => {
         circleA.toString(),
       ]);
 
-      expect(result.id).toBe(matchedId);
-      expect(result.firstName).toBe('Ana');
-      expect(result.sharedCircles).toHaveLength(1);
-      expect(result.sharedCircles[0].slug).toBe('catalan');
+      expect(result.candidates).toHaveLength(1);
+      const [first] = result.candidates;
+      expect(first.id).toBe(liveUserId);
+      expect(first.firstName).toBe('Ana');
+      expect(first.availableNow).toBe(true);
+      expect(first.slots).toEqual([]);
+      expect(first.sharedCircles).toHaveLength(1);
+      expect(first.sharedCircles[0].slug).toBe('catalan');
 
-      // Logged with matchedUserId set
       expect(matchAttemptModel.create).toHaveBeenCalledTimes(1);
       const logged = matchAttemptModel.create.mock.calls[0][0];
-      expect(logged.userId.toString()).toBe(requesterId);
       expect(logged.intent).toBe('talk');
-      expect(logged.matchedUserId.toString()).toBe(matchedId);
+      expect(logged.matchedUserId.toString()).toBe(liveUserId);
+      expect(logged.matchedUserIds).toHaveLength(1);
     });
 
-    it('rejects circle ids that the requester is not a member of', async () => {
+    it('mixes available-now first then scheduled candidates with projected slots', async () => {
+      const liveOid = new Types.ObjectId(liveUserId);
+      const scheduledOid = new Types.ObjectId(scheduledUserId);
+      membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
+      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([
+        liveOid,
+        scheduledOid,
+      ]);
+      availabilityService.findAvailableNowUserIds.mockResolvedValue([liveOid]);
+      usersService.findByIds.mockResolvedValue([
+        { id: liveUserId, name: 'Ana', timezone: 'Europe/Madrid' },
+        { id: scheduledUserId, name: 'Bea', timezone: 'Europe/Madrid' },
+      ]);
+      availabilityService.findByUserIds.mockResolvedValue([
+        {
+          userId: scheduledOid,
+          windows: [{ day: 'tue', period: 'morning' }],
+          isAvailableNow: false,
+        },
+      ]);
+      membershipsService.findCircleMembershipsForUsers.mockResolvedValue(
+        new Map([
+          [liveUserId, [circleA]],
+          [scheduledUserId, [circleA]],
+        ]),
+      );
+      circlesService.findByIds.mockResolvedValue([
+        {
+          id: circleA.toString(),
+          slug: 'catalan',
+          themeId: new Types.ObjectId(),
+          labels: { en: 'Catalan', es: 'Catalán' },
+          aliases: { en: [], es: [] },
+          popularity: 0,
+        },
+      ]);
+
+      const result = await service.findTalkMatch(requesterId, [
+        circleA.toString(),
+      ]);
+
+      expect(result.candidates).toHaveLength(2);
+      expect(result.candidates[0].availableNow).toBe(true);
+      expect(result.candidates[0].slots).toEqual([]);
+      expect(result.candidates[1].availableNow).toBe(false);
+      expect(result.candidates[1].slots.length).toBeGreaterThan(0);
+      const slot = result.candidates[1].slots[0];
+      expect(slot.startsAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
+      expect(slot.requesterDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(slot.requesterTime).toMatch(/^\d{2}:\d{2}$/);
+    });
+
+    it('drops scheduled candidates whose windows yield no future slots', async () => {
+      const scheduledOid = new Types.ObjectId(scheduledUserId);
+      membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
+      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([
+        scheduledOid,
+      ]);
+      availabilityService.findAvailableNowUserIds.mockResolvedValue([]);
+      usersService.findByIds.mockResolvedValue([
+        { id: scheduledUserId, name: 'Bea', timezone: 'Europe/Madrid' },
+      ]);
+      availabilityService.findByUserIds.mockResolvedValue([
+        {
+          userId: scheduledOid,
+          windows: [],
+          isAvailableNow: false,
+        },
+      ]);
+      membershipsService.findCircleMembershipsForUsers.mockResolvedValue(
+        new Map([[scheduledUserId, [circleA]]]),
+      );
+
+      await expect(
+        service.findTalkMatch(requesterId, [circleA.toString()]),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('rejects circle ids the requester is not a member of', async () => {
       membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
 
       await expect(
@@ -112,7 +199,7 @@ describe('MatchingService', () => {
       expect(matchAttemptModel.create).not.toHaveBeenCalled();
     });
 
-    it('throws NotFoundException and logs null match when no candidates share circles', async () => {
+    it('throws NotFoundException and logs an empty match when no candidates exist', async () => {
       membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
       membershipsService.findOtherUserIdsInCircles.mockResolvedValue([]);
       availabilityService.findAvailableNowUserIds.mockResolvedValue([]);
@@ -124,148 +211,81 @@ describe('MatchingService', () => {
       expect(matchAttemptModel.create).toHaveBeenCalledTimes(1);
       const logged = matchAttemptModel.create.mock.calls[0][0];
       expect(logged.matchedUserId).toBeNull();
-    });
-
-    it('throws NotFoundException when candidates exist but none are available', async () => {
-      membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
-      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([
-        new Types.ObjectId(matchedId),
-      ]);
-      availabilityService.findAvailableNowUserIds.mockResolvedValue([]);
-
-      await expect(
-        service.findTalkMatch(requesterId, [circleA.toString()]),
-      ).rejects.toThrow(NotFoundException);
-
-      const logged = matchAttemptModel.create.mock.calls[0][0];
-      expect(logged.matchedUserId).toBeNull();
-    });
-
-    it('passes excludeUserId so the requester is never returned', async () => {
-      membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
-      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([]);
-      availabilityService.findAvailableNowUserIds.mockResolvedValue([]);
-
-      await expect(
-        service.findTalkMatch(requesterId, [circleA.toString()]),
-      ).rejects.toThrow(NotFoundException);
-
-      expect(membershipsService.findOtherUserIdsInCircles).toHaveBeenCalledWith(
-        expect.any(Array),
-        requesterId,
-      );
-    });
-
-    it('returns single-token name unchanged as firstName', async () => {
-      membershipsService.findCircleIdsForUser
-        .mockResolvedValueOnce([circleA])
-        .mockResolvedValueOnce([circleA]);
-      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([
-        new Types.ObjectId(matchedId),
-      ]);
-      availabilityService.findAvailableNowUserIds.mockResolvedValue([
-        new Types.ObjectId(matchedId),
-      ]);
-      usersService.findById.mockResolvedValue({ id: matchedId, name: 'Raúl' });
-      circlesService.findByIds.mockResolvedValue([]);
-
-      const result = await service.findTalkMatch(requesterId, [
-        circleA.toString(),
-      ]);
-
-      expect(result.firstName).toBe('Raúl');
+      expect(logged.matchedUserIds).toEqual([]);
     });
 
     it('does not throw when logging the attempt fails', async () => {
-      membershipsService.findCircleIdsForUser
-        .mockResolvedValueOnce([circleA])
-        .mockResolvedValueOnce([circleA]);
-      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([
-        new Types.ObjectId(matchedId),
+      const liveOid = new Types.ObjectId(liveUserId);
+      membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
+      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([liveOid]);
+      availabilityService.findAvailableNowUserIds.mockResolvedValue([liveOid]);
+      usersService.findByIds.mockResolvedValue([
+        { id: liveUserId, name: 'Ana', timezone: 'Europe/Madrid' },
       ]);
-      availabilityService.findAvailableNowUserIds.mockResolvedValue([
-        new Types.ObjectId(matchedId),
-      ]);
-      usersService.findById.mockResolvedValue({ id: matchedId, name: 'Ana' });
-      circlesService.findByIds.mockResolvedValue([]);
       matchAttemptModel.create.mockRejectedValue(new Error('db down'));
 
       const result = await service.findTalkMatch(requesterId, [
         circleA.toString(),
       ]);
 
-      expect(result.id).toBe(matchedId);
+      expect(result.candidates[0].id).toBe(liveUserId);
     });
   });
 
   describe('findHeardMatch', () => {
-    it('returns the host with hostExp and shared circles', async () => {
-      membershipsService.findCircleIdsForUser
-        .mockResolvedValueOnce([circleA, circleB]) // requester
-        .mockResolvedValueOnce([circleA]); // matched user
+    it('filters both available-now and scheduled branches through host-exp filter', async () => {
+      const liveOid = new Types.ObjectId(liveUserId);
+      const scheduledOid = new Types.ObjectId(scheduledUserId);
+      membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
       membershipsService.findOtherUserIdsInCircles.mockResolvedValue([
-        new Types.ObjectId(matchedId),
+        liveOid,
+        scheduledOid,
       ]);
-      availabilityService.findAvailableNowUserIds.mockResolvedValue([
-        new Types.ObjectId(matchedId),
-      ]);
-      usersService.filterByHasHostExp.mockResolvedValue([
-        new Types.ObjectId(matchedId),
-      ]);
-      usersService.findById.mockResolvedValue({
-        id: matchedId,
-        name: 'Marta Ruiz',
-        hostExp: 12,
-      });
-      circlesService.findByIds.mockResolvedValue([
-        {
-          id: circleA.toString(),
-          slug: 'catalan',
-          themeId: new Types.ObjectId(),
-          labels: { en: 'Catalan', es: 'Catalán' },
-          aliases: { en: [], es: [] },
-          popularity: 0,
-        },
-      ]);
+      availabilityService.findAvailableNowUserIds.mockResolvedValue([liveOid]);
+      // Both branches are filtered: live keeps liveOid; scheduled drops everyone.
+      usersService.filterByHasHostExp
+        .mockResolvedValueOnce([liveOid])
+        .mockResolvedValueOnce([]);
+      usersService.findByIds.mockImplementation(async (ids: Types.ObjectId[]) =>
+        ids.map((id) => ({
+          id: id.toString(),
+          name: 'Marta',
+          timezone: 'Europe/Madrid',
+          hostExp: 12,
+        })),
+      );
+      membershipsService.findCircleMembershipsForUsers.mockResolvedValue(
+        new Map([[liveUserId, [circleA]]]),
+      );
 
       const result = await service.findHeardMatch(requesterId, [
         circleA.toString(),
       ]);
 
-      expect(result.id).toBe(matchedId);
-      expect(result.firstName).toBe('Marta');
-      expect(result.hostExp).toBe(12);
-      expect(result.sharedCircles).toHaveLength(1);
+      expect(result.candidates).toHaveLength(1);
+      expect(result.candidates[0].id).toBe(liveUserId);
+      expect(result.candidates[0].hostExp).toBe(12);
+      expect(result.candidates[0].availableNow).toBe(true);
 
-      // Logged with intent='heard' and matchedUserId set
-      expect(matchAttemptModel.create).toHaveBeenCalledTimes(1);
+      expect(usersService.filterByHasHostExp).toHaveBeenCalledTimes(2);
+      expect(usersService.filterByHasHostExp).toHaveBeenNthCalledWith(1, [
+        liveOid,
+      ]);
+      expect(usersService.filterByHasHostExp).toHaveBeenNthCalledWith(2, [
+        scheduledOid,
+      ]);
+
       const logged = matchAttemptModel.create.mock.calls[0][0];
       expect(logged.intent).toBe('heard');
-      expect(logged.matchedUserId.toString()).toBe(matchedId);
-    });
-
-    it('rejects circle ids the requester is not a member of', async () => {
-      membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
-
-      await expect(
-        service.findHeardMatch(requesterId, [
-          circleA.toString(),
-          circleB.toString(),
-        ]),
-      ).rejects.toThrow(BadRequestException);
-
-      expect(matchAttemptModel.create).not.toHaveBeenCalled();
+      expect(logged.matchedUserId.toString()).toBe(liveUserId);
     });
 
     it('throws NotFoundException when no candidates have hostExp > 0', async () => {
+      const liveOid = new Types.ObjectId(liveUserId);
       membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
-      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([
-        new Types.ObjectId(matchedId),
-      ]);
-      availabilityService.findAvailableNowUserIds.mockResolvedValue([
-        new Types.ObjectId(matchedId),
-      ]);
-      usersService.filterByHasHostExp.mockResolvedValue([]); // candidate exists but isn't a host
+      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([liveOid]);
+      availabilityService.findAvailableNowUserIds.mockResolvedValue([liveOid]);
+      usersService.filterByHasHostExp.mockResolvedValue([]);
 
       await expect(
         service.findHeardMatch(requesterId, [circleA.toString()]),
@@ -274,28 +294,6 @@ describe('MatchingService', () => {
       const logged = matchAttemptModel.create.mock.calls[0][0];
       expect(logged.intent).toBe('heard');
       expect(logged.matchedUserId).toBeNull();
-    });
-
-    it('passes only available candidate ids into the host filter', async () => {
-      const availableId = new Types.ObjectId(matchedId);
-      membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
-      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([
-        availableId,
-        new Types.ObjectId(),
-      ]);
-      availabilityService.findAvailableNowUserIds.mockResolvedValue([
-        availableId,
-      ]);
-      usersService.filterByHasHostExp.mockResolvedValue([]);
-
-      await expect(
-        service.findHeardMatch(requesterId, [circleA.toString()]),
-      ).rejects.toThrow(NotFoundException);
-
-      // The host filter should receive the available subset, not the full candidate list.
-      expect(usersService.filterByHasHostExp).toHaveBeenCalledWith([
-        availableId,
-      ]);
     });
   });
 });

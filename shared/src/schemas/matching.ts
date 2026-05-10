@@ -10,14 +10,33 @@ export type FindTalkMatchInput = z.infer<typeof findTalkMatchInputSchema>;
 export const findHeardMatchInputSchema = findTalkMatchInputSchema;
 export type FindHeardMatchInput = FindTalkMatchInput;
 
-export const talkMatchSchema = z.object({
+export const projectedSlotSchema = z.object({
+  startsAt: z.string(),
+  requesterDate: z.string(),
+  requesterTime: z.string(),
+});
+export type ProjectedSlot = z.infer<typeof projectedSlotSchema>;
+
+export const matchCandidateSchema = z.object({
   id: z.string(),
   firstName: z.string(),
   sharedCircles: z.array(circleSchema),
+  availableNow: z.boolean(),
+  slots: z.array(projectedSlotSchema),
 });
-export type TalkMatch = z.infer<typeof talkMatchSchema>;
+export type MatchCandidate = z.infer<typeof matchCandidateSchema>;
 
-export const heardMatchSchema = talkMatchSchema.extend({
+export const heardCandidateSchema = matchCandidateSchema.extend({
   hostExp: z.number().int().nonnegative(),
 });
-export type HeardMatch = z.infer<typeof heardMatchSchema>;
+export type HeardCandidate = z.infer<typeof heardCandidateSchema>;
+
+export const talkMatchesResponseSchema = z.object({
+  candidates: z.array(matchCandidateSchema),
+});
+export type TalkMatchesResponse = z.infer<typeof talkMatchesResponseSchema>;
+
+export const heardMatchesResponseSchema = z.object({
+  candidates: z.array(heardCandidateSchema),
+});
+export type HeardMatchesResponse = z.infer<typeof heardMatchesResponseSchema>;

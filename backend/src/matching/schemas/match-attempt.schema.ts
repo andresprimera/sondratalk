@@ -34,6 +34,12 @@ export class MatchAttempt {
     default: null,
   })
   matchedUserId!: Types.ObjectId | null;
+
+  @Prop({
+    type: [{ type: MongooseSchema.Types.ObjectId, ref: 'User' }],
+    default: [],
+  })
+  matchedUserIds!: Types.ObjectId[];
 }
 
 export const MatchAttemptSchema = SchemaFactory.createForClass(MatchAttempt);

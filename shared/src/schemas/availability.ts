@@ -20,6 +20,15 @@ export const availabilityWindowSchema = z.object({
 });
 export type AvailabilityWindow = z.infer<typeof availabilityWindowSchema>;
 
+// Wall-clock times (HH:mm, 24h) suggested within each period, in the
+// candidate user's local timezone. The matching service projects these
+// into concrete future date+time slots translated to the requester's tz.
+export const PERIOD_SLOTS: Record<Period, readonly string[]> = {
+  morning: ["09:00", "10:30", "12:00"],
+  afternoon: ["13:00", "15:00", "17:00"],
+  evening: ["18:00", "20:00", "22:00"],
+};
+
 export const availabilitySchema = z.object({
   windows: z.array(availabilityWindowSchema).max(21),
   isAvailableNow: z.boolean(),

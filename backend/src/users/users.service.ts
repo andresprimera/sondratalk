@@ -60,6 +60,11 @@ export class UsersService {
     return this.userModel.findById(id);
   }
 
+  async findByIds(ids: Types.ObjectId[]): Promise<UserDocument[]> {
+    if (ids.length === 0) return [];
+    return this.userModel.find({ _id: { $in: ids } });
+  }
+
   async updateRefreshToken(
     userId: string,
     hashedRefreshToken: string | null,
