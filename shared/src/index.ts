@@ -100,3 +100,10 @@ export {
   heardMatchesResponseSchema,
   type HeardMatchesResponse,
 } from "./schemas/matching";
+
+export {
+  callTokenRequestSchema,
+  type CallTokenRequest,
+  callTokenResponseSchema,
+  type CallTokenResponse,
+} from "./schemas/call";

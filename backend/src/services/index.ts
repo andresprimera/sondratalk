@@ -9,3 +9,10 @@ export type {
   UploadOptions,
   UploadResult,
 } from './storage/storage.types';
+
+export { LivekitModule } from './livekit/livekit.module';
+export { LivekitService } from './livekit/livekit.service';
+export type {
+  GenerateAccessTokenOptions,
+  AccessTokenResult,
+} from './livekit/livekit.types';
