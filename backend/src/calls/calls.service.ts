@@ -4,10 +4,13 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { isValidObjectId } from 'mongoose';
 import { LivekitService } from '../services/livekit/livekit.service';
+import { MeetingsService } from '../meetings/meetings.service';
 import { UsersService } from '../users/users.service';
 import type { CallTokenResponse } from './dto';
+
+const JOIN_WINDOW_BEFORE_MS = 5 * 60 * 1000;
+const JOIN_WINDOW_AFTER_MS = 60 * 60 * 1000;
 
 @Injectable()
 export class CallsService {
@@ -15,27 +18,32 @@ export class CallsService {
 
   constructor(
     private livekitService: LivekitService,
+    private meetingsService: MeetingsService,
     private usersService: UsersService,
   ) {}
 
   async generateToken(
     callerId: string,
-    peerUserId: string,
+    meetingId: string,
   ): Promise<CallTokenResponse> {
-    if (callerId === peerUserId) {
-      throw new BadRequestException('Cannot start a call with yourself');
-    }
-    if (!isValidObjectId(peerUserId)) {
-      throw new BadRequestException('Invalid peerUserId');
+    const meeting = await this.meetingsService.findByIdForParticipant(
+      callerId,
+      meetingId,
+    );
+
+    const now = Date.now();
+    const scheduled = meeting.scheduledAt.getTime();
+    if (
+      now < scheduled - JOIN_WINDOW_BEFORE_MS ||
+      now > scheduled + JOIN_WINDOW_AFTER_MS
+    ) {
+      throw new BadRequestException('Meeting is not joinable right now');
     }
 
     const caller = await this.usersService.findById(callerId);
     if (!caller) throw new NotFoundException('User not found');
 
-    const peer = await this.usersService.findById(peerUserId);
-    if (!peer) throw new NotFoundException('Peer not found');
-
-    const roomName = this.deriveRoomName(callerId, peerUserId);
+    const roomName = `mtg:${meeting.id}`;
 
     const { token, url } = await this.livekitService.generateAccessToken({
       identity: callerId,
@@ -44,13 +52,9 @@ export class CallsService {
     });
 
     this.logger.log(
-      `Generated call token caller=${callerId} peer=${peerUserId} room=${roomName}`,
+      `Generated call token caller=${callerId} meeting=${meeting.id} room=${roomName}`,
     );
 
     return { token, url, roomName, identity: callerId };
-  }
-
-  private deriveRoomName(a: string, b: string): string {
-    return [a, b].slice().sort().join('--');
   }
 }

@@ -48,7 +48,7 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: "/call/:id",
+    path: "/call/:meetingId",
     element: (
       <ProtectedRoute>
         <CallPage />

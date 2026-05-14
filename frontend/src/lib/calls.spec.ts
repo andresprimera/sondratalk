@@ -14,20 +14,20 @@ describe("calls API", () => {
   })
 
   describe("fetchCallTokenApi", () => {
-    it("POSTs the peer user id and returns the parsed token payload", async () => {
+    it("POSTs the meeting id and returns the parsed token payload", async () => {
       const response = {
         token: "jwt.payload.signature",
         url: "wss://example.livekit.cloud",
-        roomName: "abc--xyz",
+        roomName: "mtg:m1",
         identity: "abc",
       }
       vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(response))
 
-      const result = await fetchCallTokenApi({ peerUserId: "xyz" })
+      const result = await fetchCallTokenApi({ meetingId: "m1" })
 
       expect(authFetch).toHaveBeenCalledWith("/api/calls/token", {
         method: "POST",
-        body: JSON.stringify({ peerUserId: "xyz" }),
+        body: JSON.stringify({ meetingId: "m1" }),
       })
       expect(result).toEqual(response)
     })

@@ -1,7 +1,7 @@
 import { z } from "zod/v4";
 
 export const callTokenRequestSchema = z.object({
-  peerUserId: z.string().min(1, "peerUserId is required"),
+  meetingId: z.string().min(1, "meetingId is required"),
 });
 export type CallTokenRequest = z.infer<typeof callTokenRequestSchema>;
 

@@ -18,6 +18,6 @@ export class CallsController {
     @Body(new ZodValidationPipe(callTokenRequestSchema))
     dto: CallTokenRequest,
   ): Promise<CallTokenResponse> {
-    return this.callsService.generateToken(userId, dto.peerUserId);
+    return this.callsService.generateToken(userId, dto.meetingId);
   }
 }

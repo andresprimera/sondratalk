@@ -3,10 +3,10 @@ import { useTranslation } from "react-i18next"
 import { useQuery } from "@tanstack/react-query"
 import { AlertCircleIcon, ArrowRight } from "lucide-react"
 import { AvailabilitySection } from "@/components/availability-section"
-import { ConversationCard } from "@/components/conversation-card"
 import { CopyableInput } from "@/components/copyable-input"
 import { SectionHeader } from "@/components/section-header"
 import { StatsStrip } from "@/components/stats-strip"
+import { UpcomingConversations } from "@/components/upcoming-conversations"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,19 +23,10 @@ import {
   useMyAvailabilityQuery,
   useUpdateMyAvailability,
 } from "@/hooks/use-my-availability"
-import i18n from "@/lib/i18n"
 import { fetchMyCirclesApi } from "@/lib/memberships"
 import { cn } from "@/lib/utils"
 
 const stats = { conversations: 23, activeSince: "Mar 2024", hosted: 8 }
-const lastConversation = {
-  name: "Ana",
-  circles: ["Catalan", "Restaurant owner"],
-  date: new Date("2026-04-28"),
-  duration: "42 min",
-  notes:
-    "She had an interesting take on balancing a small restaurant through slow seasons. Made me think differently about fixed vs variable costs. Want to speak to her again.",
-}
 const referralUrl = "sondratalk.com/join/raul-h23k"
 
 export default function DashboardPage() {
@@ -60,11 +51,6 @@ export default function DashboardPage() {
       : hour < 18
         ? t("Good afternoon")
         : t("Good evening")
-
-  const lastConversationDate = lastConversation.date.toLocaleDateString(
-    i18n.language,
-    { weekday: "short", day: "numeric", month: "short" },
-  )
 
   return (
     <div className="mx-auto w-full max-w-2xl py-8">
@@ -185,21 +171,7 @@ export default function DashboardPage() {
 
       <Separator className="my-8" />
 
-      <section>
-        <SectionHeader title={t("Last Conversation")} />
-        <ConversationCard
-          name={lastConversation.name}
-          circles={lastConversation.circles}
-          date={lastConversationDate}
-          duration={lastConversation.duration}
-          notes={lastConversation.notes}
-        />
-        <div className="mt-2 flex justify-end">
-          <Button variant="link" size="sm">
-            {t("See all conversations")} <ArrowRight />
-          </Button>
-        </div>
-      </section>
+      <UpcomingConversations />
 
       <Separator className="my-8" />
 

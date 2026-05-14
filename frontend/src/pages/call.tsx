@@ -1,4 +1,4 @@
-import { useNavigate, useLocation, useParams } from "react-router"
+import { useNavigate, useParams } from "react-router"
 import { useTranslation } from "react-i18next"
 import { useQuery } from "@tanstack/react-query"
 import { AlertCircleIcon, PhoneOff } from "lucide-react"
@@ -8,50 +8,61 @@ import {
   RoomAudioRenderer,
 } from "@livekit/components-react"
 import "@livekit/components-styles"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchCallTokenApi } from "@/lib/calls"
-
-function readCallState(state: unknown): { name?: string; circles?: string[] } {
-  if (!state || typeof state !== "object") return {}
-  const out: { name?: string; circles?: string[] } = {}
-  if ("name" in state && typeof state.name === "string") {
-    out.name = state.name
-  }
-  if (
-    "circles" in state &&
-    Array.isArray(state.circles) &&
-    state.circles.every((c): c is string => typeof c === "string")
-  ) {
-    out.circles = state.circles
-  }
-  return out
-}
+import { fetchMeetingByIdApi } from "@/lib/meetings"
+import i18n from "@/lib/i18n"
 
 export default function CallPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const params = useParams<{ id: string }>()
-  const location = useLocation()
-  const { name, circles = [] } = readCallState(location.state)
-  const peerUserId = params.id ?? ""
+  const params = useParams<{ meetingId: string }>()
+  const meetingId = params.meetingId ?? ""
+
+  const meetingQuery = useQuery({
+    queryKey: ["meetings", meetingId] as const,
+    queryFn: () => fetchMeetingByIdApi(meetingId),
+    enabled: meetingId.length > 0,
+    retry: false,
+  })
 
   const tokenQuery = useQuery({
-    queryKey: ["calls", "token", peerUserId] as const,
-    queryFn: () => fetchCallTokenApi({ peerUserId }),
-    enabled: peerUserId.length > 0,
+    queryKey: ["calls", "token", meetingId] as const,
+    queryFn: () => fetchCallTokenApi({ meetingId }),
+    enabled: meetingId.length > 0,
     staleTime: 10 * 60 * 1000,
     retry: false,
   })
 
-  const displayName = name ?? t("Your match")
+  const peerName = meetingQuery.data?.peer.firstName || t("Your match")
+  const subline = (() => {
+    if (!meetingQuery.data) return null
+    const scheduled = new Date(meetingQuery.data.scheduledAt)
+    if (meetingQuery.data.instant) {
+      return t("Started at {{time}}", {
+        time: scheduled.toLocaleTimeString(i18n.language, {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      })
+    }
+    return t("Scheduled for {{when}}", {
+      when: scheduled.toLocaleString(i18n.language, {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    })
+  })()
 
   function endCall() {
     navigate("/dashboard")
   }
 
-  const statusLabel = !peerUserId
+  const statusLabel = !meetingId
     ? t("Couldn't connect")
     : tokenQuery.isLoading
       ? t("Connecting…")
@@ -66,24 +77,20 @@ export default function CallPage() {
           <div className="text-[0.6875rem] tracking-widest text-primary/80 uppercase">
             {statusLabel}
           </div>
-          <h1 className="mt-1 text-2xl">{displayName}</h1>
-          {circles.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {circles.map((c) => (
-                <Badge key={c} variant="secondary">
-                  {c}
-                </Badge>
-              ))}
-            </div>
+          <h1 className="mt-1 text-2xl">{peerName}</h1>
+          {subline && (
+            <p className="mt-1 text-xs text-muted-foreground italic">
+              {subline}
+            </p>
           )}
         </div>
       </header>
 
       <main className="flex flex-1 items-center justify-center px-6 pb-6">
-        {!peerUserId ? (
+        {!meetingId ? (
           <EmptyState
-            title={t("No peer specified")}
-            description={t("This call link is missing a participant id.")}
+            title={t("No meeting specified")}
+            description={t("This call link is missing a meeting id.")}
             onLeave={endCall}
           />
         ) : tokenQuery.isLoading ? (

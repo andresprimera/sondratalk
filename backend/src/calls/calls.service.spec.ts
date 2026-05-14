@@ -2,14 +2,29 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { CallsService } from './calls.service';
 import { LivekitService } from '../services/livekit/livekit.service';
+import { MeetingsService } from '../meetings/meetings.service';
 import { UsersService } from '../users/users.service';
 
 const CALLER_ID = '507f1f77bcf86cd799439011';
 const PEER_ID = '507f1f77bcf86cd799439022';
+const MEETING_ID = '507f1f77bcf86cd799439aaa';
+
+function makeMeetingDoc(overrides: Record<string, unknown> = {}) {
+  return {
+    id: MEETING_ID,
+    participants: [CALLER_ID, PEER_ID],
+    scheduledAt: new Date(),
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    cancelled: false,
+    instant: true,
+    ...overrides,
+  };
+}
 
 describe('CallsService', () => {
   let service: CallsService;
   let livekitService: Record<string, jest.Mock>;
+  let meetingsService: Record<string, jest.Mock>;
   let usersService: Record<string, jest.Mock>;
 
   beforeEach(async () => {
@@ -20,6 +35,9 @@ describe('CallsService', () => {
         roomName: 'whatever',
       }),
     };
+    meetingsService = {
+      findByIdForParticipant: jest.fn(),
+    };
     usersService = {
       findById: jest.fn(),
     };
@@ -28,6 +46,7 @@ describe('CallsService', () => {
       providers: [
         CallsService,
         { provide: LivekitService, useValue: livekitService },
+        { provide: MeetingsService, useValue: meetingsService },
         { provide: UsersService, useValue: usersService },
       ],
     }).compile();
@@ -38,81 +57,101 @@ describe('CallsService', () => {
   afterEach(() => jest.clearAllMocks());
 
   describe('generateToken', () => {
-    it('mints a token via LivekitService with caller identity, name, and derived room name', async () => {
-      usersService.findById
-        .mockResolvedValueOnce({ id: CALLER_ID, name: 'Ana María' })
-        .mockResolvedValueOnce({ id: PEER_ID, name: 'Beatriz' });
+    it('mints a token with identity, caller name, and room derived from the meeting id', async () => {
+      meetingsService.findByIdForParticipant.mockResolvedValue(makeMeetingDoc());
+      usersService.findById.mockResolvedValue({
+        id: CALLER_ID,
+        name: 'Ana María',
+      });
 
-      const result = await service.generateToken(CALLER_ID, PEER_ID);
+      const result = await service.generateToken(CALLER_ID, MEETING_ID);
 
+      expect(meetingsService.findByIdForParticipant).toHaveBeenCalledWith(
+        CALLER_ID,
+        MEETING_ID,
+      );
       expect(livekitService.generateAccessToken).toHaveBeenCalledTimes(1);
       const args = livekitService.generateAccessToken.mock.calls[0][0];
       expect(args.identity).toBe(CALLER_ID);
       expect(args.name).toBe('Ana María');
-      expect(args.roomName).toBe(`${CALLER_ID}--${PEER_ID}`);
+      expect(args.roomName).toBe(`mtg:${MEETING_ID}`);
 
       expect(result).toEqual({
         token: 'signed.jwt.value',
         url: 'wss://example.livekit.cloud',
-        roomName: `${CALLER_ID}--${PEER_ID}`,
+        roomName: `mtg:${MEETING_ID}`,
         identity: CALLER_ID,
       });
     });
 
-    it('derives the same room name regardless of which side is caller', async () => {
-      usersService.findById.mockImplementation(async (id: string) => ({
-        id,
-        name: id === CALLER_ID ? 'Ana' : 'Bea',
-      }));
+    it('rejects when the scheduled time is more than 5 minutes in the future', async () => {
+      meetingsService.findByIdForParticipant.mockResolvedValue(
+        makeMeetingDoc({ scheduledAt: new Date(Date.now() + 2 * 60 * 60 * 1000) }),
+      );
 
-      await service.generateToken(CALLER_ID, PEER_ID);
-      const roomA = livekitService.generateAccessToken.mock.calls[0][0].roomName;
+      await expect(
+        service.generateToken(CALLER_ID, MEETING_ID),
+      ).rejects.toThrow(BadRequestException);
 
-      await service.generateToken(PEER_ID, CALLER_ID);
-      const roomB = livekitService.generateAccessToken.mock.calls[1][0].roomName;
-
-      expect(roomA).toBe(roomB);
-      expect(roomA).toBe(`${CALLER_ID}--${PEER_ID}`);
+      expect(livekitService.generateAccessToken).not.toHaveBeenCalled();
     });
 
-    it('rejects calling yourself with BadRequestException', async () => {
+    it('rejects when the scheduled time is more than 60 minutes in the past', async () => {
+      meetingsService.findByIdForParticipant.mockResolvedValue(
+        makeMeetingDoc({ scheduledAt: new Date(Date.now() - 2 * 60 * 60 * 1000) }),
+      );
+
       await expect(
-        service.generateToken(CALLER_ID, CALLER_ID),
+        service.generateToken(CALLER_ID, MEETING_ID),
       ).rejects.toThrow(BadRequestException);
+
+      expect(livekitService.generateAccessToken).not.toHaveBeenCalled();
+    });
+
+    it('propagates NotFoundException from findByIdForParticipant', async () => {
+      meetingsService.findByIdForParticipant.mockRejectedValue(
+        new NotFoundException('Meeting not found'),
+      );
+
+      await expect(
+        service.generateToken(CALLER_ID, MEETING_ID),
+      ).rejects.toThrow(NotFoundException);
 
       expect(usersService.findById).not.toHaveBeenCalled();
       expect(livekitService.generateAccessToken).not.toHaveBeenCalled();
     });
 
-    it('rejects a peerUserId that is not a valid ObjectId', async () => {
-      await expect(
-        service.generateToken(CALLER_ID, 'not-an-object-id'),
-      ).rejects.toThrow(BadRequestException);
-
-      expect(usersService.findById).not.toHaveBeenCalled();
-      expect(livekitService.generateAccessToken).not.toHaveBeenCalled();
-    });
-
-    it('throws NotFoundException when the caller does not exist', async () => {
-      usersService.findById.mockResolvedValueOnce(null);
+    it('throws NotFoundException when the caller user is missing', async () => {
+      meetingsService.findByIdForParticipant.mockResolvedValue(makeMeetingDoc());
+      usersService.findById.mockResolvedValue(null);
 
       await expect(
-        service.generateToken(CALLER_ID, PEER_ID),
+        service.generateToken(CALLER_ID, MEETING_ID),
       ).rejects.toThrow(NotFoundException);
 
       expect(livekitService.generateAccessToken).not.toHaveBeenCalled();
     });
 
-    it('throws NotFoundException when the peer does not exist', async () => {
-      usersService.findById
-        .mockResolvedValueOnce({ id: CALLER_ID, name: 'Ana' })
-        .mockResolvedValueOnce(null);
+    it('accepts meetings whose scheduledAt is exactly now', async () => {
+      meetingsService.findByIdForParticipant.mockResolvedValue(
+        makeMeetingDoc({ scheduledAt: new Date() }),
+      );
+      usersService.findById.mockResolvedValue({ id: CALLER_ID, name: 'Ana' });
 
-      await expect(
-        service.generateToken(CALLER_ID, PEER_ID),
-      ).rejects.toThrow(NotFoundException);
+      const result = await service.generateToken(CALLER_ID, MEETING_ID);
+      expect(result.token).toBe('signed.jwt.value');
+    });
 
-      expect(livekitService.generateAccessToken).not.toHaveBeenCalled();
+    it('accepts meetings up to 5 minutes before scheduledAt', async () => {
+      meetingsService.findByIdForParticipant.mockResolvedValue(
+        makeMeetingDoc({
+          scheduledAt: new Date(Date.now() + 4 * 60 * 1000),
+        }),
+      );
+      usersService.findById.mockResolvedValue({ id: CALLER_ID, name: 'Ana' });
+
+      const result = await service.generateToken(CALLER_ID, MEETING_ID);
+      expect(result.token).toBe('signed.jwt.value');
     });
   });
 });

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { AlertCircleIcon, ArrowRight, ChevronLeft } from "lucide-react"
 import type {
@@ -21,9 +21,23 @@ import {
   useFindTalkMatch,
 } from "@/hooks/use-find-talk-match"
 import { fetchMyCirclesApi } from "@/lib/memberships"
+import { createMeetingApi } from "@/lib/meetings"
 import { ApiError } from "@/lib/api-error"
 import i18n from "@/lib/i18n"
 import { cn } from "@/lib/utils"
+
+const OBJECT_ID_REGEX = /^[a-f\d]{24}$/i
+
+function isRealObjectId(id: string | number): id is string {
+  return typeof id === "string" && OBJECT_ID_REGEX.test(id)
+}
+
+function composeScheduledAt(date: Date, time: string): string {
+  const [hh, mm] = time.split(":").map(Number)
+  const d = new Date(date)
+  d.setHours(hh, mm, 0, 0)
+  return d.toISOString()
+}
 
 type Stage = "request" | "searching" | "matches"
 type Intent = "specific" | "talk" | "heard"
@@ -260,6 +274,7 @@ type SimulatedMatch =
 export default function FindConversationPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { user } = useAuth()
   const myCirclesQuery = useQuery({
     queryKey: ["users", "me", "circles"] as const,
@@ -267,6 +282,17 @@ export default function FindConversationPage() {
   })
   const talkMatch = useFindTalkMatch()
   const heardMatch = useFindHeardMatch()
+  const createMeeting = useMutation({
+    mutationFn: createMeetingApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meetings"] })
+    },
+    onError: (err) => {
+      const message =
+        err instanceof Error ? err.message : t("Couldn't start the call.")
+      toast.error(message)
+    },
+  })
 
   const [stage, setStage] = useState<Stage>("request")
   const [offCircleIds, setOffCircleIds] = useState<Set<string>>(new Set())
@@ -427,10 +453,29 @@ export default function FindConversationPage() {
     if (!selectedSlot) return
     const match = cardMatches.find((m) => m.id === selectedSlot.matchId)
     const name = match?.name ?? t("them")
-    toast.success(
-      t("We'll let {{name}} know and ping you when they confirm.", { name }),
+    if (!isRealObjectId(selectedSlot.matchId)) {
+      toast.success(
+        t("We'll let {{name}} know — you'll see it in your dashboard.", {
+          name,
+        }),
+      )
+      reset()
+      return
+    }
+    const scheduledAt = composeScheduledAt(selectedSlot.date, selectedSlot.time)
+    createMeeting.mutate(
+      { peerUserId: selectedSlot.matchId, scheduledAt },
+      {
+        onSuccess: () => {
+          toast.success(
+            t("We'll let {{name}} know — you'll see it in your dashboard.", {
+              name,
+            }),
+          )
+          reset()
+        },
+      },
     )
-    reset()
   }
 
   if (stage === "searching") {
@@ -558,14 +603,22 @@ export default function FindConversationPage() {
                     selectedSlot?.matchId === m.id ? selectedSlot : null
                   }
                   onSelectSlot={setSelectedSlot}
-                  onTalkNow={() =>
-                    navigate(`/call/${m.id}`, {
-                      state: {
-                        name: m.name,
-                        circles: m.circles ?? [],
+                  onTalkNow={() => {
+                    if (!isRealObjectId(m.id)) {
+                      toast.info(
+                        t("This is a simulated match — start a real one."),
+                      )
+                      return
+                    }
+                    createMeeting.mutate(
+                      { peerUserId: m.id, instant: true },
+                      {
+                        onSuccess: (meeting) =>
+                          navigate(`/call/${meeting.id}`),
                       },
-                    })
-                  }
+                    )
+                  }}
+                  talkNowDisabled={createMeeting.isPending}
                 />
               ))}
             </div>
@@ -895,6 +948,7 @@ interface MatchCardProps {
   selectedSlot: SelectedSlot | null
   onSelectSlot: (slot: SelectedSlot) => void
   onTalkNow?: () => void
+  talkNowDisabled?: boolean
 }
 
 function MatchCard({
@@ -903,6 +957,7 @@ function MatchCard({
   selectedSlot,
   onSelectSlot,
   onTalkNow,
+  talkNowDisabled,
 }: MatchCardProps) {
   const { t } = useTranslation()
   const idLabel = match.isHost
@@ -977,7 +1032,10 @@ function MatchCard({
                   {t("Available right now")}
                 </span>
               </div>
-              <Button onClick={onTalkNow} disabled={!onTalkNow}>
+              <Button
+                onClick={onTalkNow}
+                disabled={!onTalkNow || talkNowDisabled}
+              >
                 {t("Talk Now")}
               </Button>
             </div>
