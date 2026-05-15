@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { ArrowLeft, X } from "lucide-react"
+import { ArrowLeft, Star, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Combobox,
@@ -15,6 +15,7 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group"
 import { LANGUAGES, getLanguageByCode, type LanguageEntry } from "@/lib/languages"
+import { cn } from "@/lib/utils"
 
 export type Fluency = "Conversational" | "Fluent" | "Native"
 
@@ -26,9 +27,12 @@ export interface OnboardingLanguage {
 
 interface OnboardingLanguagesStepProps {
   languages: OnboardingLanguage[]
+  primaryCode: string | null
   onLanguagesChange: (next: OnboardingLanguage[]) => void
+  onPrimaryChange: (code: string) => void
   onNext: () => void
   onBack: () => void
+  isSubmitting?: boolean
 }
 
 const FLUENCY_LEVELS: Fluency[] = ["Conversational", "Fluent", "Native"]
@@ -39,9 +43,12 @@ function isFluency(value: string): value is Fluency {
 
 export function OnboardingLanguagesStep({
   languages,
+  primaryCode,
   onLanguagesChange,
+  onPrimaryChange,
   onNext,
   onBack,
+  isSubmitting,
 }: OnboardingLanguagesStepProps) {
   const { t } = useTranslation()
 
@@ -85,43 +92,81 @@ export function OnboardingLanguagesStep({
         {t("Sondra only connects you with people you can actually talk to.")}
       </p>
 
-      <div className="mb-8 flex flex-col gap-3">
-        {languages.map((lang) => (
-          <div key={lang.code} className="onboarding-lang-row">
-            <span className="onboarding-lang-name">{t(lang.name)}</span>
-            <div className="flex items-center gap-3">
-              <ToggleGroup
-                spacing={6}
-                value={[lang.fluency]}
-                onValueChange={(next) => {
-                  const picked = next[0]
-                  if (picked && isFluency(picked)) setFluency(lang.code, picked)
-                }}
-                className="onboarding-fluency-group"
-                aria-label={`${t("Fluency")} — ${t(lang.name)}`}
-              >
-                {FLUENCY_LEVELS.map((level) => (
-                  <ToggleGroupItem
-                    key={level}
-                    value={level}
-                    className="onboarding-fluency-item border-transparent bg-transparent px-3 data-[state=on]:bg-primary"
-                  >
-                    {t(level)}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-              <button
-                type="button"
-                className="onboarding-lang-remove"
-                onClick={() => removeLanguage(lang.code)}
-                aria-label={t("Remove {{language}}", { language: t(lang.name) })}
-              >
-                <X className="size-4" />
-              </button>
+      <div className="mb-4 flex flex-col gap-3">
+        {languages.map((lang) => {
+          const isPrimary = lang.code === primaryCode
+          return (
+            <div key={lang.code} className="onboarding-lang-row">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onPrimaryChange(lang.code)}
+                  aria-pressed={isPrimary}
+                  aria-label={t("Make {{language}} my primary language", {
+                    language: t(lang.name),
+                  })}
+                  className={cn(
+                    "flex size-7 shrink-0 items-center justify-center rounded-full border transition-colors",
+                    isPrimary
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground/50 hover:text-muted-foreground",
+                  )}
+                >
+                  <Star
+                    className={cn(
+                      "size-3.5",
+                      isPrimary && "fill-primary",
+                    )}
+                    aria-hidden
+                  />
+                </button>
+                <span className="onboarding-lang-name">{t(lang.name)}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <ToggleGroup
+                  spacing={6}
+                  value={[lang.fluency]}
+                  onValueChange={(next) => {
+                    const picked = next[0]
+                    if (picked && isFluency(picked))
+                      setFluency(lang.code, picked)
+                  }}
+                  className="onboarding-fluency-group"
+                  aria-label={`${t("Fluency")} — ${t(lang.name)}`}
+                >
+                  {FLUENCY_LEVELS.map((level) => (
+                    <ToggleGroupItem
+                      key={level}
+                      value={level}
+                      className="onboarding-fluency-item border-transparent bg-transparent px-3 data-[state=on]:bg-primary"
+                    >
+                      {t(level)}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+                <button
+                  type="button"
+                  className="onboarding-lang-remove"
+                  onClick={() => removeLanguage(lang.code)}
+                  aria-label={t("Remove {{language}}", {
+                    language: t(lang.name),
+                  })}
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
+
+      {languages.length > 0 && (
+        <p className="mb-8 text-xs text-muted-foreground italic">
+          {t(
+            "Tap the star to choose your primary language — we'll send you calendar invites and emails in this one.",
+          )}
+        </p>
+      )}
 
       {remaining.length > 0 && (
         <div className="mb-10">
@@ -161,9 +206,11 @@ export function OnboardingLanguagesStep({
           size="xl"
           className="landing-flicker tracking-[0.05em]"
           onClick={onNext}
-          disabled={languages.length === 0}
+          disabled={
+            languages.length === 0 || primaryCode === null || isSubmitting
+          }
         >
-          {t("Continue →")}
+          {isSubmitting ? t("Saving…") : t("Continue →")}
         </Button>
       </div>
     </section>

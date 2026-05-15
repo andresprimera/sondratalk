@@ -551,5 +551,9 @@
   "Time zone": "Zona horaria",
   "We use this to schedule conversations at times that fit both of you.": "La usamos para agendar conversaciones a horas que os encajen a los dos.",
   "Save time zone": "Guardar zona horaria",
-  "Failed to save your timezone": "No se pudo guardar tu zona horaria"
+  "Failed to save your timezone": "No se pudo guardar tu zona horaria",
+  "Failed to save your languages": "No se pudieron guardar tus idiomas",
+  "Saving…": "Guardando…",
+  "Tap the star to choose your primary language — we'll send you calendar invites and emails in this one.": "Pulsa la estrella para elegir tu idioma principal — te enviaremos invitaciones de calendario y correos en este.",
+  "Make {{language}} my primary language": "Marcar {{language}} como mi idioma principal"
 }

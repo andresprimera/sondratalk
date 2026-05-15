@@ -6,6 +6,13 @@ const TOKEN_KEYS = {
   refresh: "refreshToken",
 } as const
 
+const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "")
+
+function buildUrl(path: string): string {
+  if (/^https?:\/\//.test(path)) return path
+  return `${API_BASE}${path}`
+}
+
 export function getStoredTokens(): {
   accessToken: string | null
   refreshToken: string | null
@@ -48,7 +55,7 @@ async function refreshTokens(): Promise<AuthResponse> {
       throw new Error("No refresh token")
     }
 
-    const res = await fetch("/api/auth/refresh", {
+    const res = await fetch(buildUrl("/api/auth/refresh"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -79,7 +86,7 @@ export async function publicFetch(
   url: string,
   options: RequestInit = {},
 ): Promise<Response> {
-  const res = await fetch(url, {
+  const res = await fetch(buildUrl(url), {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -97,9 +104,10 @@ export async function authFetch(
   options: RequestInit = {},
 ): Promise<Response> {
   const { accessToken } = getStoredTokens()
+  const fullUrl = buildUrl(url)
 
   const makeRequest = (token: string | null): Promise<Response> =>
-    fetch(url, {
+    fetch(fullUrl, {
       ...options,
       headers: {
         "Content-Type": "application/json",

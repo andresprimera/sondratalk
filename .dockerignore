@@ -1,0 +1,28 @@
+**/node_modules
+**/dist
+**/.env
+**/.env.local
+**/coverage
+**/.turbo
+**/.cache
+
+# Editor / IDE
+.vscode
+.idea
+.claude
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backend uploads (mounted via volume in production, never baked in)
+backend/uploads

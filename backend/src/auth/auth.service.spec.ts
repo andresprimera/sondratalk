@@ -125,6 +125,8 @@ describe('AuthService', () => {
           name: 'Test User',
           role: 'user',
           timezone: 'UTC',
+          languages: [],
+          locale: 'en',
         },
       });
     });

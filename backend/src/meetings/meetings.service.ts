@@ -4,17 +4,24 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types, isValidObjectId } from 'mongoose';
 import { Meeting, MeetingDocument } from './schemas/meeting.schema';
 import { UsersService } from '../users/users.service';
+import { MailService } from '../services/mail/mail.service';
+import { buildMeetingIcs } from './ics';
+import { EMAIL_COPY, formatDateLabel } from './meeting-email';
 import type { CreateMeetingInput, MeetingWithPeer } from './dto';
 import { extractFirstName, toMeetingWithPeer } from './meetings.mapper';
+import type { LocaleKey } from '@base-dashboard/shared';
+import type { UserDocument } from '../users/schemas/user.schema';
 
 const INSTANT_TTL_MS = 10 * 60 * 1000;
 const SCHEDULED_TTL_MS = 60 * 60 * 1000;
 const UPCOMING_GRACE_MS = 15 * 60 * 1000;
 const UPCOMING_LIMIT = 50;
+const MEETING_DURATION_MINUTES = 60;
 
 @Injectable()
 export class MeetingsService {
@@ -24,6 +31,8 @@ export class MeetingsService {
     @InjectModel(Meeting.name)
     private meetingModel: Model<Meeting>,
     private usersService: UsersService,
+    private mailService: MailService,
+    private configService: ConfigService,
   ) {}
 
   async create(
@@ -85,7 +94,67 @@ export class MeetingsService {
       `Created meeting ${doc.id} initiator=${initiatorId} peer=${dto.peerUserId} instant=${wantsInstant}`,
     );
 
+    if (!wantsInstant) {
+      const initiator = await this.usersService.findById(initiatorId);
+      if (initiator) {
+        this.sendCalendarInvitesFireAndForget(doc, initiator, peer);
+      }
+    }
+
     return doc;
+  }
+
+  private sendCalendarInvitesFireAndForget(
+    meeting: MeetingDocument,
+    initiator: UserDocument,
+    peer: UserDocument,
+  ): void {
+    const frontendUrl = this.configService.getOrThrow<string>('FRONTEND_URL');
+    const fromAddress = this.configService.getOrThrow<string>('SMTP_FROM');
+    const joinUrl = `${frontendUrl}/call/${meeting.id}`;
+
+    Promise.all(
+      [
+        { recipient: initiator, other: peer },
+        { recipient: peer, other: initiator },
+      ].map(({ recipient, other }) => {
+        const locale: LocaleKey = recipient.locale === 'es' ? 'es' : 'en';
+        const copy = EMAIL_COPY[locale];
+        const otherFirst = extractFirstName(other.name);
+        const dateLabel = formatDateLabel(meeting.scheduledAt, locale);
+
+        const ics = buildMeetingIcs({
+          meetingId: meeting.id,
+          organizerEmail: fromAddress,
+          attendeeEmail: recipient.email,
+          attendeeName: recipient.name,
+          summary: copy.icsSummary(otherFirst),
+          description: copy.icsDescription(joinUrl),
+          scheduledAt: meeting.scheduledAt,
+          durationMinutes: MEETING_DURATION_MINUTES,
+          joinUrl,
+        });
+
+        return this.mailService.sendMail({
+          to: recipient.email,
+          subject: copy.subject(otherFirst, dateLabel),
+          text: copy.bodyText(otherFirst, dateLabel, joinUrl),
+          html: copy.bodyHtml(otherFirst, dateLabel, joinUrl),
+          attachments: [
+            {
+              filename: ics.filename,
+              content: ics.content,
+              contentType: 'text/calendar; charset=utf-8; method=REQUEST',
+            },
+          ],
+        });
+      }),
+    ).catch((err) =>
+      this.logger.error(
+        `Failed to send calendar invites for meeting ${meeting.id}`,
+        err,
+      ),
+    );
   }
 
   async findUpcomingForUser(userId: string): Promise<MeetingWithPeer[]> {

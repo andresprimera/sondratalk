@@ -34,6 +34,7 @@ export class MailService {
       subject: options.subject,
       text: options.text,
       html: options.html,
+      attachments: options.attachments,
     });
 
     this.logger.log(`Email sent: ${info.messageId} to ${String(options.to)}`);

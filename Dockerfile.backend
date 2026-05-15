@@ -1,0 +1,27 @@
+FROM node:22-alpine
+
+# bcrypt has a native addon — alpine needs python3 + a C++ toolchain to build it.
+RUN apk add --no-cache python3 make g++ \
+ && corepack enable
+
+WORKDIR /app
+
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY shared/package.json ./shared/
+COPY frontend/package.json ./frontend/
+COPY backend/package.json ./backend/
+
+# Allow lifecycle scripts so bcrypt's native build runs.
+# `onlyBuiltDependencies` in package.json restricts which packages may run scripts.
+RUN pnpm install --frozen-lockfile
+
+COPY shared ./shared
+COPY backend ./backend
+
+RUN pnpm --filter base-dashboard-backend build
+
+ENV NODE_ENV=production
+WORKDIR /app/backend
+EXPOSE 3000
+
+CMD ["pnpm", "run", "start:prod"]

@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Types } from 'mongoose';
 import { MeetingsService } from './meetings.service';
 import { Meeting } from './schemas/meeting.schema';
 import { UsersService } from '../users/users.service';
+import { MailService } from '../services/mail/mail.service';
 
 const USER_A = '507f1f77bcf86cd799439011';
 const USER_B = '507f1f77bcf86cd799439022';
@@ -33,6 +35,8 @@ describe('MeetingsService', () => {
   let service: MeetingsService;
   let meetingModel: Record<string, jest.Mock>;
   let usersService: Record<string, jest.Mock>;
+  let mailService: Record<string, jest.Mock>;
+  let configService: Record<string, jest.Mock>;
 
   beforeEach(async () => {
     meetingModel = {
@@ -44,12 +48,28 @@ describe('MeetingsService', () => {
       findById: jest.fn(),
       findByIds: jest.fn(),
     };
+    mailService = {
+      sendMail: jest.fn().mockResolvedValue({
+        messageId: 'msg-1',
+        accepted: [],
+        rejected: [],
+      }),
+    };
+    configService = {
+      getOrThrow: jest.fn((key: string) => {
+        if (key === 'FRONTEND_URL') return 'http://localhost:5173';
+        if (key === 'SMTP_FROM') return 'Sondra <noreply@sondra.test>';
+        throw new Error(`Unexpected key ${key}`);
+      }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MeetingsService,
         { provide: getModelToken(Meeting.name), useValue: meetingModel },
         { provide: UsersService, useValue: usersService },
+        { provide: MailService, useValue: mailService },
+        { provide: ConfigService, useValue: configService },
       ],
     }).compile();
 
@@ -57,6 +77,9 @@ describe('MeetingsService', () => {
   });
 
   afterEach(() => jest.clearAllMocks());
+
+  const flushMicrotasks = () =>
+    new Promise<void>((resolve) => setImmediate(resolve));
 
   describe('create', () => {
     it('creates an instant meeting with scheduledAt = now and expiresAt = now + 10m', async () => {
@@ -161,6 +184,102 @@ describe('MeetingsService', () => {
         service.create(USER_A, { peerUserId: USER_B, instant: true }),
       ).rejects.toThrow(NotFoundException);
       expect(meetingModel.create).not.toHaveBeenCalled();
+    });
+
+    it('does not send calendar invites for instant meetings', async () => {
+      usersService.findById.mockResolvedValue({
+        id: USER_B,
+        name: 'Beatriz',
+        email: 'b@x.test',
+        locale: 'en',
+      });
+      meetingModel.create.mockResolvedValue(makeDoc({ instant: true }));
+
+      await service.create(USER_A, {
+        peerUserId: USER_B,
+        instant: true,
+      });
+      await flushMicrotasks();
+
+      expect(mailService.sendMail).not.toHaveBeenCalled();
+    });
+
+    it('sends one calendar invite to each participant for scheduled meetings, localized per recipient', async () => {
+      const future = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const peer = {
+        id: USER_B,
+        name: 'Beatriz Lopez',
+        email: 'beatriz@x.test',
+        locale: 'es',
+      };
+      const initiator = {
+        id: USER_A,
+        name: 'Ana María',
+        email: 'ana@x.test',
+        locale: 'en',
+      };
+      // First call: peer lookup inside create. Second call: initiator lookup inside sendCalendarInvites.
+      usersService.findById
+        .mockResolvedValueOnce(peer)
+        .mockResolvedValueOnce(initiator);
+      meetingModel.create.mockResolvedValue(
+        makeDoc({ scheduledAt: future, instant: false }),
+      );
+
+      await service.create(USER_A, {
+        peerUserId: USER_B,
+        scheduledAt: future.toISOString(),
+      });
+      await flushMicrotasks();
+
+      expect(mailService.sendMail).toHaveBeenCalledTimes(2);
+      const calls = mailService.sendMail.mock.calls.map((c) => c[0]);
+
+      const initiatorMail = calls.find((c) => c.to === 'ana@x.test');
+      const peerMail = calls.find((c) => c.to === 'beatriz@x.test');
+      expect(initiatorMail).toBeDefined();
+      expect(peerMail).toBeDefined();
+
+      // Initiator is English-locale.
+      expect(initiatorMail.subject).toMatch(
+        /Sondra: Conversation with Beatriz/,
+      );
+      // Peer is Spanish-locale.
+      expect(peerMail.subject).toMatch(/Sondra: Conversación con Ana/);
+
+      // ICS attachment present on both.
+      expect(initiatorMail.attachments[0].filename).toBe('sondra-meeting.ics');
+      expect(peerMail.attachments[0].filename).toBe('sondra-meeting.ics');
+      expect(initiatorMail.attachments[0].content).toContain('BEGIN:VCALENDAR');
+      expect(peerMail.attachments[0].content).toContain('BEGIN:VCALENDAR');
+    });
+
+    it('does not fail meeting creation when calendar invites fail to send', async () => {
+      const future = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      usersService.findById
+        .mockResolvedValueOnce({
+          id: USER_B,
+          name: 'Beatriz',
+          email: 'b@x.test',
+          locale: 'en',
+        })
+        .mockResolvedValueOnce({
+          id: USER_A,
+          name: 'Ana',
+          email: 'a@x.test',
+          locale: 'en',
+        });
+      const created = makeDoc({ scheduledAt: future, instant: false });
+      meetingModel.create.mockResolvedValue(created);
+      mailService.sendMail.mockRejectedValue(new Error('SMTP down'));
+
+      const result = await service.create(USER_A, {
+        peerUserId: USER_B,
+        scheduledAt: future.toISOString(),
+      });
+      await flushMicrotasks();
+
+      expect(result).toBe(created);
     });
   });
 

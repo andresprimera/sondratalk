@@ -128,6 +128,34 @@ describe('UsersService', () => {
     });
   });
 
+  describe('updateLanguages', () => {
+    it('replaces languages and locale, returning the updated doc', async () => {
+      const languages = [
+        { code: 'es', fluency: 'Native' as const },
+        { code: 'en', fluency: 'Fluent' as const },
+      ];
+      const updated = { ...mockUser, languages, locale: 'es' };
+      model.findByIdAndUpdate.mockResolvedValue(updated);
+
+      const result = await service.updateLanguages('user-1', languages, 'es');
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
+        'user-1',
+        { languages, locale: 'es' },
+        { new: true },
+      );
+      expect(result).toEqual(updated);
+    });
+
+    it('returns null when the user does not exist', async () => {
+      model.findByIdAndUpdate.mockResolvedValue(null);
+
+      const result = await service.updateLanguages('missing', [], 'en');
+
+      expect(result).toBeNull();
+    });
+  });
+
   describe('remove', () => {
     it('should delete user by id', async () => {
       model.findByIdAndDelete.mockResolvedValue(mockUser);

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User, UserDocument } from './schemas/user.schema';
+import type { UserLanguage } from '@base-dashboard/shared';
 
 @Injectable()
 export class UsersService {
@@ -124,6 +125,18 @@ export class UsersService {
     return this.userModel.findByIdAndUpdate(
       userId,
       { timezone },
+      { new: true },
+    );
+  }
+
+  async updateLanguages(
+    userId: string,
+    languages: UserLanguage[],
+    locale: string,
+  ): Promise<UserDocument | null> {
+    return this.userModel.findByIdAndUpdate(
+      userId,
+      { languages, locale },
       { new: true },
     );
   }

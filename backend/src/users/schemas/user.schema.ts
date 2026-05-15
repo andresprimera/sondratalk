@@ -3,6 +3,16 @@ import { HydratedDocument, Query } from 'mongoose';
 
 export type UserDocument = HydratedDocument<User>;
 
+@Schema({ _id: false })
+export class UserLanguage {
+  @Prop({ required: true })
+  code!: string;
+
+  @Prop({ required: true, enum: ['Conversational', 'Fluent', 'Native'] })
+  fluency!: string;
+}
+const UserLanguageSchema = SchemaFactory.createForClass(UserLanguage);
+
 @Schema({ timestamps: true })
 export class User {
   @Prop({ required: true })
@@ -34,6 +44,12 @@ export class User {
 
   @Prop({ required: true, default: 'UTC' })
   timezone!: string;
+
+  @Prop({ type: [UserLanguageSchema], default: [] })
+  languages!: UserLanguage[];
+
+  @Prop({ required: true, enum: ['en', 'es'], default: 'en' })
+  locale!: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

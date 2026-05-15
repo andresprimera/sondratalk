@@ -10,12 +10,13 @@ import * as bcrypt from 'bcrypt';
 import { type StringValue } from 'ms';
 import * as crypto from 'crypto';
 import { UsersService } from '../users/users.service';
+import { toUser } from '../users/users.mapper';
 import { MailService } from '../services';
 import { type SignupInput } from './dto/signup.dto';
 import { type LoginInput } from './dto/login.dto';
 import { type ForgotPasswordInput } from './dto/forgot-password.dto';
 import { type ResetPasswordInput } from './dto/reset-password.dto';
-import { type AuthResponse, type Role } from '@base-dashboard/shared';
+import { type AuthResponse } from '@base-dashboard/shared';
 
 @Injectable()
 export class AuthService {
@@ -49,7 +50,7 @@ export class AuthService {
 
     return {
       ...tokens,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role as Role, timezone: user.timezone },
+      user: toUser(user),
     };
   }
 
@@ -69,7 +70,7 @@ export class AuthService {
 
     return {
       ...tokens,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role as Role, timezone: user.timezone },
+      user: toUser(user),
     };
   }
 
@@ -95,7 +96,7 @@ export class AuthService {
 
     return {
       ...tokens,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role as Role, timezone: user.timezone },
+      user: toUser(user),
     };
   }
 

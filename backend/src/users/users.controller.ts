@@ -22,6 +22,7 @@ import { MembershipsService } from '../memberships/memberships.service';
 import { AvailabilityService } from '../availability/availability.service';
 import { toAvailability } from '../availability/availability.mapper';
 import { toCircle } from '../circles/circle.mapper';
+import { toUser } from './users.mapper';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -29,7 +30,6 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import {
   updateUserRoleSchema,
   type UpdateUserRoleInput,
-  type Role,
   type Availability,
   type Circle,
   type PaginatedResponse,
@@ -38,6 +38,8 @@ import {
   type UpdateAvailabilityInput,
   updateTimezoneSchema,
   type UpdateTimezoneInput,
+  updateLanguagesSchema,
+  type UpdateLanguagesInput,
 } from '@base-dashboard/shared';
 import {
   paginationQuerySchema,
@@ -76,13 +78,7 @@ export class UsersController {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role as Role,
-      timezone: user.timezone,
-    };
+    return toUser(user);
   }
 
   @Patch('me')
@@ -98,13 +94,7 @@ export class UsersController {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role as Role,
-      timezone: user.timezone,
-    };
+    return toUser(user);
   }
 
   @Patch('me/timezone')
@@ -117,13 +107,24 @@ export class UsersController {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role as Role,
-      timezone: user.timezone,
-    };
+    return toUser(user);
+  }
+
+  @Patch('me/languages')
+  async updateLanguages(
+    @CurrentUser('userId') userId: string,
+    @Body(new ZodValidationPipe(updateLanguagesSchema))
+    dto: UpdateLanguagesInput,
+  ): Promise<User> {
+    const user = await this.usersService.updateLanguages(
+      userId,
+      dto.languages,
+      dto.locale,
+    );
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return toUser(user);
   }
 
   @Patch('me/password')
@@ -203,13 +204,7 @@ export class UsersController {
       ...dto,
       password: hashedPassword,
     });
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role as Role,
-      timezone: user.timezone,
-    };
+    return toUser(user);
   }
 
   @Get()
@@ -224,13 +219,7 @@ export class UsersController {
       query.limit,
     );
     return {
-      data: data.map((u) => ({
-        id: u.id,
-        email: u.email,
-        name: u.name,
-        role: u.role as Role,
-        timezone: u.timezone,
-      })),
+      data: data.map(toUser),
       meta: {
         page: query.page,
         limit: query.limit,
@@ -255,13 +244,7 @@ export class UsersController {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role as Role,
-      timezone: user.timezone,
-    };
+    return toUser(user);
   }
 
   @Delete(':id')

@@ -2,6 +2,7 @@ import {
   updateProfileApi,
   changePasswordApi,
   updateTimezoneApi,
+  updateMyLanguagesApi,
 } from "@/lib/profile"
 import { authFetch } from "@/lib/api"
 
@@ -61,6 +62,33 @@ describe("profile API", () => {
       expect(authFetch).toHaveBeenCalledWith("/api/users/me/timezone", {
         method: "PATCH",
         body: JSON.stringify({ timezone: "Europe/Madrid" }),
+      })
+      expect(result).toEqual(user)
+    })
+  })
+
+  describe("updateMyLanguagesApi", () => {
+    it("PATCHes /api/users/me/languages with the languages array and locale", async () => {
+      const languages = [
+        { code: "es", fluency: "Native" as const },
+        { code: "en", fluency: "Fluent" as const },
+      ]
+      const user = {
+        id: "u1",
+        name: "Test",
+        email: "t@test.com",
+        role: "user",
+        timezone: "UTC",
+        languages,
+        locale: "es",
+      }
+      vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(user))
+
+      const result = await updateMyLanguagesApi({ languages, locale: "es" })
+
+      expect(authFetch).toHaveBeenCalledWith("/api/users/me/languages", {
+        method: "PATCH",
+        body: JSON.stringify({ languages, locale: "es" }),
       })
       expect(result).toEqual(user)
     })

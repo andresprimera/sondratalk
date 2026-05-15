@@ -1,6 +1,7 @@
 // Onboarding is a transient pre-dashboard ceremony. Step 1 confirms the
-// timezone we inferred at signup (user can change it) and step 3 persists
-// circle memberships; languages (step 2) is still local-state-only.
+// timezone we inferred at signup; step 2 persists the languages spoken plus
+// a primary language used for email/calendar invites; step 3 persists circle
+// memberships.
 import { useState } from "react"
 import { Navigate } from "react-router"
 import { useTranslation } from "react-i18next"
@@ -27,8 +28,15 @@ import {
   fetchMyCirclesApi,
   updateMyCirclesApi,
 } from "@/lib/memberships"
-import { updateTimezoneApi } from "@/lib/profile"
+import { updateTimezoneApi, updateMyLanguagesApi } from "@/lib/profile"
 import { useAuth } from "@/hooks/use-auth"
+
+type SupportedEmailLocale = "en" | "es"
+
+function localeFromPrimary(primaryCode: string | null): SupportedEmailLocale {
+  if (primaryCode === "es") return "es"
+  return "en"
+}
 
 type Step = 1 | 2 | 3 | 4
 
@@ -61,6 +69,9 @@ export default function OnboardingPage() {
   const [languages, setLanguages] = useState<OnboardingLanguage[]>(
     detectInitialLanguages
   )
+  const [primaryCode, setPrimaryCode] = useState<string | null>(
+    () => detectInitialLanguages()[0]?.code ?? null,
+  )
   const [circles, setCircles] = useState<OnboardingCircle[]>([])
   const [circleInput, setCircleInput] = useState("")
 
@@ -92,6 +103,32 @@ export default function OnboardingPage() {
       toast.error(t("Failed to save your timezone"))
     },
   })
+
+  const languagesMutation = useMutation({
+    mutationFn: updateMyLanguagesApi,
+    onSuccess: (data) => {
+      if (user) {
+        updateUser({
+          ...user,
+          languages: data.languages,
+          locale: data.locale,
+        })
+      }
+      setStep(3)
+      window.scrollTo(0, 0)
+    },
+    onError: () => {
+      toast.error(t("Failed to save your languages"))
+    },
+  })
+
+  function handleLanguagesNext() {
+    if (!primaryCode) return
+    languagesMutation.mutate({
+      languages: languages.map(({ code, fluency }) => ({ code, fluency })),
+      locale: localeFromPrimary(primaryCode),
+    })
+  }
 
   function go(next: Step) {
     setStep(next)
@@ -138,9 +175,25 @@ export default function OnboardingPage() {
         {step === 2 && (
           <OnboardingLanguagesStep
             languages={languages}
-            onLanguagesChange={setLanguages}
-            onNext={() => go(3)}
+            primaryCode={primaryCode}
+            onLanguagesChange={(next) => {
+              setLanguages(next)
+              // Keep primary in sync: if it's missing (or pointing at a removed
+              // language), default to the first item in the list so the user
+              // doesn't have to explicitly star it.
+              if (next.length === 0) {
+                setPrimaryCode(null)
+              } else if (
+                !primaryCode ||
+                !next.some((l) => l.code === primaryCode)
+              ) {
+                setPrimaryCode(next[0].code)
+              }
+            }}
+            onPrimaryChange={setPrimaryCode}
+            onNext={handleLanguagesNext}
             onBack={() => go(1)}
+            isSubmitting={languagesMutation.isPending}
           />
         )}
         {step === 3 && (

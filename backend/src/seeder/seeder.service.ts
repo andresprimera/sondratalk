@@ -19,6 +19,10 @@ export class SeederService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    if (this.configService.get<string>('SEED_ON_BOOT') !== 'true') {
+      return;
+    }
+
     await this.seedAdminUser();
     await this.seedThemes();
     await this.seedCircles();

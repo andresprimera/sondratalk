@@ -1,4 +1,7 @@
-import { type User } from "@base-dashboard/shared"
+import {
+  type User,
+  type UpdateLanguagesInput,
+} from "@base-dashboard/shared"
 import { authFetch } from "@/lib/api"
 
 export async function updateProfileApi(
@@ -26,6 +29,16 @@ export async function updateTimezoneApi(timezone: string): Promise<User> {
   const res = await authFetch("/api/users/me/timezone", {
     method: "PATCH",
     body: JSON.stringify({ timezone }),
+  })
+  return res.json()
+}
+
+export async function updateMyLanguagesApi(
+  input: UpdateLanguagesInput,
+): Promise<User> {
+  const res = await authFetch("/api/users/me/languages", {
+    method: "PATCH",
+    body: JSON.stringify(input),
   })
   return res.json()
 }
