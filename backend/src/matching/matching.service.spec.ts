@@ -109,6 +109,11 @@ describe('MatchingService', () => {
     });
 
     it('mixes available-now first then scheduled candidates with projected slots', async () => {
+      // Pin to a Monday so the Tuesday-morning window below always projects
+      // a future slot within the 7-day horizon, regardless of when CI runs.
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2025-06-02T12:00:00Z'));
+      try {
       const liveOid = new Types.ObjectId(liveUserId);
       const scheduledOid = new Types.ObjectId(scheduledUserId);
       membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
@@ -158,6 +163,9 @@ describe('MatchingService', () => {
       expect(slot.startsAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
       expect(slot.requesterDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(slot.requesterTime).toMatch(/^\d{2}:\d{2}$/);
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('drops scheduled candidates whose windows yield no future slots', async () => {

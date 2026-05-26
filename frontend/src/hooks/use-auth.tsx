@@ -7,6 +7,7 @@ import {
   useRef,
   type ReactNode,
 } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { type User } from "@base-dashboard/shared"
 import { getStoredTokens, storeTokens, clearTokens } from "@/lib/api"
 import { loginApi, signupApi, refreshApi, logoutApi } from "@/lib/auth"
@@ -39,6 +40,7 @@ function getTokenExpiry(token: string): number | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -100,10 +102,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await loginApi(email, password)
+    queryClient.clear()
     storeTokens(data.accessToken, data.refreshToken)
     setUser(data.user)
     scheduleRefresh(data.accessToken, data.refreshToken)
-  }, [scheduleRefresh])
+  }, [scheduleRefresh, queryClient])
 
   const signup = useCallback(
     async (
@@ -113,11 +116,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       timezone: string,
     ) => {
       const data = await signupApi(name, email, password, timezone)
+      queryClient.clear()
       storeTokens(data.accessToken, data.refreshToken)
       setUser(data.user)
       scheduleRefresh(data.accessToken, data.refreshToken)
     },
-    [scheduleRefresh],
+    [scheduleRefresh, queryClient],
   )
 
   const updateUser = useCallback((updatedUser: User) => {
@@ -131,7 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await logoutApi().catch(() => {})
     clearTokens()
     setUser(null)
-  }, [])
+    queryClient.clear()
+  }, [queryClient])
 
   return (
     <AuthContext.Provider
