@@ -16,14 +16,14 @@ export class MailService {
   constructor(private configService: ConfigService) {
     this.fromAddress = this.configService.getOrThrow<string>('SMTP_FROM');
 
+    const user = this.configService.get<string>('SMTP_USER');
+    const pass = this.configService.get<string>('SMTP_PASS');
+
     this.transporter = createTransport({
       host: this.configService.getOrThrow<string>('SMTP_HOST'),
       port: Number(this.configService.getOrThrow<string>('SMTP_PORT')),
       secure: this.configService.getOrThrow<string>('SMTP_SECURE') === 'true',
-      auth: {
-        user: this.configService.getOrThrow<string>('SMTP_USER'),
-        pass: this.configService.getOrThrow<string>('SMTP_PASS'),
-      },
+      auth: user && pass ? { user, pass } : undefined,
     });
   }
 
