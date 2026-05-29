@@ -12,11 +12,11 @@ export default defineConfig({
   },
   clearScreen: false,
   server: {
-    port: 5173,
+    port: 5174,
     allowedHosts: [".ngrok-free.app"],
     proxy: {
       "/api": {
-        target: "http://localhost:3000",
+        target: "http://localhost:3030",
         changeOrigin: true,
       },
     },

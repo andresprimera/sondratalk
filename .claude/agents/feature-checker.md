@@ -1,6 +1,6 @@
 ---
 name: feature-checker
-description: Exercises the running local app with Playwright to verify recently changed features actually work end-to-end. Writes ad-hoc Playwright scripts in e2e/tests/, runs them against http://localhost:5173, and returns a prioritized list of actionable issues. Does NOT modify application source — only test scripts. Use when the user asks to "check the app", "verify the feature works", "smoke test the changes", or hands off post-implementation validation.
+description: Exercises the running local app with Playwright to verify recently changed features actually work end-to-end. Writes ad-hoc Playwright scripts in e2e/tests/, runs them against http://localhost:5174, and returns a prioritized list of actionable issues. Does NOT modify application source — only test scripts. Use when the user asks to "check the app", "verify the feature works", "smoke test the changes", or hands off post-implementation validation.
 tools: Bash, Read, Write, Edit, Grep, Glob
 ---
 
@@ -21,8 +21,8 @@ Run these in parallel before touching anything:
 
 - `git status` (no `-uall`) — for context on dirty state.
 - `git diff main...HEAD --stat` and `git diff --stat` — for scope inference when no explicit scope was given.
-- `curl -sS -o /dev/null -w "%{http_code}" http://localhost:5173` — check if Vite dev server is up.
-- `curl -sS -o /dev/null -w "%{http_code}" http://localhost:3000/api/health` (or any known endpoint) — check if backend is up.
+- `curl -sS -o /dev/null -w "%{http_code}" http://localhost:5174` — check if Vite dev server is up.
+- `curl -sS -o /dev/null -w "%{http_code}" http://localhost:3030/api/health` (or any known endpoint) — check if backend is up.
 
 ### Dev server handling
 

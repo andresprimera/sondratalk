@@ -57,7 +57,7 @@ describe('MeetingsService', () => {
     };
     configService = {
       getOrThrow: jest.fn((key: string) => {
-        if (key === 'FRONTEND_URL') return 'http://localhost:5173';
+        if (key === 'FRONTEND_URL') return 'http://localhost:5174';
         if (key === 'SMTP_FROM') return 'Sondra <noreply@sondra.test>';
         throw new Error(`Unexpected key ${key}`);
       }),

@@ -1,6 +1,7 @@
 import * as React from "react"
 import { useTranslation } from "react-i18next"
 
+import { Badge } from "@/components/ui/badge"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
@@ -17,7 +18,6 @@ import {
   LayoutDashboardIcon,
   UsersIcon,
   Settings2Icon,
-  CommandIcon,
   LayersIcon,
   CircleDotIcon,
 } from "lucide-react"
@@ -54,8 +54,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:p-1.5!"
               render={<Link to="/dashboard" />}
             >
-              <CommandIcon className="size-5!" />
-              <span className="text-base font-semibold">Acme Inc.</span>
+              <span className="font-heading text-xl italic">Sondra</span>
+              <Badge
+                variant="outline"
+                className="text-[0.625rem] tracking-wider uppercase"
+              >
+                {t("Beta")}
+              </Badge>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

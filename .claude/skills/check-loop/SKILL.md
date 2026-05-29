@@ -12,8 +12,8 @@ Drive the `feature-checker` agent in a loop: it exercises the running app with P
 Run in parallel:
 
 - `git status` — confirm the working tree is in a state you can edit (don't loop on top of a session that's mid-rebase or has merge conflicts).
-- `curl -sS -o /dev/null -w "%{http_code}" http://localhost:5173` — Vite dev server.
-- `curl -sS -o /dev/null -w "%{http_code}" http://localhost:3000/api/health` — backend (use any known endpoint if `/api/health` isn't wired).
+- `curl -sS -o /dev/null -w "%{http_code}" http://localhost:5174` — Vite dev server.
+- `curl -sS -o /dev/null -w "%{http_code}" http://localhost:3030/api/health` — backend (use any known endpoint if `/api/health` isn't wired).
 
 If either dev server is down, start `pnpm dev` from the repo root **in the background** (`run_in_background: true`) and poll until both URLs respond (up to 60s). Do not kill it between iterations.
 

@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Link } from "react-router"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -10,12 +11,17 @@ export default function LandingPage() {
   return (
     <div className="landing-bg flex min-h-svh flex-col text-foreground">
       <header className="flex items-center justify-between px-6 py-6 md:px-10">
-        <Link
-          to="/"
-          className="font-heading text-[1.85rem] italic tracking-[0.01em]"
-        >
-          Sondra
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/"
+            className="font-heading text-[1.85rem] italic tracking-[0.01em]"
+          >
+            Sondra
+          </Link>
+          <Badge variant="outline" className="text-[0.625rem] tracking-wider uppercase">
+            {t("Beta")}
+          </Badge>
+        </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
           <LanguageToggle />
