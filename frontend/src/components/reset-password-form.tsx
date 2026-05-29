@@ -64,7 +64,7 @@ export function ResetPasswordForm({
         <CardContent>
           <FieldGroup>
             <Field>
-              <Button render={<Link to="/forgot-password" />}>
+              <Button nativeButton={false} render={<Link to="/forgot-password" />}>
                 {t("Request new link")}
               </Button>
             </Field>

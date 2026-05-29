@@ -60,7 +60,7 @@ export default function DashboardPage() {
         </p>
         <h1 className="mt-2 mb-6">{t("Who do you need to talk to today?")}</h1>
         <div className="flex flex-wrap gap-3">
-          <Button render={<Link to="/dashboard/find-conversation" />}>
+          <Button nativeButton={false} render={<Link to="/dashboard/find-conversation" />}>
             {t("Find a Conversation")} <ArrowRight />
           </Button>
           <Button variant="outline">{t("Talk Now")}</Button>

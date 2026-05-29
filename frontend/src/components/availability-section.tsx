@@ -46,7 +46,7 @@ export function AvailabilitySection() {
               </p>
             </div>
           </div>
-          <Button render={<Link to="/dashboard/availability" />}>
+          <Button nativeButton={false} render={<Link to="/dashboard/availability" />}>
             {t("Set up your availability")} <ArrowRight />
           </Button>
         </CardContent>
