@@ -32,13 +32,6 @@ function isRealObjectId(id: string | number): id is string {
   return typeof id === "string" && OBJECT_ID_REGEX.test(id)
 }
 
-function composeScheduledAt(date: Date, time: string): string {
-  const [hh, mm] = time.split(":").map(Number)
-  const d = new Date(date)
-  d.setHours(hh, mm, 0, 0)
-  return d.toISOString()
-}
-
 type Stage = "request" | "searching" | "matches"
 type Intent = "specific" | "talk" | "heard"
 
@@ -142,10 +135,15 @@ function suggestCircles(text: string): string[] {
   return FALLBACK_SUGGESTIONS
 }
 
+interface SlotTime {
+  time: string // wall-clock HH:mm in requester's tz, for display
+  startsAt: string // UTC ISO instant of the slot — the source of truth for booking
+}
+
 interface SlotDay {
   dayKey: string // translation key: "Today", "Tomorrow", or "" (no relative prefix)
   date: Date
-  times: string[]
+  times: SlotTime[]
 }
 
 interface CardMatch {
@@ -165,6 +163,17 @@ function daysFromNow(n: number): Date {
   return d
 }
 
+// Mock entries never reach the backend (see isRealObjectId guard); startsAt is
+// synthesized from browser-local date + time purely so the type matches.
+function mockSlotTimes(date: Date, times: string[]): SlotTime[] {
+  return times.map((time) => {
+    const [hh, mm] = time.split(":").map(Number)
+    const d = new Date(date)
+    d.setHours(hh, mm, 0, 0)
+    return { time, startsAt: d.toISOString() }
+  })
+}
+
 const SPECIFIC_MOCK_POOL: CardMatch[] = [
   {
     id: 1,
@@ -179,12 +188,12 @@ const SPECIFIC_MOCK_POOL: CardMatch[] = [
       {
         dayKey: "Tomorrow",
         date: daysFromNow(1),
-        times: ["09:00", "11:30", "15:00"],
+        times: mockSlotTimes(daysFromNow(1), ["09:00", "11:30", "15:00"]),
       },
       {
         dayKey: "In a few days",
         date: daysFromNow(3),
-        times: ["10:00", "14:30"],
+        times: mockSlotTimes(daysFromNow(3), ["10:00", "14:30"]),
       },
     ],
   },
@@ -196,6 +205,7 @@ interface SelectedSlot {
   dayKey: string
   date: Date
   time: string
+  startsAt: string
 }
 
 function todayInRequesterTz(): string {
@@ -221,10 +231,10 @@ function groupSlotsByDate(
   slots: { startsAt: string; requesterDate: string; requesterTime: string }[],
 ): SlotDay[] {
   const todayYmd = todayInRequesterTz()
-  const byDate = new Map<string, string[]>()
+  const byDate = new Map<string, SlotTime[]>()
   for (const s of slots) {
     const list = byDate.get(s.requesterDate) ?? []
-    list.push(s.requesterTime)
+    list.push({ time: s.requesterTime, startsAt: s.startsAt })
     byDate.set(s.requesterDate, list)
   }
   const out: SlotDay[] = []
@@ -462,9 +472,8 @@ export default function FindConversationPage() {
       reset()
       return
     }
-    const scheduledAt = composeScheduledAt(selectedSlot.date, selectedSlot.time)
     createMeeting.mutate(
-      { peerUserId: selectedSlot.matchId, scheduledAt },
+      { peerUserId: selectedSlot.matchId, scheduledAt: selectedSlot.startsAt },
       {
         onSuccess: () => {
           toast.success(
@@ -1063,14 +1072,13 @@ function MatchCard({
                         {heading}
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        {day.times.map((time) => {
+                        {day.times.map(({ time, startsAt }) => {
                           const isSelected =
                             selectedSlot?.matchId === match.id &&
-                            selectedSlot?.dayKey === day.dayKey &&
-                            selectedSlot?.time === time
+                            selectedSlot?.startsAt === startsAt
                           return (
                             <button
-                              key={time}
+                              key={startsAt}
                               type="button"
                               onClick={() =>
                                 onSelectSlot({
@@ -1078,6 +1086,7 @@ function MatchCard({
                                   dayKey: day.dayKey,
                                   date: day.date,
                                   time,
+                                  startsAt,
                                 })
                               }
                               className={cn(
