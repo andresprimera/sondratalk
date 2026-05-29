@@ -27,18 +27,6 @@ export async function signupApi(
   return res.json()
 }
 
-export async function refreshApi(
-  refreshToken: string,
-): Promise<AuthResponse> {
-  const res = await publicFetch("/api/auth/refresh", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${refreshToken}`,
-    },
-  })
-  return res.json()
-}
-
 export async function logoutApi(): Promise<void> {
   await authFetch("/api/auth/logout", { method: "POST" })
 }

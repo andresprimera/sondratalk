@@ -13,6 +13,22 @@ export class UserLanguage {
 }
 const UserLanguageSchema = SchemaFactory.createForClass(UserLanguage);
 
+@Schema({ _id: false })
+export class UserSession {
+  @Prop({ required: true })
+  jti!: string;
+
+  @Prop({ required: true })
+  hashedToken!: string;
+
+  @Prop({ required: true })
+  createdAt!: Date;
+
+  @Prop({ required: true })
+  lastUsedAt!: Date;
+}
+const UserSessionSchema = SchemaFactory.createForClass(UserSession);
+
 @Schema({ timestamps: true })
 export class User {
   @Prop({ required: true })
@@ -27,8 +43,8 @@ export class User {
   @Prop({ required: true, select: false })
   password: string;
 
-  @Prop({ select: false })
-  hashedRefreshToken?: string;
+  @Prop({ type: [UserSessionSchema], default: [], select: false })
+  sessions!: UserSession[];
 
   @Prop({ select: false })
   hashedPasswordResetToken?: string;

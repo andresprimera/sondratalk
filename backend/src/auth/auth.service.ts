@@ -7,7 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { type StringValue } from 'ms';
+import ms, { type StringValue } from 'ms';
 import * as crypto from 'crypto';
 import { UsersService } from '../users/users.service';
 import { toUser } from '../users/users.mapper';
@@ -17,6 +17,8 @@ import { type LoginInput } from './dto/login.dto';
 import { type ForgotPasswordInput } from './dto/forgot-password.dto';
 import { type ResetPasswordInput } from './dto/reset-password.dto';
 import { type AuthResponse } from '@base-dashboard/shared';
+
+const MAX_SESSIONS_PER_USER = 10;
 
 @Injectable()
 export class AuthService {
@@ -45,8 +47,14 @@ export class AuthService {
       role,
     });
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
-    await this.updateStoredRefreshToken(user.id, tokens.refreshToken);
+    const jti = crypto.randomUUID();
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      user.role,
+      jti,
+    );
+    await this.addStoredSession(user.id, jti, tokens.refreshToken);
 
     return {
       ...tokens,
@@ -65,8 +73,14 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
-    await this.updateStoredRefreshToken(user.id, tokens.refreshToken);
+    const jti = crypto.randomUUID();
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      user.role,
+      jti,
+    );
+    await this.addStoredSession(user.id, jti, tokens.refreshToken);
 
     return {
       ...tokens,
@@ -76,23 +90,36 @@ export class AuthService {
 
   async refreshTokens(
     userId: string,
+    jti: string | undefined,
     refreshToken: string,
   ): Promise<AuthResponse> {
-    const user = await this.usersService.findByIdWithRefreshToken(userId);
-    if (!user || !user.hashedRefreshToken) {
+    if (!jti) {
       throw new UnauthorizedException('Access denied');
     }
 
-    const tokenMatches = await bcrypt.compare(
-      refreshToken,
-      user.hashedRefreshToken,
-    );
+    const user = await this.usersService.findByIdWithSessions(userId);
+    if (!user) {
+      throw new UnauthorizedException('Access denied');
+    }
+
+    const session = user.sessions.find((s) => s.jti === jti);
+    if (!session) {
+      throw new UnauthorizedException('Access denied');
+    }
+
+    const tokenMatches = await bcrypt.compare(refreshToken, session.hashedToken);
     if (!tokenMatches) {
       throw new UnauthorizedException('Access denied');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
-    await this.updateStoredRefreshToken(user.id, tokens.refreshToken);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      user.role,
+      jti,
+    );
+    const hashedToken = await bcrypt.hash(tokens.refreshToken, 12);
+    await this.usersService.rotateSession(user.id, jti, hashedToken);
 
     return {
       ...tokens,
@@ -100,21 +127,33 @@ export class AuthService {
     };
   }
 
-  async logout(userId: string): Promise<void> {
-    await this.usersService.updateRefreshToken(userId, null);
+  async logout(userId: string, jti: string | undefined): Promise<void> {
+    if (!jti) return;
+    await this.usersService.removeSession(userId, jti);
   }
 
-  private async generateTokens(userId: string, email: string, role: string) {
-    const payload = { sub: userId, email, role };
+  private async generateTokens(
+    userId: string,
+    email: string,
+    role: string,
+    jti: string,
+  ) {
+    const payload = { sub: userId, email, role, jti };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: this.configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
-        expiresIn: this.configService.getOrThrow<string>('JWT_ACCESS_EXPIRATION') as StringValue,
+        // eslint-disable-next-line no-restricted-syntax
+        expiresIn: this.configService.getOrThrow<string>(
+          'JWT_ACCESS_EXPIRATION',
+        ) as StringValue,
       }),
       this.jwtService.signAsync(payload, {
         secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
-        expiresIn: this.configService.getOrThrow<string>('JWT_REFRESH_EXPIRATION') as StringValue,
+        // eslint-disable-next-line no-restricted-syntax
+        expiresIn: this.configService.getOrThrow<string>(
+          'JWT_REFRESH_EXPIRATION',
+        ) as StringValue,
       }),
     ]);
 
@@ -185,14 +224,26 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(dto.password, 12);
     await this.usersService.updatePassword(user.id, hashedPassword);
     await this.usersService.clearPasswordResetToken(user.id);
-    await this.usersService.updateRefreshToken(user.id, null);
+    await this.usersService.removeAllSessions(user.id);
   }
 
-  private async updateStoredRefreshToken(
+  private async addStoredSession(
     userId: string,
+    jti: string,
     refreshToken: string,
   ) {
-    const hashed = await bcrypt.hash(refreshToken, 12);
-    await this.usersService.updateRefreshToken(userId, hashed);
+    const hashedToken = await bcrypt.hash(refreshToken, 12);
+    const now = new Date();
+    // eslint-disable-next-line no-restricted-syntax
+    const refreshTtl = this.configService.getOrThrow<string>(
+      'JWT_REFRESH_EXPIRATION',
+    ) as StringValue;
+    const refreshTtlMs = ms(refreshTtl);
+    await this.usersService.addSession(
+      userId,
+      { jti, hashedToken, createdAt: now, lastUsedAt: now },
+      MAX_SESSIONS_PER_USER,
+      refreshTtlMs,
+    );
   }
 }

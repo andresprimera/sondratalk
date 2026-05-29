@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { User, UserDocument } from './schemas/user.schema';
+import { User, UserDocument, UserSession } from './schemas/user.schema';
 import type { UserLanguage } from '@base-dashboard/shared';
 
 @Injectable()
@@ -66,15 +66,54 @@ export class UsersService {
     return this.userModel.find({ _id: { $in: ids } });
   }
 
-  async updateRefreshToken(
-    userId: string,
-    hashedRefreshToken: string | null,
-  ): Promise<void> {
-    await this.userModel.findByIdAndUpdate(userId, { hashedRefreshToken });
+  async findByIdWithSessions(id: string): Promise<UserDocument | null> {
+    return this.userModel.findById(id).select('+sessions');
   }
 
-  async findByIdWithRefreshToken(id: string): Promise<UserDocument | null> {
-    return this.userModel.findById(id).select('+hashedRefreshToken');
+  async addSession(
+    userId: string,
+    session: UserSession,
+    maxSessions: number,
+    refreshTtlMs: number,
+  ): Promise<void> {
+    const cutoff = new Date(Date.now() - refreshTtlMs);
+    await this.userModel.findByIdAndUpdate(userId, {
+      $pull: { sessions: { createdAt: { $lt: cutoff } } },
+    });
+    await this.userModel.findByIdAndUpdate(userId, {
+      $push: {
+        sessions: {
+          $each: [session],
+          $slice: -maxSessions,
+        },
+      },
+    });
+  }
+
+  async rotateSession(
+    userId: string,
+    jti: string,
+    hashedToken: string,
+  ): Promise<void> {
+    await this.userModel.updateOne(
+      { _id: userId, 'sessions.jti': jti },
+      {
+        $set: {
+          'sessions.$.hashedToken': hashedToken,
+          'sessions.$.lastUsedAt': new Date(),
+        },
+      },
+    );
+  }
+
+  async removeSession(userId: string, jti: string): Promise<void> {
+    await this.userModel.findByIdAndUpdate(userId, {
+      $pull: { sessions: { jti } },
+    });
+  }
+
+  async removeAllSessions(userId: string): Promise<void> {
+    await this.userModel.findByIdAndUpdate(userId, { sessions: [] });
   }
 
   async updatePasswordResetToken(

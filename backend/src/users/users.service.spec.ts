@@ -24,6 +24,7 @@ describe('UsersService', () => {
       findByIdAndUpdate: jest.fn(),
       findByIdAndDelete: jest.fn(),
       exists: jest.fn(),
+      updateOne: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -166,37 +167,75 @@ describe('UsersService', () => {
     });
   });
 
-  describe('updateRefreshToken', () => {
-    it('should update the hashed refresh token', async () => {
-      model.findByIdAndUpdate.mockResolvedValue(undefined);
+  describe('findByIdWithSessions', () => {
+    it('should find user with sessions selected', async () => {
+      const chainable = { select: jest.fn().mockResolvedValue(mockUser) };
+      model.findById.mockReturnValue(chainable);
 
-      await service.updateRefreshToken('user-1', 'hashed-token');
+      const result = await service.findByIdWithSessions('user-1');
 
-      expect(model.findByIdAndUpdate).toHaveBeenCalledWith('user-1', {
-        hashedRefreshToken: 'hashed-token',
-      });
+      expect(chainable.select).toHaveBeenCalledWith('+sessions');
+      expect(result).toEqual(mockUser);
     });
+  });
 
-    it('should set refresh token to null on logout', async () => {
+  describe('addSession', () => {
+    const session = {
+      jti: 'jti-1',
+      hashedToken: 'hashed',
+      createdAt: new Date(),
+      lastUsedAt: new Date(),
+    };
+
+    it('prunes expired sessions then pushes the new one capped at maxSessions', async () => {
       model.findByIdAndUpdate.mockResolvedValue(undefined);
 
-      await service.updateRefreshToken('user-1', null);
+      await service.addSession('user-1', session, 10, 7 * 24 * 60 * 60 * 1000);
 
-      expect(model.findByIdAndUpdate).toHaveBeenCalledWith('user-1', {
-        hashedRefreshToken: null,
+      const [firstCall, secondCall] = model.findByIdAndUpdate.mock.calls;
+      expect(firstCall[0]).toBe('user-1');
+      expect(firstCall[1].$pull.sessions.createdAt.$lt).toBeInstanceOf(Date);
+      expect(secondCall[0]).toBe('user-1');
+      expect(secondCall[1]).toEqual({
+        $push: { sessions: { $each: [session], $slice: -10 } },
       });
     });
   });
 
-  describe('findByIdWithRefreshToken', () => {
-    it('should find user with refresh token selected', async () => {
-      const chainable = { select: jest.fn().mockResolvedValue(mockUser) };
-      model.findById.mockReturnValue(chainable);
+  describe('rotateSession', () => {
+    it('updates hashedToken and lastUsedAt for the matched session', async () => {
+      model.updateOne.mockResolvedValue(undefined);
 
-      const result = await service.findByIdWithRefreshToken('user-1');
+      await service.rotateSession('user-1', 'jti-1', 'new-hash');
 
-      expect(chainable.select).toHaveBeenCalledWith('+hashedRefreshToken');
-      expect(result).toEqual(mockUser);
+      const [filter, update] = model.updateOne.mock.calls[0];
+      expect(filter).toEqual({ _id: 'user-1', 'sessions.jti': 'jti-1' });
+      expect(update.$set['sessions.$.hashedToken']).toBe('new-hash');
+      expect(update.$set['sessions.$.lastUsedAt']).toBeInstanceOf(Date);
+    });
+  });
+
+  describe('removeSession', () => {
+    it('pulls the session matching the jti', async () => {
+      model.findByIdAndUpdate.mockResolvedValue(undefined);
+
+      await service.removeSession('user-1', 'jti-1');
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith('user-1', {
+        $pull: { sessions: { jti: 'jti-1' } },
+      });
+    });
+  });
+
+  describe('removeAllSessions', () => {
+    it('clears the sessions array', async () => {
+      model.findByIdAndUpdate.mockResolvedValue(undefined);
+
+      await service.removeAllSessions('user-1');
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith('user-1', {
+        sessions: [],
+      });
     });
   });
 

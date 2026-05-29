@@ -11,6 +11,13 @@ jest.mock('bcrypt');
 
 const mockedBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
 
+const mockSession = {
+  jti: 'session-jti',
+  hashedToken: 'hashed-refresh-token',
+  createdAt: new Date(),
+  lastUsedAt: new Date(),
+};
+
 const mockUser = {
   id: 'user-1',
   email: 'test@example.com',
@@ -18,7 +25,7 @@ const mockUser = {
   role: 'user',
   timezone: 'UTC',
   password: 'hashed-password',
-  hashedRefreshToken: 'hashed-refresh-token',
+  sessions: [mockSession],
   hashedPasswordResetToken: 'hashed-reset-token',
   passwordResetExpires: new Date(Date.now() + 3600_000),
 };
@@ -30,8 +37,11 @@ describe('AuthService', () => {
     findByEmail: jest.fn(),
     countUsers: jest.fn(),
     create: jest.fn(),
-    updateRefreshToken: jest.fn(),
-    findByIdWithRefreshToken: jest.fn(),
+    findByIdWithSessions: jest.fn(),
+    addSession: jest.fn(),
+    rotateSession: jest.fn(),
+    removeSession: jest.fn(),
+    removeAllSessions: jest.fn(),
     findByEmailWithResetToken: jest.fn(),
     updatePasswordResetToken: jest.fn(),
     clearPasswordResetToken: jest.fn(),
@@ -66,7 +76,11 @@ describe('AuthService', () => {
     service = module.get<AuthService>(AuthService);
 
     jwtService.signAsync.mockResolvedValue('mock-token');
-    configService.getOrThrow.mockReturnValue('mock-secret');
+    configService.getOrThrow.mockImplementation((key: string) => {
+      if (key === 'JWT_REFRESH_EXPIRATION') return '7d';
+      if (key === 'JWT_ACCESS_EXPIRATION') return '15m';
+      return 'mock-secret';
+    });
     mockedBcrypt.hash.mockResolvedValue('hashed-value' as never);
     mockedBcrypt.compare.mockResolvedValue(true as never);
   });
@@ -172,61 +186,92 @@ describe('AuthService', () => {
       expect(result.user.email).toBe('test@example.com');
     });
 
-    it('should store hashed refresh token after login', async () => {
+    it('should store a new session after login', async () => {
       usersService.findByEmail.mockResolvedValue(mockUser);
 
       await service.login(dto);
 
-      expect(usersService.updateRefreshToken).toHaveBeenCalledWith('user-1', 'hashed-value');
+      expect(usersService.addSession).toHaveBeenCalledTimes(1);
+      const [userId, session, maxSessions, ttlMs] =
+        usersService.addSession.mock.calls[0];
+      expect(userId).toBe('user-1');
+      expect(session.jti).toEqual(expect.any(String));
+      expect(session.hashedToken).toBe('hashed-value');
+      expect(maxSessions).toBe(10);
+      expect(ttlMs).toBe(7 * 24 * 60 * 60 * 1000);
     });
   });
 
   describe('refreshTokens', () => {
-    it('should throw UnauthorizedException if user not found', async () => {
-      usersService.findByIdWithRefreshToken.mockResolvedValue(null);
-
-      await expect(service.refreshTokens('user-1', 'token')).rejects.toThrow(
-        UnauthorizedException,
-      );
+    it('should throw UnauthorizedException if jti is missing', async () => {
+      await expect(
+        service.refreshTokens('user-1', undefined, 'token'),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should throw UnauthorizedException if no stored refresh token', async () => {
-      usersService.findByIdWithRefreshToken.mockResolvedValue({
+    it('should throw UnauthorizedException if user not found', async () => {
+      usersService.findByIdWithSessions.mockResolvedValue(null);
+
+      await expect(
+        service.refreshTokens('user-1', 'session-jti', 'token'),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw UnauthorizedException if session not found for jti', async () => {
+      usersService.findByIdWithSessions.mockResolvedValue({
         ...mockUser,
-        hashedRefreshToken: undefined,
+        sessions: [],
       });
 
-      await expect(service.refreshTokens('user-1', 'token')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        service.refreshTokens('user-1', 'session-jti', 'token'),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException if refresh token does not match', async () => {
-      usersService.findByIdWithRefreshToken.mockResolvedValue(mockUser);
+      usersService.findByIdWithSessions.mockResolvedValue(mockUser);
       mockedBcrypt.compare.mockResolvedValue(false as never);
 
-      await expect(service.refreshTokens('user-1', 'bad-token')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        service.refreshTokens('user-1', 'session-jti', 'bad-token'),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should return new tokens on valid refresh', async () => {
-      usersService.findByIdWithRefreshToken.mockResolvedValue(mockUser);
+    it('should rotate the session and return new tokens on valid refresh', async () => {
+      usersService.findByIdWithSessions.mockResolvedValue(mockUser);
       mockedBcrypt.compare.mockResolvedValue(true as never);
 
-      const result = await service.refreshTokens('user-1', 'valid-token');
+      const result = await service.refreshTokens(
+        'user-1',
+        'session-jti',
+        'valid-token',
+      );
 
       expect(result).toHaveProperty('accessToken');
       expect(result).toHaveProperty('refreshToken');
       expect(result.user.id).toBe('user-1');
+      expect(usersService.rotateSession).toHaveBeenCalledWith(
+        'user-1',
+        'session-jti',
+        'hashed-value',
+      );
     });
   });
 
   describe('logout', () => {
-    it('should clear the refresh token', async () => {
-      await service.logout('user-1');
+    it('should remove only the current session', async () => {
+      await service.logout('user-1', 'session-jti');
 
-      expect(usersService.updateRefreshToken).toHaveBeenCalledWith('user-1', null);
+      expect(usersService.removeSession).toHaveBeenCalledWith(
+        'user-1',
+        'session-jti',
+      );
+    });
+
+    it('is a no-op when jti is missing', async () => {
+      await service.logout('user-1', undefined);
+
+      expect(usersService.removeSession).not.toHaveBeenCalled();
     });
   });
 
@@ -290,7 +335,7 @@ describe('AuthService', () => {
       await expect(service.resetPassword(dto)).rejects.toThrow(BadRequestException);
     });
 
-    it('should update password and clear reset token on success', async () => {
+    it('should update password and clear reset token + all sessions on success', async () => {
       usersService.findByEmailWithResetToken.mockResolvedValue(mockUser);
       mockedBcrypt.compare.mockResolvedValue(true as never);
 
@@ -298,7 +343,7 @@ describe('AuthService', () => {
 
       expect(usersService.updatePassword).toHaveBeenCalledWith('user-1', 'hashed-value');
       expect(usersService.clearPasswordResetToken).toHaveBeenCalledWith('user-1');
-      expect(usersService.updateRefreshToken).toHaveBeenCalledWith('user-1', null);
+      expect(usersService.removeAllSessions).toHaveBeenCalledWith('user-1');
     });
   });
 });

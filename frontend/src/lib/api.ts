@@ -46,7 +46,7 @@ async function throwApiError(res: Response): Promise<never> {
 // --- Refresh queue ---
 let refreshPromise: Promise<AuthResponse> | null = null
 
-async function refreshTokens(): Promise<AuthResponse> {
+export async function refreshTokens(): Promise<AuthResponse> {
   if (refreshPromise) return refreshPromise
 
   refreshPromise = (async () => {

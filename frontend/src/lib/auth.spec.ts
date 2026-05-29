@@ -1,4 +1,4 @@
-import { loginApi, signupApi, refreshApi, logoutApi, forgotPasswordApi, resetPasswordApi } from "@/lib/auth"
+import { loginApi, signupApi, logoutApi, forgotPasswordApi, resetPasswordApi } from "@/lib/auth"
 import { publicFetch, authFetch } from "@/lib/api"
 
 vi.mock("@/lib/api", () => ({
@@ -46,21 +46,6 @@ describe("auth API", () => {
           password: "pass",
           timezone: "Europe/Madrid",
         }),
-      })
-    })
-  })
-
-  describe("refreshApi", () => {
-    it("should POST to /api/auth/refresh with Bearer token", async () => {
-      vi.mocked(publicFetch).mockResolvedValue(
-        mockJsonResponse({ accessToken: "new", refreshToken: "new", user: {} }),
-      )
-
-      await refreshApi("my-refresh-token")
-
-      expect(publicFetch).toHaveBeenCalledWith("/api/auth/refresh", {
-        method: "POST",
-        headers: { Authorization: "Bearer my-refresh-token" },
       })
     })
   })

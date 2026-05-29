@@ -50,15 +50,26 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   refresh(
     @CurrentUser()
-    user: { userId: string; email: string; refreshToken: string },
+    user: {
+      userId: string;
+      email: string;
+      jti: string | undefined;
+      refreshToken: string;
+    },
   ): Promise<AuthResponse> {
-    return this.authService.refreshTokens(user.userId, user.refreshToken);
+    return this.authService.refreshTokens(
+      user.userId,
+      user.jti,
+      user.refreshToken,
+    );
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async logout(@CurrentUser('userId') userId: string): Promise<void> {
-    await this.authService.logout(userId);
+  async logout(
+    @CurrentUser() user: { userId: string; jti: string | undefined },
+  ): Promise<void> {
+    await this.authService.logout(user.userId, user.jti);
   }
 
   @Public()

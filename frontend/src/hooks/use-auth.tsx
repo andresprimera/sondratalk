@@ -9,8 +9,13 @@ import {
 } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { type User } from "@base-dashboard/shared"
-import { getStoredTokens, storeTokens, clearTokens } from "@/lib/api"
-import { loginApi, signupApi, refreshApi, logoutApi } from "@/lib/auth"
+import {
+  getStoredTokens,
+  storeTokens,
+  clearTokens,
+  refreshTokens,
+} from "@/lib/api"
+import { loginApi, signupApi, logoutApi } from "@/lib/auth"
 
 interface AuthContextValue {
   user: User | null
@@ -45,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const scheduleRefresh = useCallback((accessToken: string, refreshToken: string) => {
+  const scheduleRefresh = useCallback((accessToken: string) => {
     if (refreshTimerRef.current) {
       clearTimeout(refreshTimerRef.current)
     }
@@ -58,10 +63,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     refreshTimerRef.current = setTimeout(async () => {
       try {
-        const data = await refreshApi(refreshToken)
-        storeTokens(data.accessToken, data.refreshToken)
+        const data = await refreshTokens()
         setUser(data.user)
-        scheduleRefresh(data.accessToken, data.refreshToken)
+        scheduleRefresh(data.accessToken)
       } catch {
         clearTokens()
         setUser(null)
@@ -77,11 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    refreshApi(refreshToken)
+    refreshTokens()
       .then((data) => {
-        storeTokens(data.accessToken, data.refreshToken)
         setUser(data.user)
-        scheduleRefresh(data.accessToken, data.refreshToken)
+        scheduleRefresh(data.accessToken)
       })
       .catch(() => {
         clearTokens()
@@ -105,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.clear()
     storeTokens(data.accessToken, data.refreshToken)
     setUser(data.user)
-    scheduleRefresh(data.accessToken, data.refreshToken)
+    scheduleRefresh(data.accessToken)
   }, [scheduleRefresh, queryClient])
 
   const signup = useCallback(
@@ -119,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.clear()
       storeTokens(data.accessToken, data.refreshToken)
       setUser(data.user)
-      scheduleRefresh(data.accessToken, data.refreshToken)
+      scheduleRefresh(data.accessToken)
     },
     [scheduleRefresh, queryClient],
   )
