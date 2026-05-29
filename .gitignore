@@ -3,3 +3,4 @@ dist/
 .env
 .claude/plans/
 .claude/scheduled_tasks.lock
+test-results/

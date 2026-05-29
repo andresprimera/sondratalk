@@ -547,6 +547,11 @@
   "Couldn't reach the call service.": "Couldn't reach the call service.",
   "Back to dashboard": "Back to dashboard",
   "End call": "End call",
+  "Microphone": "Microphone",
+  "Camera": "Camera",
+  "Camera off": "Camera off",
+  "Waiting for {{name}} to join…": "Waiting for {{name}} to join…",
+  "Connecting to {{name}}…": "Connecting to {{name}}…",
   "Simulate a match (preview)": "Simulate a match (preview)",
 
   "Time zone": "Time zone",

@@ -547,6 +547,11 @@
   "Couldn't reach the call service.": "No se pudo contactar el servicio de llamadas.",
   "Back to dashboard": "Volver al panel",
   "End call": "Colgar",
+  "Microphone": "Micrófono",
+  "Camera": "Cámara",
+  "Camera off": "Cámara apagada",
+  "Waiting for {{name}} to join…": "Esperando a que {{name}} se una…",
+  "Connecting to {{name}}…": "Conectando con {{name}}…",
   "Simulate a match (preview)": "Simular una coincidencia (previsualización)",
 
   "Time zone": "Zona horaria",
