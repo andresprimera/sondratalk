@@ -93,7 +93,10 @@ export default function CallPage() {
   })()
 
   function endCall() {
-    navigate("/dashboard")
+    // After a call, send people to the post-conversation wrap-up so they can
+    // leave feedback while it's fresh. Fall back to the dashboard if we somehow
+    // don't have a meeting id to attach the feedback to.
+    navigate(meetingId ? `/call/${meetingId}/wrap-up` : "/dashboard")
   }
 
   const statusLabel = !meetingId

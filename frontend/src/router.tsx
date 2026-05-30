@@ -8,6 +8,7 @@ import AvailabilityPage from "@/pages/availability"
 import FindConversationPage from "@/pages/find-conversation"
 import MyCirclesPage from "@/pages/my-circles"
 import CallPage from "@/pages/call"
+import ConversationWrapUpPage from "@/pages/conversation-wrap-up"
 import LoginPage from "@/pages/login"
 import SignupPage from "@/pages/signup"
 import ForgotPasswordPage from "@/pages/forgot-password"
@@ -52,6 +53,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <CallPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/call/:meetingId/wrap-up",
+    element: (
+      <ProtectedRoute>
+        <ConversationWrapUpPage />
       </ProtectedRoute>
     ),
   },
