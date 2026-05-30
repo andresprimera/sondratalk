@@ -1,4 +1,4 @@
 - [x] Quitar cursivas (sobre todo en Sondra) — removed `italic` from the Sondra wordmark (sidebar, header, landing, onboarding logos) and all app-source uses. Proof: `screenshots/italics-dashboard-sidebar.png`
 - [ ] la mini encuesta post conversación (yo hice el mockup) - /Users/andresprimera/apps/personal/sondratalk/post-conversation-mockup.html
-- [ ] que el dashboard cuente las conversaciones de verdad, y el mes en que entró el usuario. Lo de host exp. creo que todavía no aplica en Beta
+- [x] que el dashboard cuente las conversaciones de verdad, y el mes en que entró el usuario. Lo de host exp. creo que todavía no aplica en Beta — added `GET /api/meetings/stats` (counts past, non-cancelled meetings), exposed `createdAt` on the User contract for "Active since", and dropped the Host Exp stat for Beta. Proof: `screenshots/dashboard-real-counts.png` (0 conversations, "May 2026", no Host Exp).
 - [ ] Modificar el landing -> /Users/andresprimera/apps/personal/sondratalk/landing-full-mockup.html

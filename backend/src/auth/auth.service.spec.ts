@@ -29,6 +29,7 @@ const mockUser = {
   sessions: [mockSession],
   hashedPasswordResetToken: 'hashed-reset-token',
   passwordResetExpires: new Date(Date.now() + 3600_000),
+  createdAt: new Date('2024-03-01T00:00:00.000Z'),
 };
 
 describe('AuthService', () => {
@@ -147,6 +148,7 @@ describe('AuthService', () => {
           timezone: 'UTC',
           languages: [],
           locale: 'en',
+          createdAt: '2024-03-01T00:00:00.000Z',
         },
       });
     });

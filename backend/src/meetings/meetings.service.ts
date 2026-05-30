@@ -211,6 +211,18 @@ export class MeetingsService {
     });
   }
 
+  // A "conversation" for the dashboard counter is a non-cancelled meeting the
+  // user was part of whose scheduled start is in the past — i.e. one that has
+  // actually happened. Future/upcoming meetings don't count yet.
+  async countConversationsForUser(userId: string): Promise<number> {
+    const now = new Date();
+    return this.meetingModel.countDocuments({
+      participants: new Types.ObjectId(userId),
+      cancelled: false,
+      scheduledAt: { $lte: now },
+    });
+  }
+
   async findByIdForParticipant(
     userId: string,
     meetingId: string,

@@ -23,10 +23,10 @@ import {
   useMyAvailabilityQuery,
   useUpdateMyAvailability,
 } from "@/hooks/use-my-availability"
+import { fetchConversationStatsApi } from "@/lib/meetings"
 import { fetchMyCirclesApi } from "@/lib/memberships"
 import { cn } from "@/lib/utils"
 
-const stats = { conversations: 23, activeSince: "Mar 2024", hosted: 8 }
 const referralUrl = "sondratalk.com/join/raul-h23k"
 
 export default function DashboardPage() {
@@ -39,6 +39,18 @@ export default function DashboardPage() {
     queryKey: ["users", "me", "circles"] as const,
     queryFn: fetchMyCirclesApi,
   })
+
+  const statsQuery = useQuery({
+    queryKey: ["meetings", "stats"] as const,
+    queryFn: fetchConversationStatsApi,
+  })
+
+  const activeSince = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString(i18nInstance.language, {
+        month: "short",
+        year: "numeric",
+      })
+    : "—"
 
   const availabilityQuery = useMyAvailabilityQuery()
   const updateAvailability = useUpdateMyAvailability()
@@ -103,16 +115,18 @@ export default function DashboardPage() {
 
       <StatsStrip
         stats={[
-          { value: stats.conversations, label: t("Conversations") },
           {
-            value: stats.activeSince,
-            label: t("Active since"),
-            valueClassName: "text-base",
+            value: statsQuery.isLoading ? (
+              <Skeleton className="h-7 w-10" />
+            ) : (
+              (statsQuery.data?.conversations ?? 0)
+            ),
+            label: t("Conversations"),
           },
           {
-            value: stats.hosted,
-            label: t("as listener or adviser"),
-            badge: <Badge variant="outline">{t("Host Exp")}</Badge>,
+            value: activeSince,
+            label: t("Active since"),
+            valueClassName: "text-base",
           },
         ]}
       />
