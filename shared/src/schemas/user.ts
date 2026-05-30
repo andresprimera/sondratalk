@@ -38,6 +38,7 @@ export const userSchema = z.object({
   timezone: timezoneSchema,
   languages: z.array(userLanguageSchema).default([]),
   locale: localeKeyEnum.default("en"),
+  createdAt: z.string(),
 });
 
 export type User = z.infer<typeof userSchema>;

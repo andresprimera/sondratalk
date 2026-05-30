@@ -332,7 +332,6 @@
 
   .onboarding-logo {
     font-family: var(--font-heading);
-    font-style: italic;
     font-weight: 500;
     font-size: 1.7rem;
     letter-spacing: 0.01em;
@@ -664,7 +663,6 @@
 
   .onboarding-welcome-logo {
     font-family: var(--font-heading);
-    font-style: italic;
     font-weight: 500;
     font-size: 2.8rem;
     color: var(--foreground);

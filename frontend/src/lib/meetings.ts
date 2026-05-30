@@ -1,4 +1,5 @@
 import {
+  type ConversationStats,
   type CreateMeetingInput,
   type Meeting,
   type MeetingWithPeer,
@@ -18,6 +19,11 @@ export async function createMeetingApi(
 
 export async function fetchUpcomingMeetingsApi(): Promise<UpcomingMeetingsResponse> {
   const res = await authFetch("/api/meetings/upcoming")
+  return res.json()
+}
+
+export async function fetchConversationStatsApi(): Promise<ConversationStats> {
+  const res = await authFetch("/api/meetings/stats")
   return res.json()
 }
 

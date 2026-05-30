@@ -32,3 +32,8 @@ export const upcomingMeetingsResponseSchema = z.object({
   meetings: z.array(meetingWithPeerSchema),
 });
 export type UpcomingMeetingsResponse = z.infer<typeof upcomingMeetingsResponseSchema>;
+
+export const conversationStatsSchema = z.object({
+  conversations: z.number().int().nonnegative(),
+});
+export type ConversationStats = z.infer<typeof conversationStatsSchema>;

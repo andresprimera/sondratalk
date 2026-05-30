@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sondra — After the Conversation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --accent: #4d8a60;
+    --accent-glow: #5d9a70;
+    --gold: #d4a574;
+    --cream: #e8dcc4;
+    --cream-dim: #a89878;
+    --surface: rgba(14, 26, 44, 0.65);
+    --surface-border: rgba(232, 220, 196, 0.1);
+    --surface-border-hover: rgba(232, 220, 196, 0.22);
+  }
+
+  html, body {
+    background:
+      radial-gradient(ellipse 90% 55% at 50% 115%, rgba(77,138,96,0.30) 0%, rgba(77,138,96,0.12) 28%, transparent 58%),
+      radial-gradient(ellipse 60% 35% at 50% 100%, rgba(212,165,116,0.06) 0%, transparent 60%),
+      linear-gradient(180deg, #03070f 0%, #07101e 35%, #0c1929 70%, #102338 100%);
+    background-attachment: fixed;
+    background-color: #070d18;
+    color: var(--cream);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    min-height: 100vh;
+  }
+
+  .grain {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.05;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.85'/></svg>");
+  }
+
+  /* ── Header ── */
+  .app-header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1.3rem 2.5rem;
+    background: rgba(3, 7, 15, 0.65);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--surface-border);
+  }
+  .logo { font-style: italic; font-weight: 500; font-size: 1.6rem; color: var(--cream); }
+  .profile-btn {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-family: inherit; font-size: 0.95rem; color: var(--cream-dim);
+    background: none; border: none; cursor: pointer;
+  }
+  .profile-dot {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); color: #e8f2ec;
+    font-size: 0.8rem; font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── Page & screens ── */
+  .page { max-width: 680px; margin: 0 auto; padding: 3rem 1.5rem 7rem; }
+  .screen { display: none; }
+  .screen.visible { display: block; }
+
+  /* ── Section rule ── */
+  .section-rule { border: none; height: 1px; background: var(--surface-border); margin: 2.2rem 0; }
+
+  /* ── Heading block ── */
+  .page-eyebrow {
+    font-size: 0.66rem; letter-spacing: 0.44em; text-transform: uppercase;
+    color: var(--cream-dim); opacity: 0.4; margin-bottom: 0.7rem;
+  }
+  .page-heading {
+    font-weight: 400; font-size: clamp(2rem, 5vw, 2.7rem);
+    line-height: 1.08; color: var(--cream);
+    letter-spacing: -0.015em; margin-bottom: 0.6rem;
+  }
+  .convo-meta {
+    display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;
+    margin-bottom: 0;
+  }
+  .meta-pill {
+    font-size: 0.78rem; font-weight: 300; color: var(--cream-dim); opacity: 0.55;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .meta-sep { opacity: 0.25; }
+
+  /* ── Section label ── */
+  .section-lbl {
+    font-size: 0.65rem; letter-spacing: 0.4em; text-transform: uppercase;
+    color: var(--cream-dim); opacity: 0.5; margin-bottom: 1rem;
+    display: block;
+  }
+
+  /* ══════════════════════════════
+     THE DOOR
+     ══════════════════════════════ */
+  .door-card {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 16px; overflow: hidden;
+    transition: border-color 0.45s ease, box-shadow 0.45s ease;
+    cursor: pointer;
+  }
+  .door-card.open {
+    border-color: rgba(93,154,112,0.38);
+    box-shadow: 0 0 36px rgba(77,138,96,0.09);
+    cursor: default;
+  }
+  .door-top {
+    display: flex; align-items: flex-start; gap: 1.1rem;
+    padding: 1.6rem 1.75rem;
+  }
+  .door-glyph {
+    font-size: 1.3rem; color: var(--cream-dim); opacity: 0.35;
+    flex-shrink: 0; line-height: 1; margin-top: 0.15rem;
+    transition: color 0.4s, opacity 0.4s;
+    user-select: none;
+  }
+  .door-card.open .door-glyph { color: var(--accent-glow); opacity: 0.8; }
+  .door-copy { flex: 1; }
+  .door-title {
+    font-size: 1.2rem; font-weight: 400; color: var(--cream);
+    margin-bottom: 0.4rem; letter-spacing: -0.01em;
+    transition: color 0.3s;
+  }
+  .door-sub {
+    font-size: 0.9rem; font-weight: 300; font-style: italic;
+    color: var(--cream-dim); opacity: 0.6; line-height: 1.55;
+    transition: opacity 0.4s;
+  }
+  .door-card.open .door-sub { opacity: 0.8; }
+  .door-cta-btn {
+    font-family: inherit; font-size: 0.82rem; font-weight: 400; letter-spacing: 0.06em;
+    text-transform: uppercase; flex-shrink: 0; align-self: center;
+    padding: 0.42rem 1.05rem; border-radius: 999px; cursor: pointer;
+    background: transparent; color: var(--cream-dim);
+    border: 1px solid rgba(232,220,196,0.22); transition: all 0.3s;
+  }
+  .door-cta-btn:hover { border-color: rgba(93,154,112,0.45); color: var(--accent-glow); }
+  .door-card.open .door-cta-btn {
+    background: rgba(77,138,96,0.15);
+    border-color: rgba(93,154,112,0.45);
+    color: var(--accent-glow);
+    cursor: default;
+  }
+
+  /* Note textarea */
+  .door-note-section {
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.45s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.4s ease;
+    opacity: 0;
+  }
+  .door-note-section.visible {
+    max-height: 200px; opacity: 1;
+  }
+  .door-note-inner {
+    padding: 0 1.75rem 1.6rem;
+    display: flex; flex-direction: column; gap: 0.6rem;
+    border-top: 1px solid var(--surface-border);
+    padding-top: 1.25rem;
+  }
+  .door-note-label {
+    font-size: 0.62rem; letter-spacing: 0.35em; text-transform: uppercase;
+    color: var(--accent-glow); opacity: 0.65;
+  }
+  .door-note {
+    width: 100%; background: transparent; border: none; outline: none;
+    font-family: inherit; font-size: 1rem; font-weight: 300; font-style: italic;
+    color: var(--cream); line-height: 1.6; resize: none;
+    min-height: 52px; max-height: 90px;
+  }
+  .door-note::placeholder { color: rgba(232,220,196,0.22); }
+  .door-note-hint {
+    font-size: 0.78rem; font-weight: 300; font-style: italic;
+    color: var(--cream-dim); opacity: 0.38;
+  }
+
+  /* ══════════════════════════════
+     AGAIN?
+     ══════════════════════════════ */
+  .again-options { display: flex; gap: 0.6rem; }
+  .again-btn {
+    font-family: inherit; font-size: 1rem; font-weight: 300;
+    padding: 0.65rem 1.4rem; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--surface-border); color: var(--cream-dim);
+    background: transparent; transition: all 0.25s; flex: 1; text-align: center;
+  }
+  .again-btn:hover { border-color: var(--surface-border-hover); color: var(--cream); }
+  .again-btn.selected-yes  { background: rgba(77,138,96,0.18); border-color: var(--accent); color: var(--cream); }
+  .again-btn.selected-maybe{ background: rgba(212,165,116,0.1); border-color: rgba(212,165,116,0.4); color: var(--gold); }
+  .again-btn.selected-no   { background: rgba(14,26,44,0.5); border-color: rgba(232,220,196,0.2); color: var(--cream-dim); }
+
+  /* ══════════════════════════════
+     FEELING
+     ══════════════════════════════ */
+  .feeling-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .feeling-chip {
+    font-family: inherit; font-size: 0.95rem; font-weight: 300; font-style: italic;
+    padding: 0.38rem 1.05rem; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--surface-border); color: var(--cream-dim);
+    background: transparent; transition: all 0.25s;
+  }
+  .feeling-chip:hover { border-color: var(--surface-border-hover); color: var(--cream); }
+  .feeling-chip.selected {
+    background: rgba(77,138,96,0.12); border-color: rgba(93,154,112,0.4); color: var(--cream);
+  }
+
+  /* ══════════════════════════════
+     PRIVATE NOTES
+     ══════════════════════════════ */
+  .notes-card {
+    background: var(--surface); border: 1px solid var(--surface-border);
+    border-radius: 14px; padding: 1.25rem 1.5rem;
+  }
+  .notes-hint {
+    font-size: 0.72rem; font-weight: 300; font-style: italic;
+    color: var(--cream-dim); opacity: 0.38; margin-bottom: 0.7rem;
+  }
+  .notes-area {
+    width: 100%; background: transparent; border: none; outline: none;
+    font-family: inherit; font-size: 1rem; font-weight: 300; font-style: italic;
+    color: var(--cream-dim); line-height: 1.7; resize: none; min-height: 90px;
+  }
+  .notes-area::placeholder { color: rgba(168,152,120,0.3); }
+
+  /* ══════════════════════════════
+     QUICK THINGS (circle fit, contact, quality)
+     ══════════════════════════════ */
+  .quick-list { display: flex; flex-direction: column; gap: 1.3rem; }
+  .quick-item {}
+  .quick-q {
+    font-size: 0.95rem; font-weight: 300; color: var(--cream-dim);
+    margin-bottom: 0.6rem; line-height: 1.4;
+  }
+  .quick-note {
+    font-size: 0.78rem; font-weight: 300; font-style: italic;
+    color: var(--cream-dim); opacity: 0.38; margin-left: 0.3rem;
+  }
+  .quick-opts { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .quick-btn {
+    font-family: inherit; font-size: 0.9rem; font-weight: 300;
+    padding: 0.38rem 1rem; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--surface-border); color: var(--cream-dim);
+    background: transparent; transition: all 0.22s;
+  }
+  .quick-btn:hover { border-color: var(--surface-border-hover); color: var(--cream); }
+  .quick-btn.selected { background: rgba(77,138,96,0.12); border-color: rgba(93,154,112,0.38); color: var(--cream); }
+
+  /* ══════════════════════════════
+     ADMIN RATING
+     ══════════════════════════════ */
+  .admin-block {
+    background: rgba(14,26,44,0.35); border: 1px solid rgba(232,220,196,0.07);
+    border-radius: 12px; padding: 1.2rem 1.4rem;
+  }
+  .admin-label {
+    font-size: 0.6rem; letter-spacing: 0.38em; text-transform: uppercase;
+    color: var(--cream-dim); opacity: 0.32; margin-bottom: 0.85rem;
+    display: flex; align-items: center; gap: 0.6rem;
+  }
+  .admin-label::after {
+    content: ''; flex: 1; height: 1px; background: rgba(232,220,196,0.06);
+  }
+  .admin-q {
+    font-size: 0.9rem; font-weight: 300; color: var(--cream-dim); opacity: 0.65;
+    margin-bottom: 0.85rem; font-style: italic;
+  }
+  .stars { display: flex; gap: 0.5rem; align-items: center; }
+  .star {
+    font-size: 1.4rem; cursor: pointer; color: rgba(232,220,196,0.18);
+    transition: color 0.2s, transform 0.15s; line-height: 1;
+    user-select: none;
+  }
+  .star:hover, .star.lit { color: var(--gold); }
+  .star:hover { transform: scale(1.15); }
+  .star-hint {
+    font-size: 0.75rem; font-weight: 300; font-style: italic;
+    color: var(--cream-dim); opacity: 0.3; margin-left: 0.4rem;
+  }
+
+  /* ══════════════════════════════
+     SUBMIT + REPORT
+     ══════════════════════════════ */
+  .submit-row {
+    margin-top: 2.5rem; display: flex; flex-direction: column;
+    align-items: flex-start; gap: 1.25rem;
+  }
+  .submit-btn {
+    font-family: inherit; font-size: 1.05rem; font-weight: 500; letter-spacing: 0.05em;
+    padding: 0.85rem 2.2rem; border-radius: 999px; cursor: pointer;
+    background: var(--accent); color: #e8f2ec; border: none;
+    box-shadow: 0 0 22px rgba(77,138,96,0.26), inset 0 1px 0 rgba(180,240,200,0.14);
+    transition: all 0.35s;
+    animation: pulse 5s ease-in-out infinite;
+  }
+  .submit-btn:hover {
+    background: var(--accent-glow); transform: translateY(-1px);
+    box-shadow: 0 0 44px rgba(77,138,96,0.42);
+  }
+  .report-link {
+    font-family: inherit; font-size: 0.82rem; font-weight: 300;
+    color: var(--cream-dim); opacity: 0.35; background: none; border: none;
+    cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+    transition: opacity 0.3s; letter-spacing: 0.02em; padding: 0;
+    text-decoration-color: rgba(168,152,120,0.2);
+  }
+  .report-link:hover { opacity: 0.65; }
+
+  /* ── Report modal ── */
+  .modal-bg {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(3,7,15,0.75); backdrop-filter: blur(8px);
+    display: none; align-items: flex-end; justify-content: center;
+    padding: 0;
+  }
+  .modal-bg.open { display: flex; animation: fadeIn 0.25s ease; }
+  .modal {
+    background: #0c1929; border: 1px solid var(--surface-border);
+    border-radius: 20px 20px 0 0; padding: 2rem 2rem 3rem;
+    width: 100%; max-width: 680px;
+    animation: slideUp 0.35s cubic-bezier(0.22,0.61,0.36,1);
+  }
+  .modal-handle {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: rgba(232,220,196,0.15); margin: 0 auto 1.75rem;
+  }
+  .modal-title {
+    font-size: 1.2rem; font-weight: 400; color: var(--cream);
+    margin-bottom: 0.4rem;
+  }
+  .modal-sub {
+    font-size: 0.88rem; font-weight: 300; font-style: italic;
+    color: var(--cream-dim); opacity: 0.55; margin-bottom: 1.5rem; line-height: 1.5;
+  }
+  .report-opts { display: flex; flex-direction: column; gap: 0.45rem; margin-bottom: 1.5rem; }
+  .report-opt {
+    display: flex; align-items: center; gap: 0.8rem;
+    padding: 0.8rem 1rem; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--surface-border);
+    background: transparent; transition: all 0.22s;
+    font-family: inherit; text-align: left; width: 100%;
+  }
+  .report-opt:hover { border-color: var(--surface-border-hover); background: rgba(232,220,196,0.03); }
+  .report-opt.selected { border-color: rgba(212,165,116,0.4); background: rgba(212,165,116,0.05); }
+  .report-radio {
+    width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid rgba(232,220,196,0.25); background: transparent; transition: all 0.2s;
+  }
+  .report-opt.selected .report-radio {
+    background: var(--gold); border-color: var(--gold);
+    box-shadow: 0 0 6px rgba(212,165,116,0.4);
+  }
+  .report-opt-text { font-size: 0.95rem; font-weight: 300; color: var(--cream-dim); }
+  .report-opt.selected .report-opt-text { color: var(--cream); }
+  .report-detail {
+    width: 100%; background: rgba(14,26,44,0.5); border: 1px solid var(--surface-border);
+    border-radius: 8px; padding: 0.75rem 1rem; outline: none;
+    font-family: inherit; font-size: 0.92rem; font-weight: 300; font-style: italic;
+    color: var(--cream-dim); resize: none; min-height: 70px; margin-bottom: 1.25rem;
+  }
+  .report-detail::placeholder { color: rgba(168,152,120,0.3); }
+  .modal-actions { display: flex; gap: 0.75rem; }
+  .modal-cancel {
+    font-family: inherit; font-size: 0.95rem; font-weight: 300;
+    padding: 0.65rem 1.5rem; border-radius: 999px; cursor: pointer;
+    background: transparent; color: var(--cream-dim);
+    border: 1px solid rgba(232,220,196,0.18); transition: all 0.3s; flex: 1;
+  }
+  .modal-cancel:hover { border-color: rgba(232,220,196,0.35); color: var(--cream); }
+  .modal-submit {
+    font-family: inherit; font-size: 0.95rem; font-weight: 400; letter-spacing: 0.03em;
+    padding: 0.65rem 1.5rem; border-radius: 999px; cursor: pointer;
+    background: rgba(212,165,116,0.15); color: var(--gold);
+    border: 1px solid rgba(212,165,116,0.3); transition: all 0.3s; flex: 2;
+  }
+  .modal-submit:hover { background: rgba(212,165,116,0.22); }
+
+  /* ══════════════════════════════
+     CONFIRMED SCREEN
+     ══════════════════════════════ */
+  #screenDone {
+    min-height: calc(100vh - 68px);
+    display: none; flex-direction: column;
+    justify-content: center; align-items: center;
+    text-align: center; padding: 3rem 2rem;
+  }
+  #screenDone.visible { display: flex; animation: fadeUp 0.5s ease; }
+  .done-glyph { font-size: 2rem; color: var(--accent); opacity: 0.7; margin-bottom: 2rem; }
+  .done-heading {
+    font-size: clamp(1.9rem, 5vw, 2.6rem); font-weight: 400; color: var(--cream);
+    letter-spacing: -0.015em; margin-bottom: 0.65rem; line-height: 1.1;
+  }
+  .done-sub {
+    font-size: 1rem; font-weight: 300; font-style: italic;
+    color: var(--cream-dim); opacity: 0.65; line-height: 1.6;
+    max-width: 360px; margin-bottom: 2.5rem;
+  }
+  .done-door-note {
+    background: var(--surface); border: 1px solid rgba(93,154,112,0.2);
+    border-radius: 14px; padding: 1.25rem 1.6rem;
+    max-width: 400px; text-align: left;
+    display: none; animation: fadeIn 0.5s ease 0.2s both;
+  }
+  .done-door-note.show { display: block; }
+  .done-door-label {
+    font-size: 0.6rem; letter-spacing: 0.38em; text-transform: uppercase;
+    color: var(--accent-glow); opacity: 0.7; margin-bottom: 0.55rem;
+  }
+  .done-door-text {
+    font-size: 0.92rem; font-weight: 300; font-style: italic;
+    color: var(--cream-dim); opacity: 0.75; line-height: 1.55;
+  }
+  .done-btn {
+    font-family: inherit; font-size: 0.95rem; font-weight: 300; letter-spacing: 0.04em;
+    padding: 0.72rem 1.8rem; border-radius: 999px; cursor: pointer;
+    background: transparent; color: var(--cream-dim);
+    border: 1px solid rgba(232,220,196,0.22); transition: all 0.3s;
+    margin-top: 2.25rem;
+  }
+  .done-btn:hover { border-color: rgba(232,220,196,0.45); color: var(--cream); }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 22px rgba(77,138,96,0.26), inset 0 1px 0 rgba(180,240,200,0.14); }
+    50%      { box-shadow: 0 0 38px rgba(77,138,96,0.40), inset 0 1px 0 rgba(180,240,200,0.22); }
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<!-- ── Header ── -->
+<header class="app-header">
+  <div class="logo">Sondra</div>
+  <button class="profile-btn">
+    <div class="profile-dot">R</div>
+    Raúl
+  </button>
+</header>
+
+
+<!-- ══════════════════════════════
+     SCREEN 1 — Post-conversation form
+     ══════════════════════════════ -->
+<div class="screen visible" id="screenForm">
+<main class="page" style="animation: fadeUp 0.5s ease;">
+
+  <!-- Heading -->
+  <div class="page-eyebrow">After the conversation</div>
+  <h1 class="page-heading">Before you go.</h1>
+  <div class="convo-meta" style="margin-bottom: 2.5rem;">
+    <span class="meta-pill">Match A</span>
+    <span class="meta-sep meta-pill">·</span>
+    <span class="meta-pill">42 min</span>
+    <span class="meta-sep meta-pill">·</span>
+    <span class="meta-pill">Today, 11:34</span>
+  </div>
+
+
+  <!-- ── WOULD YOU TALK AGAIN ── -->
+  <span class="section-lbl">Would you talk to this person again?</span>
+  <div class="again-options">
+    <button class="again-btn" id="againYes"   onclick="selectAgain('yes')">Yes</button>
+    <button class="again-btn" id="againMaybe" onclick="selectAgain('maybe')">Maybe</button>
+    <button class="again-btn" id="againNo"    onclick="selectAgain('no')">No</button>
+  </div>
+
+
+  <div class="section-rule"></div>
+
+
+  <!-- ── THE DOOR ── -->
+  <div class="door-card" id="doorCard" onclick="handleDoorClick(event)">
+    <div class="door-top">
+      <div class="door-glyph" id="doorGlyph">◯</div>
+      <div class="door-copy">
+        <div class="door-title">Leave the door open.</div>
+        <div class="door-sub" id="doorSub">Write one line about them — what you noticed, what stayed with you. If they open the door too, we'll share it alongside your name.</div>
+      </div>
+      <button class="door-cta-btn" id="doorBtn" onclick="openDoor(event)">Open →</button>
+    </div>
+    <div class="door-note-section" id="doorNoteSection">
+      <div class="door-note-inner">
+        <div class="door-note-label">Your note for them</div>
+        <textarea class="door-note" id="doorNoteText" rows="2"
+          placeholder="What would you want them to know you noticed?"
+          onclick="event.stopPropagation()"></textarea>
+        <div class="door-note-hint">Optional. Only delivered if they open the door too.</div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="section-rule"></div>
+
+
+  <!-- ── FEELING ── -->
+  <span class="section-lbl">How are you feeling?</span>
+  <div class="notes-card">
+    <textarea class="notes-area" id="feelingArea"
+      placeholder="Say as much or as little as you like."
+      oninput="autoResize(this)" style="min-height: 70px;"></textarea>
+  </div>
+
+
+  <div class="section-rule"></div>
+
+
+  <!-- ── QUICK THINGS ── -->
+  <div class="quick-list">
+
+    <div class="quick-item">
+      <div class="quick-q">Did your shared circles feel relevant to this conversation?</div>
+      <div class="quick-opts">
+        <button class="quick-btn" onclick="selectQuick(this, 'circles')">Yes</button>
+        <button class="quick-btn" onclick="selectQuick(this, 'circles')">Somewhat</button>
+        <button class="quick-btn" onclick="selectQuick(this, 'circles')">Not really</button>
+      </div>
+    </div>
+
+    <div class="quick-item">
+      <div class="quick-q">Did you exchange personal contact details?
+        <span class="quick-note">Just for our records — no problem either way.</span>
+      </div>
+      <div class="quick-opts">
+        <button class="quick-btn" onclick="selectQuick(this, 'contact')">Yes</button>
+        <button class="quick-btn" onclick="selectQuick(this, 'contact')">No</button>
+      </div>
+    </div>
+
+    <div class="quick-item">
+      <div class="quick-q">How was the video and audio quality?</div>
+      <div class="quick-opts">
+        <button class="quick-btn" onclick="selectQuick(this, 'quality')">Good</button>
+        <button class="quick-btn" onclick="selectQuick(this, 'quality')">Minor issues</button>
+        <button class="quick-btn" onclick="selectQuick(this, 'quality')">Significant problems</button>
+      </div>
+    </div>
+
+  </div>
+
+
+  <div class="section-rule"></div>
+
+
+  <!-- ── ADMIN RATING ── -->
+  <div class="admin-block">
+    <div class="admin-label">For Sondra only</div>
+    <div class="admin-q">How would you rate this match overall?</div>
+    <div class="stars" id="starRow">
+      <span class="star" onclick="rateStar(1)">★</span>
+      <span class="star" onclick="rateStar(2)">★</span>
+      <span class="star" onclick="rateStar(3)">★</span>
+      <span class="star" onclick="rateStar(4)">★</span>
+      <span class="star" onclick="rateStar(5)">★</span>
+      <span class="star-hint" id="starHint">Not shared with anyone else.</span>
+    </div>
+  </div>
+
+
+  <div class="section-rule"></div>
+
+
+  <!-- ── PRIVATE NOTES (optional, at the bottom) ── -->
+  <span class="section-lbl">Your notes <span style="font-style:italic; text-transform:none; letter-spacing:0; opacity:0.6; font-size:0.78rem;">— optional</span></span>
+  <div class="notes-card">
+    <div class="notes-hint">Just for you — not shared with anyone.</div>
+    <textarea class="notes-area" id="notesArea"
+      placeholder="What do you want to remember from this conversation?"
+      oninput="autoResize(this)"></textarea>
+  </div>
+
+
+  <!-- ── SUBMIT + REPORT ── -->
+  <div class="submit-row">
+    <button class="submit-btn" onclick="submitForm()">Done →</button>
+    <button class="report-link" onclick="openReport()">Report an issue with this conversation</button>
+  </div>
+
+</main>
+</div><!-- /screenForm -->
+
+
+<!-- ══════════════════════════════
+     SCREEN 2 — Done
+     ══════════════════════════════ -->
+<div id="screenDone">
+  <div class="done-glyph">◦ ◦ ◦</div>
+  <h1 class="done-heading">Thank you for showing up.</h1>
+  <p class="done-sub">We'll let you know if the door opens on the other side.</p>
+
+  <div class="done-door-note" id="doneDoorNote">
+    <div class="done-door-label">Your note is waiting</div>
+    <div class="done-door-text" id="doneDoorText"></div>
+  </div>
+
+  <button class="done-btn" onclick="location.href='dashboard-mockup.html'">Back to dashboard →</button>
+</div>
+
+
+<!-- ══════════════════════════════
+     REPORT MODAL
+     ══════════════════════════════ -->
+<div class="modal-bg" id="reportModal" onclick="closeReportOnBg(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Report an issue</div>
+    <div class="modal-sub">This goes only to the Sondra team. The other person won't be notified unless we investigate.</div>
+    <div class="report-opts" id="reportOpts">
+      <button class="report-opt" onclick="selectReport(this)">
+        <div class="report-radio"></div>
+        <span class="report-opt-text">Disrespectful or aggressive behaviour</span>
+      </button>
+      <button class="report-opt" onclick="selectReport(this)">
+        <div class="report-radio"></div>
+        <span class="report-opt-text">Inappropriate or unwanted content</span>
+      </button>
+      <button class="report-opt" onclick="selectReport(this)">
+        <div class="report-radio"></div>
+        <span class="report-opt-text">Did not show up or disconnected without reason</span>
+      </button>
+      <button class="report-opt" onclick="selectReport(this)">
+        <div class="report-radio"></div>
+        <span class="report-opt-text">Used Sondra to sell, promote, or recruit</span>
+      </button>
+      <button class="report-opt" onclick="selectReport(this)">
+        <div class="report-radio"></div>
+        <span class="report-opt-text">Made me feel unsafe or uncomfortable</span>
+      </button>
+      <button class="report-opt" onclick="selectReport(this)">
+        <div class="report-radio"></div>
+        <span class="report-opt-text">Something else</span>
+      </button>
+    </div>
+    <textarea class="report-detail" placeholder="Anything else you'd like us to know (optional)"></textarea>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeReport()">Cancel</button>
+      <button class="modal-submit" onclick="closeReport()">Send report</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  // ── Door ────────────────────────────────
+  let doorOpen = false;
+
+  function handleDoorClick(e) {
+    if (!doorOpen) openDoor(e);
+  }
+  function openDoor(e) {
+    e.stopPropagation();
+    if (doorOpen) return;
+    doorOpen = true;
+    const card = document.getElementById('doorCard');
+    card.classList.add('open');
+    card.style.cursor = 'default';
+    document.getElementById('doorGlyph').textContent = '◉';
+    document.getElementById('doorBtn').textContent = 'Opened ✓';
+    document.getElementById('doorSub').textContent =
+      'The door is open. We\'ll let you know if they do the same.';
+    document.getElementById('doorNoteSection').classList.add('visible');
+    setTimeout(() => document.getElementById('doorNoteText').focus(), 460);
+  }
+
+  // ── Again ───────────────────────────────
+  function selectAgain(val) {
+    ['yes','maybe','no'].forEach(v => {
+      document.getElementById('again' + v.charAt(0).toUpperCase() + v.slice(1))
+        .className = 'again-btn';
+    });
+    const el = document.getElementById('again' + val.charAt(0).toUpperCase() + val.slice(1));
+    el.classList.add('selected-' + val);
+  }
+
+  // ── Feeling chips ────────────────────────
+  function toggleFeeling(btn) {
+    btn.classList.toggle('selected');
+  }
+
+  // ── Quick options ────────────────────────
+  function selectQuick(btn, group) {
+    btn.closest('.quick-opts').querySelectorAll('.quick-btn')
+      .forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  // ── Stars ───────────────────────────────
+  let starRating = 0;
+  function rateStar(n) {
+    starRating = n;
+    document.querySelectorAll('.star').forEach((s,i) => {
+      s.classList.toggle('lit', i < n);
+    });
+    const hints = ['','Poor fit','Below average','Decent match','Good match','Excellent match'];
+    document.getElementById('starHint').textContent = hints[n] + ' · Not shared with anyone else.';
+  }
+
+  // ── Notes resize ────────────────────────
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
+  // ── Submit ──────────────────────────────
+  function submitForm() {
+    const doneScreen = document.getElementById('screenDone');
+    document.getElementById('screenForm').classList.remove('visible');
+    doneScreen.classList.add('visible');
+    window.scrollTo(0, 0);
+
+    // Show door note in confirmation if written
+    const noteText = document.getElementById('doorNoteText').value.trim();
+    if (doorOpen && noteText) {
+      document.getElementById('doneDoorText').textContent = '"' + noteText + '"';
+      document.getElementById('doneDoorNote').classList.add('show');
+      // Update sub text
+      doneScreen.querySelector('.done-sub').textContent =
+        'Your note is held. We\'ll deliver it if they open the door too.';
+    } else if (doorOpen) {
+      doneScreen.querySelector('.done-sub').textContent =
+        'We\'ll let you know if they open their side.';
+    } else {
+      doneScreen.querySelector('.done-sub').textContent =
+        'Your feedback helps us get better.';
+      doneScreen.querySelector('.done-heading').textContent = 'Thank you for showing up.';
+    }
+  }
+
+  // ── Report modal ─────────────────────────
+  function openReport()  { document.getElementById('reportModal').classList.add('open'); }
+  function closeReport() { document.getElementById('reportModal').classList.remove('open'); }
+  function closeReportOnBg(e) { if (e.target === e.currentTarget) closeReport(); }
+  function selectReport(btn) {
+    document.querySelectorAll('.report-opt').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+</script>
+</body>
+</html>

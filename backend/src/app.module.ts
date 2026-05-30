@@ -14,6 +14,7 @@ import { CirclesModule } from './circles/circles.module';
 import { MembershipsModule } from './memberships/memberships.module';
 import { MatchingModule } from './matching/matching.module';
 import { MeetingsModule } from './meetings/meetings.module';
+import { FeedbackModule } from './feedback/feedback.module';
 import { CallsModule } from './calls/calls.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { SeederModule } from './seeder/seeder.module';
@@ -42,6 +43,7 @@ import { SeederModule } from './seeder/seeder.module';
     AvailabilityModule,
     MatchingModule,
     MeetingsModule,
+    FeedbackModule,
     CallsModule,
     SeederModule,
   ],

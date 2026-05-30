@@ -66,6 +66,10 @@ export class User {
 
   @Prop({ required: true, enum: ['en', 'es'], default: 'en' })
   locale!: string;
+
+  // Populated automatically by `{ timestamps: true }`.
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

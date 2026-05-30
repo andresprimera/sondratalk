@@ -144,7 +144,7 @@ export default function AvailabilityPage() {
               {t("You're set for:")}
             </span>
             {summaryFragments.length === 0 ? (
-              <span className="text-sm text-muted-foreground/60 italic">
+              <span className="text-sm text-muted-foreground/60">
                 {t("Nothing set yet — tap cells above.")}
               </span>
             ) : (
@@ -177,7 +177,7 @@ export default function AvailabilityPage() {
                     </Badge>
                   )}
                 </div>
-                <p className="mt-3 text-sm text-muted-foreground/60 italic">
+                <p className="mt-3 text-sm text-muted-foreground/60">
                   {t(
                     "Exact times are generated from your windows. You don't set them manually.",
                   )}
@@ -195,7 +195,7 @@ export default function AvailabilityPage() {
         >
           {updateMutation.isPending ? t("Saving...") : t("Save windows")}
         </Button>
-        <span className="text-sm text-muted-foreground italic">
+        <span className="text-sm text-muted-foreground">
           {t("Changes apply within a few minutes.")}
         </span>
       </div>

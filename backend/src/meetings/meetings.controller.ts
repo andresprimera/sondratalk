@@ -16,6 +16,7 @@ import {
   type Meeting,
   type MeetingWithPeer,
   type UpcomingMeetingsResponse,
+  type ConversationStats,
 } from './dto';
 import { toMeeting } from './meetings.mapper';
 
@@ -39,6 +40,15 @@ export class MeetingsController {
   ): Promise<UpcomingMeetingsResponse> {
     const meetings = await this.meetingsService.findUpcomingForUser(userId);
     return { meetings };
+  }
+
+  @Get('stats')
+  async getStats(
+    @CurrentUser('userId') userId: string,
+  ): Promise<ConversationStats> {
+    const conversations =
+      await this.meetingsService.countConversationsForUser(userId);
+    return { conversations };
   }
 
   @Get(':id')

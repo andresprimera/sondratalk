@@ -124,4 +124,25 @@ export {
   type MeetingWithPeer,
   upcomingMeetingsResponseSchema,
   type UpcomingMeetingsResponse,
+  conversationStatsSchema,
+  type ConversationStats,
 } from "./schemas/meeting";
+
+export {
+  talkAgainEnum,
+  type TalkAgain,
+  circlesRelevantEnum,
+  type CirclesRelevant,
+  exchangedContactEnum,
+  type ExchangedContact,
+  avQualityEnum,
+  type AvQuality,
+  reportReasonEnum,
+  type ReportReason,
+  conversationReportSchema,
+  type ConversationReport,
+  submitConversationFeedbackSchema,
+  type SubmitConversationFeedbackInput,
+  conversationFeedbackSchema,
+  type ConversationFeedback,
+} from "./schemas/conversation-feedback";
