@@ -1,0 +1,4 @@
+- [x] Quitar cursivas (sobre todo en Sondra) — removed `italic` from the Sondra wordmark (sidebar, header, landing, onboarding logos) and all app-source uses. Proof: `screenshots/italics-dashboard-sidebar.png`
+- [ ] la mini encuesta post conversación (yo hice el mockup) - /Users/andresprimera/apps/personal/sondratalk/post-conversation-mockup.html
+- [ ] que el dashboard cuente las conversaciones de verdad, y el mes en que entró el usuario. Lo de host exp. creo que todavía no aplica en Beta
+- [ ] Modificar el landing -> /Users/andresprimera/apps/personal/sondratalk/landing-full-mockup.html

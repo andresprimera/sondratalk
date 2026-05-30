@@ -161,7 +161,7 @@ export function OnboardingLanguagesStep({
       </div>
 
       {languages.length > 0 && (
-        <p className="mb-8 text-xs text-muted-foreground italic">
+        <p className="mb-8 text-xs text-muted-foreground">
           {t(
             "Tap the star to choose your primary language — we'll send you calendar invites and emails in this one.",
           )}

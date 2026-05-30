@@ -506,7 +506,7 @@ export default function FindConversationPage() {
     const resolvedIntent: Intent = intent ?? "talk"
     return (
       <div className="mx-auto flex w-full max-w-2xl flex-col items-center justify-center py-24 text-center">
-        <p className="mb-2 text-base text-foreground italic">
+        <p className="mb-2 text-base text-foreground">
           {lineMap[resolvedIntent]}
         </p>
         <p className="mb-8 text-[0.6875rem] tracking-widest text-muted-foreground/60 uppercase">
@@ -605,7 +605,7 @@ export default function FindConversationPage() {
               {eyebrow}
             </div>
             <h1 className="mb-2">{headingMap[resolvedIntent]}</h1>
-            <p className="mb-8 text-sm text-muted-foreground italic">{sub}</p>
+            <p className="mb-8 text-sm text-muted-foreground">{sub}</p>
 
             <div className="flex flex-col gap-4">
               {cardMatches.map((m) => (
@@ -640,7 +640,7 @@ export default function FindConversationPage() {
             {selectedSlot && (
               <Card className="mt-6">
                 <CardContent className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-sm text-muted-foreground italic">
+                  <p className="text-sm text-muted-foreground">
                     {(() => {
                       const match = cardMatches.find(
                         (c) => c.id === selectedSlot.matchId,
@@ -816,7 +816,7 @@ export default function FindConversationPage() {
       {intent === "heard" && (
         <Card className="mt-4 border-primary/30 bg-primary/5">
           <CardContent>
-            <p className="text-sm text-muted-foreground italic">
+            <p className="text-sm text-muted-foreground">
               {t(
                 "Sondra will match you with someone who has Host Exp — people who've shown up as listeners and advisers for others before.",
               )}
@@ -915,12 +915,12 @@ function IntentChoice({
         (hintTo ? (
           <Link
             to={hintTo}
-            className="px-4 text-xs text-primary italic underline-offset-2 hover:underline"
+            className="px-4 text-xs text-primary underline-offset-2 hover:underline"
           >
             {hint}
           </Link>
         ) : (
-          <p className="px-4 text-xs text-muted-foreground/70 italic">
+          <p className="px-4 text-xs text-muted-foreground/70">
             {hint}
           </p>
         ))}
@@ -941,7 +941,7 @@ function NoMatchState({ onRetry, onRefine }: NoMatchStateProps) {
         <AlertCircleIcon className="size-6 text-muted-foreground" />
         <div>
           <h6 className="mb-1">{t("No one's around right now")}</h6>
-          <p className="text-sm text-muted-foreground italic">
+          <p className="text-sm text-muted-foreground">
             {t("Try again in a moment.")}
           </p>
         </div>
@@ -1007,7 +1007,7 @@ function MatchCard({
                 >
                   ✦ {t("Host")}
                 </Badge>
-                <span className="text-xs text-muted-foreground italic">
+                <span className="text-xs text-muted-foreground">
                   {t("{{count}} conversations as listener or adviser", {
                     count: match.hostExp ?? 0,
                   })}

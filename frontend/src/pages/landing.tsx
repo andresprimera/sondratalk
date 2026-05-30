@@ -14,7 +14,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-2">
           <Link
             to="/"
-            className="font-heading text-[1.85rem] italic tracking-[0.01em]"
+            className="font-heading text-[1.85rem] tracking-[0.01em]"
           >
             Sondra
           </Link>
@@ -55,7 +55,7 @@ export default function LandingPage() {
           <p className="mb-[3.8rem] max-w-155 text-balance text-[1.35rem] font-light leading-[1.7] text-muted-foreground">
             {t("No chatbot. No hold music. No 'your call is important to us.'")}
             <br />
-            <span className="mt-2 block text-[20px] font-normal italic text-foreground">
+            <span className="mt-2 block text-[20px] font-normal text-foreground">
               {t("Just a real person, present with you.")}
             </span>
           </p>
@@ -82,7 +82,7 @@ export default function LandingPage() {
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 text-sm text-muted-foreground md:px-10">
-          <span className="font-heading text-sm italic tracking-tight text-foreground">
+          <span className="font-heading text-sm tracking-tight text-foreground">
             Sondra
           </span>
           <span>© {new Date().getFullYear()} Sondra</span>

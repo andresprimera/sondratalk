@@ -115,7 +115,7 @@ export default function CallPage() {
           </div>
           <h1 className="mt-1 text-2xl">{peerName}</h1>
           {subline && (
-            <p className="mt-1 text-xs text-muted-foreground italic">
+            <p className="mt-1 text-xs text-muted-foreground">
               {subline}
             </p>
           )}
@@ -405,7 +405,7 @@ function StageMessage({ tone, title, description, action }: StageMessageProps) {
         aria-hidden
       />
       <p className="text-sm text-secondary-foreground">{title}</p>
-      <p className="max-w-md text-xs text-secondary-foreground/70 italic">
+      <p className="max-w-md text-xs text-secondary-foreground/70">
         {description}
       </p>
       <div className="mt-2 flex gap-2">

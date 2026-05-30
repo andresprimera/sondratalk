@@ -54,7 +54,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:p-1.5!"
               render={<Link to="/dashboard" />}
             >
-              <span className="font-heading text-xl italic">Sondra</span>
+              <span className="font-heading text-xl">Sondra</span>
               <Badge
                 variant="outline"
                 className="text-[0.625rem] tracking-wider uppercase"

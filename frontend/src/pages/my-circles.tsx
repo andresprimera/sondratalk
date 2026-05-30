@@ -167,7 +167,7 @@ export default function MyCirclesPage() {
               </Button>
             </div>
           ) : draft.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic">
+            <p className="text-sm text-muted-foreground">
               {t("You haven't picked any circles yet.")}
             </p>
           ) : (
@@ -233,7 +233,7 @@ export default function MyCirclesPage() {
           </Button>
         </div>
       ) : fetchedCircles.length === 0 ? (
-        <p className="text-sm text-muted-foreground italic">
+        <p className="text-sm text-muted-foreground">
           {t("No circles match your search.")}
         </p>
       ) : (
@@ -282,16 +282,16 @@ export default function MyCirclesPage() {
           {saveMutation.isPending ? t("Saving...") : t("Save circles")}
         </Button>
         {tooMany ? (
-          <span className="text-sm text-destructive italic">
+          <span className="text-sm text-destructive">
             {t("Too many circles selected")}
           </span>
         ) : empty ? (
-          <span className="text-sm text-muted-foreground italic">
+          <span className="text-sm text-muted-foreground">
             {t("Pick at least one circle")}
           </span>
         ) : (
           !isDirty && (
-            <span className="text-sm text-muted-foreground italic">
+            <span className="text-sm text-muted-foreground">
               {t("Changes apply within a few minutes.")}
             </span>
           )
