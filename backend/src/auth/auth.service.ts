@@ -12,6 +12,7 @@ import * as crypto from 'crypto';
 import { UsersService } from '../users/users.service';
 import { toUser } from '../users/users.mapper';
 import { MailService } from '../services';
+import { AvailabilityService } from '../availability/availability.service';
 import { type SignupInput } from './dto/signup.dto';
 import { type LoginInput } from './dto/login.dto';
 import { type ForgotPasswordInput } from './dto/forgot-password.dto';
@@ -29,6 +30,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private mailService: MailService,
+    private availabilityService: AvailabilityService,
   ) {}
 
   async signup(dto: SignupInput): Promise<AuthResponse> {
@@ -130,6 +132,9 @@ export class AuthService {
   async logout(userId: string, jti: string | undefined): Promise<void> {
     if (!jti) return;
     await this.usersService.removeSession(userId, jti);
+    // Sticky "Go online" toggles outlive the session otherwise — clearing
+    // here keeps the user out of matching until they explicitly come back.
+    await this.availabilityService.clearAvailableNow(userId);
   }
 
   private async generateTokens(

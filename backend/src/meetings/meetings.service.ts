@@ -10,6 +10,7 @@ import { Model, Types, isValidObjectId } from 'mongoose';
 import { Meeting, MeetingDocument } from './schemas/meeting.schema';
 import { UsersService } from '../users/users.service';
 import { MailService } from '../services/mail/mail.service';
+import { AvailabilityService } from '../availability/availability.service';
 import { buildMeetingIcs } from './ics';
 import { EMAIL_COPY, formatDateLabel } from './meeting-email';
 import type { CreateMeetingInput, MeetingWithPeer } from './dto';
@@ -33,6 +34,7 @@ export class MeetingsService {
     private usersService: UsersService,
     private mailService: MailService,
     private configService: ConfigService,
+    private availabilityService: AvailabilityService,
   ) {}
 
   async create(
@@ -94,7 +96,21 @@ export class MeetingsService {
       `Created meeting ${doc.id} initiator=${initiatorId} peer=${dto.peerUserId} instant=${wantsInstant}`,
     );
 
-    if (!wantsInstant) {
+    if (wantsInstant) {
+      // The click is the consent: someone who initiates an instant call is
+      // implicitly available, so put them in the matching pool too. Failures
+      // here shouldn't block the call from proceeding.
+      try {
+        await this.availabilityService.upsertByUserId(initiatorId, {
+          isAvailableNow: true,
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Failed to mark initiator ${initiatorId} available after instant meeting ${doc.id}`,
+          err,
+        );
+      }
+    } else {
       const initiator = await this.usersService.findById(initiatorId);
       if (initiator) {
         this.sendCalendarInvitesFireAndForget(doc, initiator, peer);

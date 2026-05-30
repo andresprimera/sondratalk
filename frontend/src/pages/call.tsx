@@ -16,11 +16,12 @@ import {
   TrackToggle,
   VideoTrack,
   useLocalParticipant,
+  useRemoteParticipants,
   useTracks,
 } from "@livekit/components-react"
 import "@livekit/components-styles"
 import { Track } from "livekit-client"
-import type { ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
@@ -36,12 +37,19 @@ function getInitials(name: string | null | undefined): string {
   return initials || "?"
 }
 
+// If the peer hasn't joined within this window after the LiveKit room
+// connects, we assume they're not coming and offer to bail out. Matching
+// only picks fresh-presence users, but the gap between match and join is
+// the last place a "they're not actually here" case can slip through.
+const PEER_JOIN_TIMEOUT_MS = 60_000
+
 export default function CallPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { user } = useAuth()
   const params = useParams<{ meetingId: string }>()
   const meetingId = params.meetingId ?? ""
+  const [peerTimedOut, setPeerTimedOut] = useState(false)
 
   const meetingQuery = useQuery({
     queryKey: ["meetings", meetingId] as const,
@@ -96,7 +104,7 @@ export default function CallPage() {
         ? t("Couldn't connect")
         : t("Connected")
 
-  const inRoom = Boolean(meetingId && tokenQuery.data)
+  const inRoom = Boolean(meetingId && tokenQuery.data) && !peerTimedOut
 
   return (
     <div className="flex min-h-svh flex-col bg-background">
@@ -130,6 +138,7 @@ export default function CallPage() {
               peerName={peerName}
               peerInitials={peerInitials}
               localInitials={localInitials}
+              onPeerTimeout={() => setPeerTimedOut(true)}
             />
           </CallMain>
           <CallFooter live onEndCall={endCall} />
@@ -142,6 +151,20 @@ export default function CallPage() {
                 tone="error"
                 title={t("No meeting specified")}
                 description={t("This call link is missing a meeting id.")}
+              />
+            ) : peerTimedOut ? (
+              <StageMessage
+                tone="info"
+                title={t("They didn't pick up")}
+                description={t(
+                  "Looks like {{name}} didn't join. They might have stepped away — try another match.",
+                  { name: peerName },
+                )}
+                action={
+                  <Button onClick={() => navigate("/find-conversation")}>
+                    {t("Find another match")}
+                  </Button>
+                }
               />
             ) : tokenQuery.isError ? (
               <StageMessage
@@ -196,11 +219,39 @@ interface VideoStageProps {
   peerName: string
   peerInitials: string
   localInitials: string
+  onPeerTimeout: () => void
 }
 
-function VideoStage({ peerName, peerInitials, localInitials }: VideoStageProps) {
+function VideoStage({
+  peerName,
+  peerInitials,
+  localInitials,
+  onPeerTimeout,
+}: VideoStageProps) {
   const tracks = useTracks([Track.Source.Camera], { onlySubscribed: false })
   const { isCameraEnabled } = useLocalParticipant()
+  const remoteParticipants = useRemoteParticipants()
+  const peerHasEverJoinedRef = useRef(false)
+  const onTimeoutRef = useRef(onPeerTimeout)
+
+  useEffect(() => {
+    onTimeoutRef.current = onPeerTimeout
+  }, [onPeerTimeout])
+
+  useEffect(() => {
+    if (remoteParticipants.length > 0) peerHasEverJoinedRef.current = true
+  }, [remoteParticipants.length])
+
+  // One-shot timer from room mount: if the peer never showed up by the
+  // deadline, bubble up so the parent can tear down LiveKit and offer to
+  // find another match. We only act on the "never joined" case — if they
+  // joined and then left mid-call, that's a normal hangup.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!peerHasEverJoinedRef.current) onTimeoutRef.current()
+    }, PEER_JOIN_TIMEOUT_MS)
+    return () => clearTimeout(timer)
+  }, [])
 
   const remoteTrack = tracks.find(
     (track) => !track.participant.isLocal && track.publication,

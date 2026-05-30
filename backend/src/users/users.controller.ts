@@ -187,6 +187,14 @@ export class UsersController {
     return toAvailability(doc);
   }
 
+  @Post('me/availability/heartbeat')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async heartbeatMyAvailability(
+    @CurrentUser('userId') userId: string,
+  ): Promise<void> {
+    await this.availabilityService.touchAvailableNow(userId);
+  }
+
   // --- Admin-only endpoints ---
 
   @Post()

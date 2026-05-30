@@ -294,8 +294,13 @@ export default function FindConversationPage() {
   const heardMatch = useFindHeardMatch()
   const createMeeting = useMutation({
     mutationFn: createMeetingApi,
-    onSuccess: () => {
+    onSuccess: (_meeting, variables) => {
       queryClient.invalidateQueries({ queryKey: ["meetings"] })
+      // Backend marks the initiator available on instant calls — refresh
+      // local cache so the dashboard's online pill reflects it.
+      if (variables.instant) {
+        queryClient.invalidateQueries({ queryKey: ["users", "me", "availability"] })
+      }
     },
     onError: (err) => {
       const message =

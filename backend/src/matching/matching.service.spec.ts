@@ -106,6 +106,19 @@ describe('MatchingService', () => {
       expect(logged.intent).toBe('talk');
       expect(logged.matchedUserId.toString()).toBe(liveUserId);
       expect(logged.matchedUserIds).toHaveLength(1);
+
+      // The matching service must pass a freshness window so stale
+      // "Go online" toggles don't keep appearing in match results.
+      expect(availabilityService.findAvailableNowUserIds).toHaveBeenCalledTimes(
+        1,
+      );
+      const [, freshSince] =
+        availabilityService.findAvailableNowUserIds.mock.calls[0];
+      expect(freshSince).toBeInstanceOf(Date);
+      const ageMs = Date.now() - (freshSince as Date).getTime();
+      // 2-minute TTL: tolerate small clock drift between assertion and call.
+      expect(ageMs).toBeGreaterThanOrEqual(2 * 60 * 1000 - 1_000);
+      expect(ageMs).toBeLessThanOrEqual(2 * 60 * 1000 + 1_000);
     });
 
     it('mixes available-now first then scheduled candidates with projected slots', async () => {

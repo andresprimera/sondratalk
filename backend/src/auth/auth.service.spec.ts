@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { MailService } from '../services';
+import { AvailabilityService } from '../availability/availability.service';
 
 jest.mock('bcrypt');
 
@@ -60,6 +61,10 @@ describe('AuthService', () => {
     sendMail: jest.fn(),
   };
 
+  const availabilityService = {
+    clearAvailableNow: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -70,6 +75,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: jwtService },
         { provide: ConfigService, useValue: configService },
         { provide: MailService, useValue: mailService },
+        { provide: AvailabilityService, useValue: availabilityService },
       ],
     }).compile();
 
@@ -268,10 +274,19 @@ describe('AuthService', () => {
       );
     });
 
+    it('clears the user out of live matching on logout', async () => {
+      await service.logout('user-1', 'session-jti');
+
+      expect(availabilityService.clearAvailableNow).toHaveBeenCalledWith(
+        'user-1',
+      );
+    });
+
     it('is a no-op when jti is missing', async () => {
       await service.logout('user-1', undefined);
 
       expect(usersService.removeSession).not.toHaveBeenCalled();
+      expect(availabilityService.clearAvailableNow).not.toHaveBeenCalled();
     });
   });
 

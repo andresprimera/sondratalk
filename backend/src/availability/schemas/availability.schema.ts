@@ -48,6 +48,12 @@ export class Availability {
 
   @Prop({ type: Boolean, default: false })
   isAvailableNow!: boolean;
+
+  // Refreshed by the frontend presence heartbeat while the user is on the
+  // dashboard. Matching ignores rows whose timestamp is older than the TTL,
+  // so "Go online" toggles can't outlive a closed tab or a stale session.
+  @Prop({ type: Date, default: null })
+  availableNowSetAt!: Date | null;
 }
 
 export const AvailabilitySchema = SchemaFactory.createForClass(Availability);

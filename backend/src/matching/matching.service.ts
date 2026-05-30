@@ -30,6 +30,11 @@ type Intent = 'talk' | 'heard';
 
 const MAX_CANDIDATES = 5;
 
+// A user counts as "available now" only if their last heartbeat (or initial
+// flip-on) landed within this window. The frontend pings every ~60s, so two
+// minutes gives one missed beat of slack before we drop them from matching.
+const PRESENCE_FRESH_MS = 2 * 60 * 1000;
+
 @Injectable()
 export class MatchingService {
   private readonly logger = new Logger(MatchingService.name);
@@ -78,8 +83,11 @@ export class MatchingService {
         userId,
       );
 
-    let nowEligible =
-      await this.availabilityService.findAvailableNowUserIds(candidateUserIds);
+    const freshSince = new Date(Date.now() - PRESENCE_FRESH_MS);
+    let nowEligible = await this.availabilityService.findAvailableNowUserIds(
+      candidateUserIds,
+      freshSince,
+    );
     let scheduledEligible = subtract(candidateUserIds, nowEligible);
 
     if (intent === 'heard') {

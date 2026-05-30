@@ -7,6 +7,7 @@ import { MeetingsService } from './meetings.service';
 import { Meeting } from './schemas/meeting.schema';
 import { UsersService } from '../users/users.service';
 import { MailService } from '../services/mail/mail.service';
+import { AvailabilityService } from '../availability/availability.service';
 
 const USER_A = '507f1f77bcf86cd799439011';
 const USER_B = '507f1f77bcf86cd799439022';
@@ -37,6 +38,7 @@ describe('MeetingsService', () => {
   let usersService: Record<string, jest.Mock>;
   let mailService: Record<string, jest.Mock>;
   let configService: Record<string, jest.Mock>;
+  let availabilityService: Record<string, jest.Mock>;
 
   beforeEach(async () => {
     meetingModel = {
@@ -62,6 +64,9 @@ describe('MeetingsService', () => {
         throw new Error(`Unexpected key ${key}`);
       }),
     };
+    availabilityService = {
+      upsertByUserId: jest.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -70,6 +75,7 @@ describe('MeetingsService', () => {
         { provide: UsersService, useValue: usersService },
         { provide: MailService, useValue: mailService },
         { provide: ConfigService, useValue: configService },
+        { provide: AvailabilityService, useValue: availabilityService },
       ],
     }).compile();
 
@@ -202,6 +208,56 @@ describe('MeetingsService', () => {
       await flushMicrotasks();
 
       expect(mailService.sendMail).not.toHaveBeenCalled();
+    });
+
+    it('marks the initiator available when starting an instant call', async () => {
+      usersService.findById.mockResolvedValue({ id: USER_B, name: 'Beatriz' });
+      meetingModel.create.mockResolvedValue(makeDoc({ instant: true }));
+
+      await service.create(USER_A, {
+        peerUserId: USER_B,
+        instant: true,
+      });
+
+      expect(availabilityService.upsertByUserId).toHaveBeenCalledWith(USER_A, {
+        isAvailableNow: true,
+      });
+    });
+
+    it('does not mark the initiator available for scheduled meetings', async () => {
+      usersService.findById.mockResolvedValue({
+        id: USER_B,
+        name: 'Beatriz',
+        email: 'b@x.test',
+        locale: 'en',
+      });
+      const future = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      meetingModel.create.mockResolvedValue(
+        makeDoc({ scheduledAt: future, instant: false }),
+      );
+
+      await service.create(USER_A, {
+        peerUserId: USER_B,
+        scheduledAt: future.toISOString(),
+      });
+
+      expect(availabilityService.upsertByUserId).not.toHaveBeenCalled();
+    });
+
+    it('still returns the meeting if marking the initiator available fails', async () => {
+      usersService.findById.mockResolvedValue({ id: USER_B, name: 'Beatriz' });
+      const created = makeDoc({ instant: true });
+      meetingModel.create.mockResolvedValue(created);
+      availabilityService.upsertByUserId.mockRejectedValueOnce(
+        new Error('db blip'),
+      );
+
+      const result = await service.create(USER_A, {
+        peerUserId: USER_B,
+        instant: true,
+      });
+
+      expect(result).toBe(created);
     });
 
     it('sends one calendar invite to each participant for scheduled meetings, localized per recipient', async () => {
