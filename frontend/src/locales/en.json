@@ -13,7 +13,6 @@
   "Go to previous page": "Go to previous page",
   "Go to next page": "Go to next page",
   "Go to last page": "Go to last page",
-
   "Dashboard": "Dashboard",
   "Users": "Users",
   "Settings": "Settings",
@@ -23,7 +22,6 @@
   "Log out": "Log out",
   "Quick Create": "Quick Create",
   "Inbox": "Inbox",
-
   "Login": "Login",
   "Log in": "Log in",
   "Join": "Join",
@@ -34,7 +32,6 @@
   "Just a real person, present with you.": "Just a real person, present with you.",
   "Talk Now": "Talk Now",
   "Join Sondra": "Join Sondra",
-
   "Login to your account": "Login to your account",
   "Enter your email below to login to your account": "Enter your email below to login to your account",
   "Email": "Email",
@@ -45,7 +42,6 @@
   "Don't have an account?": "Don't have an account?",
   "Sign up": "Sign up",
   "Login failed": "Login failed",
-
   "Create an account": "Create an account",
   "Enter your information below to create your account": "Enter your information below to create your account",
   "Full Name": "Full Name",
@@ -56,7 +52,6 @@
   "Already have an account?": "Already have an account?",
   "Sign in": "Sign in",
   "Signup failed": "Signup failed",
-
   "Forgot your password?": "Forgot your password?",
   "Enter your email and we'll send you a reset link": "Enter your email and we'll send you a reset link",
   "Send reset link": "Send reset link",
@@ -67,7 +62,6 @@
   "Check your email": "Check your email",
   "If an account with that email exists, we sent a password reset link. Please check your inbox.": "If an account with that email exists, we sent a password reset link. Please check your inbox.",
   "Something went wrong": "Something went wrong",
-
   "Invalid reset link": "Invalid reset link",
   "This password reset link is invalid or has expired. Please request a new one.": "This password reset link is invalid or has expired. Please request a new one.",
   "Request new link": "Request new link",
@@ -78,7 +72,6 @@
   "Resetting...": "Resetting...",
   "Password reset successfully": "Password reset successfully",
   "Failed to reset password": "Failed to reset password",
-
   "Manage user accounts and roles.": "Manage user accounts and roles.",
   "Failed to load users.": "Failed to load users.",
   "Name": "Name",
@@ -102,13 +95,11 @@
   "Delete user": "Delete user",
   "This action cannot be undone. This will permanently delete the user account.": "This action cannot be undone. This will permanently delete the user account.",
   "Deleting...": "Deleting...",
-
   "Manage your account settings and preferences.": "Manage your account settings and preferences.",
   "Profile Information": "Profile Information",
   "Update your name and email address": "Update your name and email address",
   "Profile updated successfully": "Profile updated successfully",
   "Failed to update profile": "Failed to update profile",
-
   "Change Password": "Change Password",
   "Update your password to keep your account secure": "Update your password to keep your account secure",
   "Current Password": "Current Password",
@@ -116,14 +107,11 @@
   "Changing...": "Changing...",
   "Password changed successfully": "Password changed successfully",
   "Failed to change password": "Failed to change password",
-
   "Toggle theme": "Toggle theme",
   "Light": "Light",
   "Dark": "Dark",
   "System": "System",
-
   "Change language": "Change language",
-
   "Email already registered": "Email already registered",
   "Invalid credentials": "Invalid credentials",
   "Access denied": "Access denied",
@@ -134,7 +122,6 @@
   "Current password is incorrect": "Current password is incorrect",
   "Invalid or expired reset token": "Invalid or expired reset token",
   "Internal server error": "Internal server error",
-
   "Good morning": "Good morning",
   "Good afternoon": "Good afternoon",
   "Good evening": "Good evening",
@@ -149,7 +136,6 @@
   "Upcoming conversations": "Upcoming conversations",
   "No upcoming conversations.": "No upcoming conversations.",
   "Failed to load upcoming conversations.": "Failed to load upcoming conversations.",
-  "Join": "Join",
   "Cancel meeting": "Cancel meeting",
   "Cancel this meeting?": "Cancel this meeting?",
   "They won't be able to join after this.": "They won't be able to join after this.",
@@ -169,7 +155,6 @@
   "Copy": "Copy",
   "Copied": "Copied",
   "Failed to copy": "Failed to copy",
-
   "Please enter a valid email": "Please enter a valid email",
   "Name is required": "Name is required",
   "Password is required": "Password is required",
@@ -382,13 +367,10 @@
   "Slug already in use": "Slug already in use",
   "Theme not found": "Theme not found",
   "Create": "Create",
-  "Creating...": "Creating...",
   "Save": "Save",
   "Update theme details.": "Update theme details.",
   "Create a new umbrella category for circles.": "Create a new umbrella category for circles.",
   "This action cannot be undone.": "This action cannot be undone.",
-  "Deleting...": "Deleting...",
-  "Actions": "Actions",
   "{{count}} theme total_one": "{{count}} theme total",
   "{{count}} theme total_other": "{{count}} themes total",
   "Circles": "Circles",
@@ -426,7 +408,6 @@
   "You haven't picked any circles yet.": "You haven't picked any circles yet.",
   "Failed to save your circles": "Failed to save your circles",
   "Too many circles selected": "Too many circles selected",
-
   "Availability": "Availability",
   "Failed to load availability.": "Failed to load availability.",
   "When people can schedule time with you": "When people can schedule time with you",
@@ -476,7 +457,6 @@
   "Weekend afternoons": "Weekend afternoons",
   "Weekend evenings": "Weekend evenings",
   "No windows set": "No windows set",
-
   "Showing up as": "Showing up as",
   "Is there something specific on your mind?": "Is there something specific on your mind?",
   "Yes, I have something specific": "Yes, I have something specific",
@@ -556,7 +536,6 @@
   "Looks like {{name}} didn't join. They might have stepped away — try another match.": "Looks like {{name}} didn't join. They might have stepped away — try another match.",
   "Find another match": "Find another match",
   "Simulate a match (preview)": "Simulate a match (preview)",
-
   "Time zone": "Time zone",
   "We use this to schedule conversations at times that fit both of you.": "We use this to schedule conversations at times that fit both of you.",
   "Save time zone": "Save time zone",
@@ -564,5 +543,24 @@
   "Failed to save your languages": "Failed to save your languages",
   "Saving…": "Saving…",
   "Tap the star to choose your primary language — we'll send you calendar invites and emails in this one.": "Tap the star to choose your primary language — we'll send you calendar invites and emails in this one.",
-  "Make {{language}} my primary language": "Make {{language}} my primary language"
+  "Make {{language}} my primary language": "Make {{language}} my primary language",
+  "Sondra matches you with a real person who has something in common with you.": "Sondra matches you with a real person who has something in common with you.",
+  "No agenda. No scripts. Two faces, full attention.": "No agenda. No scripts. Two faces, full attention.",
+  "What it is": "What it is",
+  "Not chatbots. Not scrolling. Not swiping.": "Not chatbots. Not scrolling. Not swiping.",
+  "A live video conversation between two people who show up with their faces and their attention. Matched by what you have in common — not by an algorithm chasing your engagement.": "A live video conversation between two people who show up with their faces and their attention. Matched by what you have in common — not by an algorithm chasing your engagement.",
+  "The conversation is the whole point.": "The conversation is the whole point.",
+  "How it works": "How it works",
+  "Tell us who you are": "Tell us who you are",
+  "Two minutes. Your name, your languages, what brings you here.": "Two minutes. Your name, your languages, what brings you here.",
+  "Get matched": "Get matched",
+  "We pair you with someone who shares something with you. Serendipity, with a filter.": "We pair you with someone who shares something with you. Serendipity, with a filter.",
+  "Show up": "Show up",
+  "Your face. Their face. Nothing between you.": "Your face. Their face. Nothing between you.",
+  "Who it's for": "Who it's for",
+  "You belong here if you feel the absence of real conversation in your daily life. If you're curious about other people's minds, not their profiles. If you're in a new city, a career shift, or tired of conversations that never go below the surface.": "You belong here if you feel the absence of real conversation in your daily life. If you're curious about other people's minds, not their profiles. If you're in a new city, a career shift, or tired of conversations that never go below the surface.",
+  "The most powerful technology for human connection has always been a conversation.": "The most powerful technology for human connection has always been a conversation.",
+  "We built the scaffolding.": "We built the scaffolding.",
+  "You bring everything else.": "You bring everything else.",
+  "Real conversation, always within reach": "Real conversation, always within reach"
 }

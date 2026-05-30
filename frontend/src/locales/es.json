@@ -13,7 +13,6 @@
   "Go to previous page": "Ir a la página anterior",
   "Go to next page": "Ir a la siguiente página",
   "Go to last page": "Ir a la última página",
-
   "Dashboard": "Panel",
   "Users": "Usuarios",
   "Settings": "Configuración",
@@ -23,10 +22,9 @@
   "Log out": "Cerrar sesión",
   "Quick Create": "Creación rápida",
   "Inbox": "Bandeja de entrada",
-
   "Login": "Entrar",
   "Log in": "Iniciar sesión",
-  "Join": "Únete",
+  "Join": "Unirse",
   "Real human conversation, always within reach": "Conversación humana real, siempre al alcance",
   "Someone is waiting": "Alguien está esperando",
   "to listen.": "para escucharte.",
@@ -34,7 +32,6 @@
   "Just a real person, present with you.": "Solo una persona real, presente contigo.",
   "Talk Now": "Hablar ahora",
   "Join Sondra": "Únete a Sondra",
-
   "Login to your account": "Inicia sesión en tu cuenta",
   "Enter your email below to login to your account": "Ingresa tu correo electrónico para iniciar sesión",
   "Email": "Correo electrónico",
@@ -45,7 +42,6 @@
   "Don't have an account?": "¿No tienes una cuenta?",
   "Sign up": "Regístrate",
   "Login failed": "Error al iniciar sesión",
-
   "Create an account": "Crear una cuenta",
   "Enter your information below to create your account": "Ingresa tu información para crear tu cuenta",
   "Full Name": "Nombre completo",
@@ -56,7 +52,6 @@
   "Already have an account?": "¿Ya tienes una cuenta?",
   "Sign in": "Inicia sesión",
   "Signup failed": "Error al registrarse",
-
   "Forgot your password?": "¿Olvidaste tu contraseña?",
   "Enter your email and we'll send you a reset link": "Ingresa tu correo y te enviaremos un enlace de restablecimiento",
   "Send reset link": "Enviar enlace",
@@ -67,7 +62,6 @@
   "Check your email": "Revisa tu correo",
   "If an account with that email exists, we sent a password reset link. Please check your inbox.": "Si existe una cuenta con ese correo, te enviamos un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada.",
   "Something went wrong": "Algo salió mal",
-
   "Invalid reset link": "Enlace inválido",
   "This password reset link is invalid or has expired. Please request a new one.": "Este enlace de restablecimiento es inválido o ha expirado. Por favor solicita uno nuevo.",
   "Request new link": "Solicitar nuevo enlace",
@@ -78,7 +72,6 @@
   "Resetting...": "Restableciendo...",
   "Password reset successfully": "Contraseña restablecida exitosamente",
   "Failed to reset password": "Error al restablecer la contraseña",
-
   "Manage user accounts and roles.": "Gestiona las cuentas de usuario y los roles.",
   "Failed to load users.": "Error al cargar usuarios.",
   "Name": "Nombre",
@@ -102,13 +95,11 @@
   "Delete user": "Eliminar usuario",
   "This action cannot be undone. This will permanently delete the user account.": "Esta acción no se puede deshacer. Se eliminará permanentemente la cuenta del usuario.",
   "Deleting...": "Eliminando...",
-
   "Manage your account settings and preferences.": "Gestiona la configuración de tu cuenta y preferencias.",
   "Profile Information": "Información del perfil",
   "Update your name and email address": "Actualiza tu nombre y correo electrónico",
   "Profile updated successfully": "Perfil actualizado exitosamente",
   "Failed to update profile": "Error al actualizar el perfil",
-
   "Change Password": "Cambiar contraseña",
   "Update your password to keep your account secure": "Actualiza tu contraseña para mantener tu cuenta segura",
   "Current Password": "Contraseña actual",
@@ -116,14 +107,11 @@
   "Changing...": "Cambiando...",
   "Password changed successfully": "Contraseña cambiada exitosamente",
   "Failed to change password": "Error al cambiar la contraseña",
-
   "Toggle theme": "Cambiar tema",
   "Light": "Claro",
   "Dark": "Oscuro",
   "System": "Sistema",
-
   "Change language": "Cambiar idioma",
-
   "Email already registered": "El correo electrónico ya está registrado",
   "Invalid credentials": "Credenciales inválidas",
   "Access denied": "Acceso denegado",
@@ -134,7 +122,6 @@
   "Current password is incorrect": "La contraseña actual es incorrecta",
   "Invalid or expired reset token": "El enlace de restablecimiento es inválido o ha expirado",
   "Internal server error": "Error interno del servidor",
-
   "Good morning": "Buenos días",
   "Good afternoon": "Buenas tardes",
   "Good evening": "Buenas noches",
@@ -149,7 +136,6 @@
   "Upcoming conversations": "Próximas conversaciones",
   "No upcoming conversations.": "No tienes conversaciones próximas.",
   "Failed to load upcoming conversations.": "No se pudieron cargar las conversaciones.",
-  "Join": "Unirse",
   "Cancel meeting": "Cancelar reunión",
   "Cancel this meeting?": "¿Cancelar esta reunión?",
   "They won't be able to join after this.": "No podrán unirse después de esto.",
@@ -169,7 +155,6 @@
   "Copy": "Copiar",
   "Copied": "Copiado",
   "Failed to copy": "Error al copiar",
-
   "Please enter a valid email": "Por favor ingrese un correo electrónico válido",
   "Name is required": "El nombre es obligatorio",
   "Password is required": "La contraseña es obligatoria",
@@ -382,13 +367,10 @@
   "Slug already in use": "El slug ya está en uso",
   "Theme not found": "Tema no encontrado",
   "Create": "Crear",
-  "Creating...": "Creando...",
   "Save": "Guardar",
   "Update theme details.": "Actualiza los detalles del tema.",
   "Create a new umbrella category for circles.": "Crea una nueva categoría general para círculos.",
   "This action cannot be undone.": "Esta acción no se puede deshacer.",
-  "Deleting...": "Eliminando...",
-  "Actions": "Acciones",
   "{{count}} theme total_one": "{{count}} tema total",
   "{{count}} theme total_other": "{{count}} temas en total",
   "Circles": "Círculos",
@@ -426,7 +408,6 @@
   "You haven't picked any circles yet.": "Aún no has elegido círculos.",
   "Failed to save your circles": "No se pudieron guardar tus círculos",
   "Too many circles selected": "Demasiados círculos seleccionados",
-
   "Availability": "Disponibilidad",
   "Failed to load availability.": "No se pudo cargar la disponibilidad.",
   "When people can schedule time with you": "Cuándo pueden agendar tiempo contigo",
@@ -476,7 +457,6 @@
   "Weekend afternoons": "Tardes de fin de semana",
   "Weekend evenings": "Noches de fin de semana",
   "No windows set": "Sin franjas configuradas",
-
   "Showing up as": "Te presentas como",
   "Is there something specific on your mind?": "¿Tienes algo concreto en mente?",
   "Yes, I have something specific": "Sí, tengo algo concreto",
@@ -556,7 +536,6 @@
   "Looks like {{name}} didn't join. They might have stepped away — try another match.": "Parece que {{name}} no se unió. Puede que se haya alejado — prueba otra coincidencia.",
   "Find another match": "Buscar otra coincidencia",
   "Simulate a match (preview)": "Simular una coincidencia (previsualización)",
-
   "Time zone": "Zona horaria",
   "We use this to schedule conversations at times that fit both of you.": "La usamos para agendar conversaciones a horas que os encajen a los dos.",
   "Save time zone": "Guardar zona horaria",
@@ -564,5 +543,24 @@
   "Failed to save your languages": "No se pudieron guardar tus idiomas",
   "Saving…": "Guardando…",
   "Tap the star to choose your primary language — we'll send you calendar invites and emails in this one.": "Pulsa la estrella para elegir tu idioma principal — te enviaremos invitaciones de calendario y correos en este.",
-  "Make {{language}} my primary language": "Marcar {{language}} como mi idioma principal"
+  "Make {{language}} my primary language": "Marcar {{language}} como mi idioma principal",
+  "Sondra matches you with a real person who has something in common with you.": "Sondra te conecta con una persona real que tiene algo en común contigo.",
+  "No agenda. No scripts. Two faces, full attention.": "Sin agenda. Sin guiones. Dos rostros, atención plena.",
+  "What it is": "Qué es",
+  "Not chatbots. Not scrolling. Not swiping.": "No son chatbots. No es hacer scroll. No es deslizar.",
+  "A live video conversation between two people who show up with their faces and their attention. Matched by what you have in common — not by an algorithm chasing your engagement.": "Una videollamada en vivo entre dos personas que se presentan con su rostro y su atención. Emparejadas por lo que tienen en común, no por un algoritmo que persigue tu interacción.",
+  "The conversation is the whole point.": "La conversación es el sentido de todo.",
+  "How it works": "Cómo funciona",
+  "Tell us who you are": "Cuéntanos quién eres",
+  "Two minutes. Your name, your languages, what brings you here.": "Dos minutos. Tu nombre, tus idiomas, qué te trae aquí.",
+  "Get matched": "Te emparejamos",
+  "We pair you with someone who shares something with you. Serendipity, with a filter.": "Te emparejamos con alguien que comparte algo contigo. Serendipia, con un filtro.",
+  "Show up": "Preséntate",
+  "Your face. Their face. Nothing between you.": "Tu rostro. El suyo. Nada entre ustedes.",
+  "Who it's for": "Para quién es",
+  "You belong here if you feel the absence of real conversation in your daily life. If you're curious about other people's minds, not their profiles. If you're in a new city, a career shift, or tired of conversations that never go below the surface.": "Este es tu lugar si sientes la ausencia de conversación real en tu día a día. Si te da curiosidad la mente de otras personas, no sus perfiles. Si estás en una ciudad nueva, un cambio de carrera, o cansado de conversaciones que nunca van más allá de la superficie.",
+  "The most powerful technology for human connection has always been a conversation.": "La tecnología más poderosa para la conexión humana siempre ha sido una conversación.",
+  "We built the scaffolding.": "Nosotros pusimos el andamiaje.",
+  "You bring everything else.": "Tú pones todo lo demás.",
+  "Real conversation, always within reach": "Conversación real, siempre al alcance"
 }
