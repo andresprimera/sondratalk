@@ -21,10 +21,10 @@ export function StatsStrip({ stats }: StatsStripProps) {
         {stats.map((stat, i) => (
           <Fragment key={stat.label}>
             <div className="flex flex-1 flex-col gap-1 p-6">
+              <div className="text-sm text-muted-foreground">{stat.label}</div>
               <div className={cn("text-2xl", stat.valueClassName)}>
                 {stat.value}
               </div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
               {stat.badge && <div className="mt-1">{stat.badge}</div>}
             </div>
             {i < stats.length - 1 && <Separator orientation="vertical" />}

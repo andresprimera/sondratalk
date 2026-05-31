@@ -47,7 +47,7 @@ export default function DashboardPage() {
 
   const activeSince = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString(i18nInstance.language, {
-        month: "short",
+        month: "long",
         year: "numeric",
       })
     : "—"
