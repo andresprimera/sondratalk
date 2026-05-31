@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router"
+import { Link, useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { AlertCircleIcon, ChevronLeft } from "lucide-react"
@@ -28,6 +28,7 @@ const MAX_SLOT_CHIPS = 14
 
 export default function AvailabilityPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const query = useMyAvailabilityQuery()
   const updateMutation = useUpdateMyAvailability()
 
@@ -51,7 +52,10 @@ export default function AvailabilityPage() {
     updateMutation.mutate(
       { windows: draftWindows },
       {
-        onSuccess: () => toast.success(t("Saved")),
+        onSuccess: () => {
+          toast.success(t("Saved"))
+          navigate("/dashboard")
+        },
       },
     )
   }
