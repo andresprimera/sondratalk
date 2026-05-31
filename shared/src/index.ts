@@ -129,6 +129,19 @@ export {
 } from "./schemas/meeting";
 
 export {
+  schedulingMessageKindEnum,
+  type SchedulingMessageKind,
+  schedulingMessageSchema,
+  type SchedulingMessage,
+  proposeTimeSchema,
+  type ProposeTimeInput,
+  respondToProposalSchema,
+  type RespondToProposalInput,
+  schedulingThreadResponseSchema,
+  type SchedulingThreadResponse,
+} from "./schemas/scheduling";
+
+export {
   talkAgainEnum,
   type TalkAgain,
   circlesRelevantEnum,

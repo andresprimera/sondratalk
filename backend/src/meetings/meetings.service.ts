@@ -262,6 +262,44 @@ export class MeetingsService {
     });
   }
 
+  // Move a scheduled meeting to a new confirmed time (e.g. after both sides
+  // agreed on it in the scheduling thread) and re-send calendar invites for
+  // the new slot. Instant meetings can't be rescheduled.
+  async reschedule(
+    userId: string,
+    meetingId: string,
+    newScheduledAt: Date,
+  ): Promise<MeetingDocument> {
+    const doc = await this.findByIdForParticipant(userId, meetingId);
+    if (doc.instant) {
+      throw new BadRequestException('Cannot reschedule an instant meeting');
+    }
+    if (Number.isNaN(newScheduledAt.getTime())) {
+      throw new BadRequestException('Invalid scheduledAt');
+    }
+    if (newScheduledAt.getTime() <= Date.now()) {
+      throw new BadRequestException('scheduledAt must be in the future');
+    }
+
+    doc.scheduledAt = newScheduledAt;
+    doc.expiresAt = new Date(newScheduledAt.getTime() + SCHEDULED_TTL_MS);
+    await doc.save();
+    this.logger.log(
+      `Rescheduled meeting ${meetingId} to ${newScheduledAt.toISOString()} by user=${userId}`,
+    );
+
+    const [initiator, peerObjectId] = [
+      await this.usersService.findById(doc.initiatorId.toString()),
+      doc.participants.find((p) => p.toString() !== doc.initiatorId.toString()),
+    ];
+    if (initiator && peerObjectId) {
+      const peer = await this.usersService.findById(peerObjectId.toString());
+      if (peer) this.sendCalendarInvitesFireAndForget(doc, initiator, peer);
+    }
+
+    return doc;
+  }
+
   async cancel(userId: string, meetingId: string): Promise<void> {
     const doc = await this.findByIdForParticipant(userId, meetingId);
     doc.cancelled = true;
