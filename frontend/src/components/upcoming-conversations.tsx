@@ -85,6 +85,9 @@ export function UpcomingConversations() {
         meetings={upcomingQuery.data?.meetings ?? []}
         onRetry={() => upcomingQuery.refetch()}
         onJoin={(m) => navigate(`/call/${m.id}`)}
+        onSchedule={(m) =>
+          navigate(`/dashboard/conversations/${m.id}/schedule`)
+        }
         onAskCancel={setPendingCancel}
       />
       <AlertDialog
@@ -124,6 +127,7 @@ interface UpcomingBodyProps {
   meetings: MeetingWithPeer[]
   onRetry: () => void
   onJoin: (m: MeetingWithPeer) => void
+  onSchedule: (m: MeetingWithPeer) => void
   onAskCancel: (m: MeetingWithPeer) => void
 }
 
@@ -133,6 +137,7 @@ function UpcomingBody({
   meetings,
   onRetry,
   onJoin,
+  onSchedule,
   onAskCancel,
 }: UpcomingBodyProps) {
   const { t } = useTranslation()
@@ -181,6 +186,7 @@ function UpcomingBody({
           meeting={m}
           now={now}
           onJoin={() => onJoin(m)}
+          onSchedule={() => onSchedule(m)}
           onAskCancel={() => onAskCancel(m)}
         />
       ))}
@@ -192,10 +198,17 @@ interface MeetingRowProps {
   meeting: MeetingWithPeer
   now: Date
   onJoin: () => void
+  onSchedule: () => void
   onAskCancel: () => void
 }
 
-function MeetingRow({ meeting, now, onJoin, onAskCancel }: MeetingRowProps) {
+function MeetingRow({
+  meeting,
+  now,
+  onJoin,
+  onSchedule,
+  onAskCancel,
+}: MeetingRowProps) {
   const { t } = useTranslation()
   const scheduledAt = new Date(meeting.scheduledAt)
   const joinable = canJoin(scheduledAt, now)
@@ -220,6 +233,11 @@ function MeetingRow({ meeting, now, onJoin, onAskCancel }: MeetingRowProps) {
           <Button variant="outline" size="sm" onClick={onAskCancel}>
             {t("Cancel meeting")}
           </Button>
+          {!meeting.instant && !joinable && (
+            <Button variant="outline" size="sm" onClick={onSchedule}>
+              {t("Propose a time")}
+            </Button>
+          )}
           <Button size="sm" disabled={!joinable} onClick={onJoin}>
             {t("Join")}
           </Button>

@@ -6,6 +6,7 @@ import ThemesPage from "@/pages/themes"
 import CirclesPage from "@/pages/circles"
 import AvailabilityPage from "@/pages/availability"
 import FindConversationPage from "@/pages/find-conversation"
+import ConversationSchedulingPage from "@/pages/conversation-scheduling"
 import MyCirclesPage from "@/pages/my-circles"
 import CallPage from "@/pages/call"
 import ConversationWrapUpPage from "@/pages/conversation-wrap-up"
@@ -107,6 +108,10 @@ export const router = createBrowserRouter([
       {
         path: "find-conversation",
         element: <FindConversationPage />,
+      },
+      {
+        path: "conversations/:meetingId/schedule",
+        element: <ConversationSchedulingPage />,
       },
       {
         path: "my-circles",
