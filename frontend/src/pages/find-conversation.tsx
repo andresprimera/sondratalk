@@ -474,7 +474,7 @@ export default function FindConversationPage() {
           name,
         }),
       )
-      reset()
+      navigate("/dashboard")
       return
     }
     createMeeting.mutate(
@@ -486,7 +486,7 @@ export default function FindConversationPage() {
               name,
             }),
           )
-          reset()
+          navigate("/dashboard")
         },
       },
     )

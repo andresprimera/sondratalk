@@ -1,0 +1,36 @@
+import { chromium } from "@playwright/test"
+import { join, dirname } from "node:path"
+import { fileURLToPath } from "node:url"
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const OUT = join(__dirname, "..", "screenshots")
+const BASE = "http://localhost:5174"
+const PASSWORD = "Sup3rSecret!23"
+const browser = await chromium.launch()
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+const page = await ctx.newPage()
+await page.goto(`${BASE}/signup`)
+await page.getByLabel("Full Name").fill("Sondra Tester")
+await page.getByLabel("Email").fill(`goal-sc-${Date.now()}@example.com`)
+await page.getByLabel("Password", { exact: true }).fill(PASSWORD)
+await page.getByLabel("Confirm Password").fill(PASSWORD)
+await page.getByRole("button", { name: "Create Account" }).click()
+await page.waitForURL(/\/onboarding/, { timeout: 20000 })
+await page.goto(`${BASE}/dashboard/find-conversation`, { waitUntil: "networkidle" })
+await page.waitForTimeout(600)
+// Pick "specific" intent (works without circles)
+await page.getByRole("button", { name: /Yes, I have something specific/ }).click()
+await page.locator("textarea").fill("I need budgeting and saving advice")
+await page.getByRole("button", { name: /Find someone who can help/ }).click()
+// searching -> matches (2200ms timeout)
+await page.waitForTimeout(3200)
+// The match with slots shows time buttons; click the first time slot
+const slot = page.getByRole("button", { name: "09:00" }).first()
+await slot.click()
+await page.waitForTimeout(400)
+await page.getByRole("button", { name: /^Confirm/ }).click()
+await page.waitForURL(/\/dashboard$/, { timeout: 10000 })
+await page.waitForTimeout(1200)
+console.log("URL after confirm:", page.url())
+await page.screenshot({ path: join(OUT, "schedule-redirect.png"), fullPage: true })
+console.log("saved")
+await browser.close()
