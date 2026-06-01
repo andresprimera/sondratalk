@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react"
-import { Link, useNavigate } from "react-router"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { Link, useNavigate, useSearchParams } from "react-router"
 import { useTranslation } from "react-i18next"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -277,15 +277,13 @@ function realHeardToCardMatch(
   }
 }
 
-type SimulatedMatch =
-  | { intent: "talk"; data: MatchCandidate }
-  | { intent: "heard"; data: HeardCandidate }
-
 export default function FindConversationPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
+  const isTalkNow = searchParams.get("mode") === "talknow"
   const myCirclesQuery = useQuery({
     queryKey: ["users", "me", "circles"] as const,
     queryFn: fetchMyCirclesApi,
@@ -311,13 +309,11 @@ export default function FindConversationPage() {
 
   const [stage, setStage] = useState<Stage>("request")
   const [offCircleIds, setOffCircleIds] = useState<Set<string>>(new Set())
-  const [intent, setIntent] = useState<Intent | null>(null)
+  const [intent, setIntent] = useState<Intent | null>(isTalkNow ? "talk" : null)
+  const autoStarted = useRef(false)
   const [intentText, setIntentText] = useState("")
   const [offTargetCircles, setOffTargetCircles] = useState<Set<string>>(new Set())
   const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null)
-  const [simulatedMatch, setSimulatedMatch] = useState<SimulatedMatch | null>(
-    null,
-  )
 
   const locale: "en" | "es" =
     i18n.language?.split("-")[0] === "es" ? "es" : "en"
@@ -338,6 +334,27 @@ export default function FindConversationPage() {
   useEffect(() => {
     setOffTargetCircles(new Set())
   }, [suggestedKey])
+
+  const talkMutate = talkMatch.mutate
+  useEffect(() => {
+    if (!isTalkNow || autoStarted.current || myCirclesQuery.isLoading || stage !== "request") return
+    const circleIds = (myCirclesQuery.data ?? []).map((c) => c.id)
+    if (circleIds.length === 0) return
+    autoStarted.current = true
+    setStage("searching")
+    talkMutate(
+      { circleIds },
+      {
+        onSettled: () => setStage("matches"),
+        onError: (err) => {
+          const isNotFound = err instanceof ApiError && err.statusCode === 404
+          if (!isNotFound) {
+            toast.error(err instanceof Error ? err.message : t("Something went wrong"))
+          }
+        },
+      },
+    )
+  }, [isTalkNow, myCirclesQuery.isLoading, myCirclesQuery.data, stage, talkMutate, t])
 
   const circles = myCirclesQuery.data ?? []
   const activeCircleIds = circles
@@ -403,65 +420,8 @@ export default function FindConversationPage() {
   function reset() {
     setStage("request")
     setSelectedSlot(null)
-    setSimulatedMatch(null)
     talkMatch.reset()
     heardMatch.reset()
-  }
-
-  function simulateMatch() {
-    const sample = circles.slice(0, 2)
-    const fallbackCircles: Circle[] = [
-      {
-        id: "sim-c1",
-        slug: "catalan",
-        themeId: "sim-t1",
-        labels: { en: "Catalan", es: "Catalán" },
-        aliases: { en: [], es: [] },
-        popularity: 0,
-      },
-      {
-        id: "sim-c2",
-        slug: "expat",
-        themeId: "sim-t2",
-        labels: { en: "Expat", es: "Expat" },
-        aliases: { en: [], es: [] },
-        popularity: 0,
-      },
-    ]
-    const sharedCircles = sample.length > 0 ? sample : fallbackCircles
-    const resolvedIntent: Intent = intent === "heard" ? "heard" : "talk"
-    const fake: SimulatedMatch =
-      resolvedIntent === "heard"
-        ? {
-            intent: "heard",
-            data: {
-              id: "simulated",
-              firstName: "Marta",
-              hostExp: 32,
-              sharedCircles,
-              availableNow: true,
-              slots: [],
-            },
-          }
-        : {
-            intent: "talk",
-            data: {
-              id: "simulated",
-              firstName: "Ana",
-              sharedCircles,
-              availableNow: true,
-              slots: [],
-            },
-          }
-    setIntent(resolvedIntent)
-    setSelectedSlot(null)
-    talkMatch.reset()
-    heardMatch.reset()
-    setStage("searching")
-    setTimeout(() => {
-      setSimulatedMatch(fake)
-      setStage("matches")
-    }, 1600)
   }
 
   function confirmSelectedSlot() {
@@ -525,21 +485,13 @@ export default function FindConversationPage() {
   if (stage === "matches") {
     const resolvedIntent: Intent = intent ?? "talk"
     if (resolvedIntent === "talk") {
-      const data =
-        simulatedMatch?.intent === "talk"
-          ? { candidates: [simulatedMatch.data] }
-          : talkMatch.data
-      cardMatches = data
-        ? data.candidates.map((c) => realTalkToCardMatch(c, locale))
-        : []
+      cardMatches = (talkMatch.data?.candidates ?? []).map((c) =>
+        realTalkToCardMatch(c, locale),
+      )
     } else if (resolvedIntent === "heard") {
-      const data =
-        simulatedMatch?.intent === "heard"
-          ? { candidates: [simulatedMatch.data] }
-          : heardMatch.data
-      cardMatches = data
-        ? data.candidates.map((c) => realHeardToCardMatch(c, locale))
-        : []
+      cardMatches = (heardMatch.data?.candidates ?? []).map((c) =>
+        realHeardToCardMatch(c, locale),
+      )
     } else {
       cardMatches = SPECIFIC_MOCK_POOL
     }
@@ -555,7 +507,6 @@ export default function FindConversationPage() {
           : null
     const noMatch =
       activeMutation !== null &&
-      !simulatedMatch &&
       activeMutation.isError &&
       activeMutation.error instanceof ApiError &&
       activeMutation.error.statusCode === 404
@@ -618,12 +569,7 @@ export default function FindConversationPage() {
                   }
                   onSelectSlot={setSelectedSlot}
                   onTalkNow={() => {
-                    if (!isRealObjectId(m.id)) {
-                      toast.info(
-                        t("This is a simulated match — start a real one."),
-                      )
-                      return
-                    }
+                    if (!isRealObjectId(m.id)) return
                     createMeeting.mutate(
                       { peerUserId: m.id, instant: true },
                       {
@@ -632,7 +578,7 @@ export default function FindConversationPage() {
                       },
                     )
                   }}
-                  talkNowDisabled={createMeeting.isPending}
+                  talkNowDisabled={!isRealObjectId(m.id) || createMeeting.isPending}
                 />
               ))}
             </div>
@@ -833,9 +779,6 @@ export default function FindConversationPage() {
               ? t("Find a listener")
               : t("Find someone")}
           <ArrowRight />
-        </Button>
-        <Button variant="ghost" size="sm" onClick={simulateMatch}>
-          {t("Simulate a match (preview)")}
         </Button>
       </div>
     </div>

@@ -1,6 +1,7 @@
-import { Link } from "react-router"
+import { Link, useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
 import { useQuery } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { AlertCircleIcon, ArrowRight } from "lucide-react"
 import { AvailabilitySection } from "@/components/availability-section"
 import { CopyableInput } from "@/components/copyable-input"
@@ -34,6 +35,7 @@ export default function DashboardPage() {
   const locale: "en" | "es" =
     i18nInstance.language?.split("-")[0] === "es" ? "es" : "en"
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   const myCirclesQuery = useQuery({
     queryKey: ["users", "me", "circles"] as const,
@@ -75,7 +77,36 @@ export default function DashboardPage() {
           <Button nativeButton={false} render={<Link to="/dashboard/find-conversation" />}>
             {t("Find a Conversation")} <ArrowRight />
           </Button>
-          <Button variant="outline">{t("Talk Now")}</Button>
+          <Button
+            variant="outline"
+            disabled={availabilityQuery.isLoading}
+            onClick={() => {
+              if (!isAvailableNow) {
+                toast.info(t("You're offline for Talk Now"), {
+                  description: t(
+                    "Go online to find someone available right now.",
+                  ),
+                  action: {
+                    label: t("Go online"),
+                    onClick: () =>
+                      updateAvailability.mutate(
+                        { isAvailableNow: true },
+                        {
+                          onSuccess: () =>
+                            navigate(
+                              "/dashboard/find-conversation?mode=talknow",
+                            ),
+                        },
+                      ),
+                  },
+                })
+                return
+              }
+              navigate("/dashboard/find-conversation?mode=talknow")
+            }}
+          >
+            {t("Talk Now")}
+          </Button>
         </div>
         {availabilityQuery.isLoading ? (
           <Skeleton className="mt-4 h-5 w-64" />
