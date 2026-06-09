@@ -132,7 +132,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             <FieldGroup>
               <Field>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? t("Creating account...") : t("Create Account")}
+                  {isSubmitting ? t("Applying...") : t("Apply")}
                 </Button>
                 <FieldDescription className="px-6 text-center">
                   {t("Already have an account?")}{" "}

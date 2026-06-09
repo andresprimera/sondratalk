@@ -11,7 +11,7 @@ async function signup(page: Page): Promise<void> {
   await page.getByLabel("Email").fill(EMAIL)
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD)
   await page.getByLabel("Confirm Password").fill(PASSWORD)
-  await page.getByRole("button", { name: "Create Account" }).click()
+  await page.getByRole("button", { name: "Apply" }).click()
   await page.waitForURL(/\/(onboarding|dashboard)/, { timeout: 15_000 })
 }
 

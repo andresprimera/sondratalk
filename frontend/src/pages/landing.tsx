@@ -64,7 +64,7 @@ export default function LandingPage() {
             className="landing-flicker tracking-[0.05em]"
             render={<Link to="/signup" />}
           >
-            {t("Join Sondra")}
+            {t("Apply")}
           </Button>
         </div>
       </header>
@@ -101,7 +101,7 @@ export default function LandingPage() {
               className="tracking-[0.05em]"
               render={<Link to="/signup" />}
             >
-              {t("Join Sondra")}
+              {t("Apply")}
             </Button>
           </div>
         </section>
@@ -193,7 +193,7 @@ export default function LandingPage() {
               className="tracking-[0.05em]"
               render={<Link to="/signup" />}
             >
-              {t("Join Sondra")}
+              {t("Apply")}
             </Button>
           </div>
         </section>
