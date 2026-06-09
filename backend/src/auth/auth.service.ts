@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { UsersService } from '../users/users.service';
 import { toUser } from '../users/users.mapper';
 import { MailService } from '../services';
 import { AvailabilityService } from '../availability/availability.service';
+import { AllowlistService } from '../allowlist/allowlist.service';
 import { type SignupInput } from './dto/signup.dto';
 import { type LoginInput } from './dto/login.dto';
 import { type ForgotPasswordInput } from './dto/forgot-password.dto';
@@ -31,9 +33,14 @@ export class AuthService {
     private configService: ConfigService,
     private mailService: MailService,
     private availabilityService: AvailabilityService,
+    private allowlistService: AllowlistService,
   ) {}
 
   async signup(dto: SignupInput): Promise<AuthResponse> {
+    if (!(await this.allowlistService.isEmailAllowed(dto.email))) {
+      throw new ForbiddenException('This email is not authorized to sign up');
+    }
+
     const existingUser = await this.usersService.findByEmail(dto.email);
     if (existingUser) {
       throw new ConflictException('Email already registered');

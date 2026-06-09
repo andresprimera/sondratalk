@@ -20,6 +20,7 @@ import {
   Settings2Icon,
   LayersIcon,
   CircleDotIcon,
+  ShieldCheckIcon,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { Link } from "react-router"
@@ -34,6 +35,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     { title: t("Users"), url: "/dashboard/users", icon: <UsersIcon /> },
     { title: t("Themes"), url: "/dashboard/themes", icon: <LayersIcon /> },
     { title: t("Circles"), url: "/dashboard/circles", icon: <CircleDotIcon /> },
+    {
+      title: t("Early Access"),
+      url: "/dashboard/allowlist",
+      icon: <ShieldCheckIcon />,
+    },
   ]
 
   const userNavMain = [

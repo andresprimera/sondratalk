@@ -3,6 +3,7 @@ import LandingPage from "@/pages/landing"
 import DashboardPage from "@/pages/dashboard"
 import UsersPage from "@/pages/users"
 import ThemesPage from "@/pages/themes"
+import AllowlistPage from "@/pages/allowlist"
 import CirclesPage from "@/pages/circles"
 import AvailabilityPage from "@/pages/availability"
 import FindConversationPage from "@/pages/find-conversation"
@@ -90,6 +91,14 @@ export const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <ThemesPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "allowlist",
+        element: (
+          <AdminRoute>
+            <AllowlistPage />
           </AdminRoute>
         ),
       },
