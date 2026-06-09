@@ -1,6 +1,7 @@
 import {
   type User,
   type UpdateLanguagesInput,
+  type UpdateApplicationInput,
 } from "@base-dashboard/shared"
 import { authFetch } from "@/lib/api"
 
@@ -37,6 +38,16 @@ export async function updateMyLanguagesApi(
   input: UpdateLanguagesInput,
 ): Promise<User> {
   const res = await authFetch("/api/users/me/languages", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  })
+  return res.json()
+}
+
+export async function updateMyApplicationApi(
+  input: UpdateApplicationInput,
+): Promise<User> {
+  const res = await authFetch("/api/users/me/application", {
     method: "PATCH",
     body: JSON.stringify(input),
   })

@@ -67,6 +67,9 @@ export class User {
   @Prop({ required: true, enum: ['en', 'es'], default: 'en' })
   locale!: string;
 
+  @Prop()
+  applicationText?: string;
+
   // Populated automatically by `{ timestamps: true }`.
   createdAt!: Date;
   updatedAt!: Date;

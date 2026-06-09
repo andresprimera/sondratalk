@@ -180,6 +180,17 @@ export class UsersService {
     );
   }
 
+  async updateApplication(
+    userId: string,
+    applicationText: string,
+  ): Promise<UserDocument | null> {
+    return this.userModel.findByIdAndUpdate(
+      userId,
+      { applicationText },
+      { new: true },
+    );
+  }
+
   async findByIdWithPassword(id: string): Promise<UserDocument | null> {
     return this.userModel.findById(id).select('+password');
   }

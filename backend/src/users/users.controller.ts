@@ -40,6 +40,8 @@ import {
   type UpdateTimezoneInput,
   updateLanguagesSchema,
   type UpdateLanguagesInput,
+  updateApplicationSchema,
+  type UpdateApplicationInput,
 } from '@base-dashboard/shared';
 import {
   paginationQuerySchema,
@@ -120,6 +122,22 @@ export class UsersController {
       userId,
       dto.languages,
       dto.locale,
+    );
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return toUser(user);
+  }
+
+  @Patch('me/application')
+  async updateApplication(
+    @CurrentUser('userId') userId: string,
+    @Body(new ZodValidationPipe(updateApplicationSchema))
+    dto: UpdateApplicationInput,
+  ): Promise<User> {
+    const user = await this.usersService.updateApplication(
+      userId,
+      dto.applicationText,
     );
     if (!user) {
       throw new NotFoundException('User not found');

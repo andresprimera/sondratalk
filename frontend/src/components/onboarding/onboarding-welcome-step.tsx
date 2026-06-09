@@ -14,17 +14,20 @@ export function OnboardingWelcomeStep() {
     <section className="mt-[10vh] flex flex-col items-center text-center">
       <div className="onboarding-welcome-logo mb-14">Sondra</div>
       <h1 className="onboarding-welcome-name mb-4">
-        {t("Welcome, {{firstName}}.", { firstName })}
+        {t("Thank you, {{firstName}}.", { firstName })}
       </h1>
-      <p className="onboarding-welcome-line mb-12">
-        {t("Your first conversation is waiting.")}
+      <p className="onboarding-welcome-line mb-4">
+        {t("Your application is in.")}
+      </p>
+      <p className="mb-12 max-w-sm text-balance text-sm text-muted-foreground">
+        {t("We review every application personally. You'll hear from us within 48 hours.")}
       </p>
       <Button
         size="xl"
         className="landing-flicker tracking-[0.05em]"
         onClick={() => navigate("/dashboard")}
       >
-        {t("Find a conversation →")}
+        {t("Go to dashboard →")}
       </Button>
     </section>
   )

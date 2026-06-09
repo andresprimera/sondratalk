@@ -22,13 +22,14 @@ import {
   type OnboardingCircle,
 } from "@/components/onboarding/onboarding-circles-step"
 import { OnboardingWelcomeStep } from "@/components/onboarding/onboarding-welcome-step"
+import { OnboardingApplicationStep } from "@/components/onboarding/onboarding-application-step"
 import { detectTimezone } from "@/lib/timezones"
 import { detectBrowserLanguage } from "@/lib/languages"
 import {
   fetchMyCirclesApi,
   updateMyCirclesApi,
 } from "@/lib/memberships"
-import { updateTimezoneApi, updateMyLanguagesApi } from "@/lib/profile"
+import { updateTimezoneApi, updateMyLanguagesApi, updateMyApplicationApi } from "@/lib/profile"
 import { useAuth } from "@/hooks/use-auth"
 
 type SupportedEmailLocale = "en" | "es"
@@ -38,7 +39,7 @@ function localeFromPrimary(primaryCode: string | null): SupportedEmailLocale {
   return "en"
 }
 
-type Step = 1 | 2 | 3 | 4
+type Step = 1 | 2 | 3 | 4 | 5
 
 function detectInitialIana(fallback: string): string {
   const detected = detectTimezone()
@@ -74,6 +75,7 @@ export default function OnboardingPage() {
   )
   const [circles, setCircles] = useState<OnboardingCircle[]>([])
   const [circleInput, setCircleInput] = useState("")
+  const [applicationText, setApplicationText] = useState("")
 
   const myCirclesQuery = useQuery({
     queryKey: ["users", "me", "circles"] as const,
@@ -89,6 +91,17 @@ export default function OnboardingPage() {
     },
     onError: () => {
       toast.error(t("Failed to save your circles"))
+    },
+  })
+
+  const applicationMutation = useMutation({
+    mutationFn: updateMyApplicationApi,
+    onSuccess: () => {
+      setStep(5)
+      window.scrollTo(0, 0)
+    },
+    onError: () => {
+      toast.error(t("Failed to save your application"))
     },
   })
 
@@ -147,6 +160,7 @@ export default function OnboardingPage() {
   // mutation seeds the cache before advancing to step 4.
   if (
     step !== 4 &&
+    step !== 5 &&
     myCirclesQuery.isSuccess &&
     myCirclesQuery.data.length > 0
   ) {
@@ -159,7 +173,7 @@ export default function OnboardingPage() {
 
       <header className="relative z-10 mx-auto flex w-full max-w-[600px] items-center justify-between px-6 pt-8">
         <span className="onboarding-logo">Sondra</span>
-        {step !== 4 && <OnboardingProgress current={step} total={3} />}
+        {step !== 5 && <OnboardingProgress current={step} total={4} />}
       </header>
 
       <main className="relative z-10 mx-auto w-full max-w-[600px] flex-1 px-6 pb-20">
@@ -207,7 +221,18 @@ export default function OnboardingPage() {
             onBack={() => go(2)}
           />
         )}
-        {step === 4 && <OnboardingWelcomeStep />}
+        {step === 4 && (
+          <OnboardingApplicationStep
+            value={applicationText}
+            onChange={setApplicationText}
+            onNext={() =>
+              applicationMutation.mutate({ applicationText })
+            }
+            onBack={() => go(3)}
+            isSubmitting={applicationMutation.isPending}
+          />
+        )}
+        {step === 5 && <OnboardingWelcomeStep />}
       </main>
     </div>
   )

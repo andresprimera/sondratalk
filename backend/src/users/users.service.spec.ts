@@ -289,6 +289,29 @@ describe('UsersService', () => {
     });
   });
 
+  describe('updateApplication', () => {
+    it('saves applicationText and returns the updated doc', async () => {
+      model.findByIdAndUpdate.mockResolvedValue(mockUser);
+
+      const result = await service.updateApplication('user-1', 'I want to connect');
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
+        'user-1',
+        { applicationText: 'I want to connect' },
+        { new: true },
+      );
+      expect(result).toEqual(mockUser);
+    });
+
+    it('returns null when the user does not exist', async () => {
+      model.findByIdAndUpdate.mockResolvedValue(null);
+
+      const result = await service.updateApplication('missing', 'text');
+
+      expect(result).toBeNull();
+    });
+  });
+
   describe('updatePassword', () => {
     it('should update the password hash', async () => {
       model.findByIdAndUpdate.mockResolvedValue(undefined);

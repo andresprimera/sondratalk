@@ -1,13 +1,13 @@
 import { useTranslation } from "react-i18next"
 
 interface OnboardingProgressProps {
-  current: 1 | 2 | 3
-  total: 3
+  current: number
+  total: number
 }
 
 export function OnboardingProgress({ current, total }: OnboardingProgressProps) {
   const { t } = useTranslation()
-  const steps: Array<1 | 2 | 3> = [1, 2, 3]
+  const steps = Array.from({ length: total }, (_, i) => i + 1)
 
   return (
     <div

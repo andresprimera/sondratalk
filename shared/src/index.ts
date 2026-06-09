@@ -34,6 +34,8 @@ export {
   localeKeyEnum,
   updateLanguagesSchema,
   type UpdateLanguagesInput,
+  updateApplicationSchema,
+  type UpdateApplicationInput,
 } from "./schemas/user";
 
 export {

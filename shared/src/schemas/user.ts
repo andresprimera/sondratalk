@@ -55,3 +55,8 @@ export const updateLanguagesSchema = z.object({
   locale: localeKeyEnum,
 });
 export type UpdateLanguagesInput = z.infer<typeof updateLanguagesSchema>;
+
+export const updateApplicationSchema = z.object({
+  applicationText: z.string().min(1, "Please tell us why you want to join").max(1000, "Keep it under 1000 characters"),
+});
+export type UpdateApplicationInput = z.infer<typeof updateApplicationSchema>;
