@@ -684,5 +684,16 @@
   "Note is too long": "Note is too long",
   "Entry already in early access list": "Entry already in early access list",
   "This email is not authorized to sign up": "This email is not authorized to sign up",
-  "Early access entry not found": "Early access entry not found"
+  "Early access entry not found": "Early access entry not found",
+  "What are your circles?": "What are your circles?",
+  "Choose everything that applies to you. Before each conversation, you decide which ones are active.": "Choose everything that applies to you. Before each conversation, you decide which ones are active.",
+  "Add at least 3 to continue": "Add at least 3 to continue",
+  "Two more to go": "Two more to go",
+  "One more to go": "One more to go",
+  "Who you are": "Who you are",
+  "What you love": "What you love",
+  "Where you are right now": "Where you are right now",
+  "Add your own…": "Add your own…",
+  "← fewer": "← fewer",
+  "{{n}} more →": "{{n}} more →"
 }

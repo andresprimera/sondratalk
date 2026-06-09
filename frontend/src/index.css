@@ -646,6 +646,24 @@
     background: var(--accent);
   }
 
+  .onboarding-show-more-btn {
+    background: none;
+    border: none;
+    color: var(--muted-foreground);
+    font-size: 0.8rem;
+    font-style: italic;
+    font-family: inherit;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    padding: 4px 0;
+    opacity: 0.6;
+    transition: opacity 200ms ease;
+  }
+
+  .onboarding-show-more-btn:hover {
+    opacity: 1;
+  }
+
   .onboarding-reveal {
     display: flex;
     align-items: center;

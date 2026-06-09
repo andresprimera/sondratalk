@@ -44,4 +44,22 @@ export const SEED_THEMES: ThemeSeed[] = [
     labels: { en: 'Sports', es: 'Deportes' },
     sortOrder: 5,
   },
+  {
+    id: 'cccccccccccccccccccc0001',
+    slug: 'identity',
+    labels: { en: 'Identity', es: 'Identidad' },
+    sortOrder: 10,
+  },
+  {
+    id: 'cccccccccccccccccccc0002',
+    slug: 'interests',
+    labels: { en: 'Interests', es: 'Intereses' },
+    sortOrder: 11,
+  },
+  {
+    id: 'cccccccccccccccccccc0003',
+    slug: 'life-moments',
+    labels: { en: 'Life Moments', es: 'Momentos de vida' },
+    sortOrder: 12,
+  },
 ];

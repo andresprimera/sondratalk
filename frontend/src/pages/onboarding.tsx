@@ -1,7 +1,7 @@
 // Onboarding is a transient pre-dashboard ceremony. Step 1 confirms the
 // timezone we inferred at signup; step 2 persists the languages spoken plus
 // a primary language used for email/calendar invites; step 3 persists circle
-// memberships.
+// memberships; step 4 collects the application text.
 import { useState } from "react"
 import { Navigate } from "react-router"
 import { useTranslation } from "react-i18next"
@@ -79,7 +79,6 @@ export default function OnboardingPage() {
     () => detectInitialLanguages()[0]?.code ?? null,
   )
   const [circles, setCircles] = useState<OnboardingCircle[]>([])
-  const [circleInput, setCircleInput] = useState("")
   const [applicationText, setApplicationText] = useState("")
 
   const myCirclesQuery = useQuery({
@@ -154,7 +153,10 @@ export default function OnboardingPage() {
   }
 
   function handleSubmit() {
-    submitMutation.mutate({ circleIds: circles.map((c) => c.id) })
+    const predefinedIds = circles
+      .filter((c) => !c.id.startsWith("custom:"))
+      .map((c) => c.id)
+    submitMutation.mutate({ circleIds: predefinedIds })
   }
 
   // Skip onboarding only when the user already has memberships. Gating on
@@ -222,8 +224,6 @@ export default function OnboardingPage() {
           <OnboardingCirclesStep
             circles={circles}
             onCirclesChange={setCircles}
-            inputValue={circleInput}
-            onInputChange={setCircleInput}
             onSubmit={handleSubmit}
             isSubmitting={submitMutation.isPending}
             onBack={() => go(2)}

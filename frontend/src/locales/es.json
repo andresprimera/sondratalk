@@ -684,5 +684,16 @@
   "Note is too long": "La nota es demasiado larga",
   "Entry already in early access list": "La entrada ya está en la lista de acceso anticipado",
   "This email is not authorized to sign up": "Este correo no está autorizado para registrarse",
-  "Early access entry not found": "Entrada de acceso anticipado no encontrada"
+  "Early access entry not found": "Entrada de acceso anticipado no encontrada",
+  "What are your circles?": "¿Cuáles son tus círculos?",
+  "Choose everything that applies to you. Before each conversation, you decide which ones are active.": "Elige todo lo que te aplique. Antes de cada conversación, decides cuáles están activos.",
+  "Add at least 3 to continue": "Añade al menos 3 para continuar",
+  "Two more to go": "Dos más",
+  "One more to go": "Solo uno más",
+  "Who you are": "Quién eres",
+  "What you love": "Lo que te apasiona",
+  "Where you are right now": "Dónde estás ahora",
+  "Add your own…": "Añade el tuyo…",
+  "← fewer": "← menos",
+  "{{n}} more →": "{{n}} más →"
 }

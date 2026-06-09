@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useInfiniteQuery, keepPreviousData } from "@tanstack/react-query"
-import { ArrowLeft, Loader2, X } from "lucide-react"
-import type { Circle } from "@base-dashboard/shared"
-import { fetchCirclesApi } from "@/lib/circles"
+import { ArrowLeft, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
+import {
+  CIRCLE_CATALOG,
+  type CatalogCircle,
+} from "@/lib/circle-catalog"
 
 export interface OnboardingCircle {
   id: string
@@ -16,21 +16,79 @@ export interface OnboardingCircle {
 interface OnboardingCirclesStepProps {
   circles: OnboardingCircle[]
   onCirclesChange: (next: OnboardingCircle[]) => void
-  inputValue: string
-  onInputChange: (value: string) => void
   onSubmit: () => void
   isSubmitting: boolean
   onBack: () => void
 }
 
-const PAGE_SIZE = 24
-const SKELETON_WIDTHS = ["w-16", "w-20", "w-24", "w-28"] as const
+const INITIAL_SHOW = 9
+
+const IDENTITY_CIRCLES = CIRCLE_CATALOG.filter((c) => c.type === "identity")
+const INTEREST_CIRCLES = CIRCLE_CATALOG.filter((c) => c.type === "interest")
+const SITUATIONAL_CIRCLES = CIRCLE_CATALOG.filter(
+  (c) => c.type === "situational",
+)
+
+function CircleGroup({
+  label,
+  circles: groupCircles,
+  selected,
+  locale,
+  onAdd,
+}: {
+  label: string
+  circles: CatalogCircle[]
+  selected: OnboardingCircle[]
+  locale: "en" | "es"
+  onAdd: (c: OnboardingCircle) => void
+}) {
+  const { t } = useTranslation()
+  const [expanded, setExpanded] = useState(false)
+  const visible = expanded ? groupCircles : groupCircles.slice(0, INITIAL_SHOW)
+  const remaining = groupCircles.length - INITIAL_SHOW
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center gap-3">
+        <span className="onboarding-section-label">{label}</span>
+        <div className="h-px flex-1 bg-border/20" aria-hidden />
+      </div>
+      <div className="onboarding-chip-row">
+        {visible.map((c) => {
+          const displayLabel = locale === "es" ? c.es : c.en
+          const used = selected.some((s) => s.id === c.id)
+          return (
+            <button
+              key={c.id}
+              type="button"
+              className="onboarding-chip"
+              data-used={used}
+              onClick={() => onAdd({ id: c.id, label: displayLabel })}
+              aria-pressed={used}
+            >
+              {displayLabel}
+            </button>
+          )
+        })}
+      </div>
+      {groupCircles.length > INITIAL_SHOW && (
+        <button
+          type="button"
+          className="onboarding-show-more-btn mt-3"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded
+            ? t("← fewer")
+            : t("{{n}} more →", { n: remaining })}
+        </button>
+      )}
+    </div>
+  )
+}
 
 export function OnboardingCirclesStep({
   circles,
   onCirclesChange,
-  inputValue,
-  onInputChange,
   onSubmit,
   isSubmitting,
   onBack,
@@ -38,44 +96,7 @@ export function OnboardingCirclesStep({
   const { t, i18n } = useTranslation()
   const locale: "en" | "es" =
     i18n.language?.split("-")[0] === "es" ? "es" : "en"
-
-  const [debouncedQ, setDebouncedQ] = useState("")
-  useEffect(() => {
-    const trimmed = inputValue.trim()
-    const next = trimmed.length >= 3 ? trimmed : ""
-    const id = setTimeout(() => setDebouncedQ(next), 250)
-    return () => clearTimeout(id)
-  }, [inputValue])
-
-  const {
-    data,
-    isLoading,
-    isError,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-    refetch,
-  } = useInfiniteQuery({
-    queryKey: [
-      "onboarding-circles",
-      { q: debouncedQ, locale, pageSize: PAGE_SIZE },
-    ] as const,
-    queryFn: ({ pageParam }) =>
-      fetchCirclesApi({
-        q: debouncedQ || undefined,
-        locale,
-        page: pageParam,
-        limit: PAGE_SIZE,
-      }),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) =>
-      lastPage.meta.page < lastPage.meta.totalPages
-        ? lastPage.meta.page + 1
-        : undefined,
-    placeholderData: keepPreviousData,
-  })
-
-  const fetchedCircles: Circle[] = data?.pages.flatMap((p) => p.data) ?? []
+  const [customInput, setCustomInput] = useState("")
 
   function add(circle: OnboardingCircle) {
     if (circles.some((c) => c.id === circle.id)) return
@@ -86,7 +107,23 @@ export function OnboardingCirclesStep({
     onCirclesChange(circles.filter((c) => c.id !== id))
   }
 
-  const revealVisible = circles.length >= 2
+  function addCustom() {
+    const val = customInput.trim()
+    if (!val) return
+    const id = `custom:${val}`
+    if (circles.some((c) => c.id === id)) return
+    add({ id, label: val })
+    setCustomInput("")
+  }
+
+  const hintText =
+    circles.length === 0
+      ? t("Add at least 3 to continue")
+      : circles.length === 1
+        ? t("Two more to go")
+        : circles.length === 2
+          ? t("One more to go")
+          : " "
 
   return (
     <section className="mt-12">
@@ -96,28 +133,19 @@ export function OnboardingCirclesStep({
         </span>
       </button>
       <p className="onboarding-eyebrow mb-6">
-        {t("Step {{current}} of {{total}}", { current: 3, total: 3 })}
+        {t("Step {{current}} of {{total}}", { current: 3, total: 4 })}
       </p>
       <h1 className="onboarding-step-heading mb-4">
-        {t("What are you part of?")}
+        {t("What are your circles?")}
       </h1>
       <p className="onboarding-step-subline mb-10">
         {t(
-          "The communities, backgrounds, and passions that shape you. These help Sondra find you the right person to talk to."
+          "Choose everything that applies to you. Before each conversation, you decide which ones are active.",
         )}
       </p>
 
-      <div className="mb-6">
-        <Input
-          value={inputValue}
-          onChange={(e) => onInputChange(e.target.value)}
-          placeholder={t("Search circles...")}
-          className="h-11 text-base"
-        />
-      </div>
-
       {circles.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-2">
+        <div className="mb-4 flex flex-wrap gap-2">
           {circles.map((c) => (
             <span key={c.id} className="onboarding-tag">
               {c.label}
@@ -134,84 +162,77 @@ export function OnboardingCirclesStep({
         </div>
       )}
 
+      <p
+        className="mb-2 text-sm italic font-light text-muted-foreground/70 transition-opacity duration-500"
+        style={{ opacity: circles.length >= 3 ? 0 : undefined }}
+        aria-live="polite"
+      >
+        {hintText}
+      </p>
+
       <div
-        className="onboarding-reveal my-8"
-        data-visible={revealVisible}
-        aria-hidden={!revealVisible}
+        className="onboarding-reveal mb-10"
+        data-visible={String(circles.length >= 3)}
+        aria-hidden={circles.length < 3}
       >
         <span className="onboarding-reveal-rule" aria-hidden />
-        <span>… {t("These are your Circles.")} </span>
+        <span>✦ {t("These are your Circles.")}</span>
         <span className="onboarding-reveal-rule" aria-hidden />
       </div>
 
-      <p className="onboarding-section-label mb-3">{t("Some ideas")}</p>
+      <div className="flex flex-col gap-8">
+        <CircleGroup
+          label={t("Who you are")}
+          circles={IDENTITY_CIRCLES}
+          selected={circles}
+          locale={locale}
+          onAdd={add}
+        />
+        <CircleGroup
+          label={t("What you love")}
+          circles={INTEREST_CIRCLES}
+          selected={circles}
+          locale={locale}
+          onAdd={add}
+        />
+        <CircleGroup
+          label={t("Where you are right now")}
+          circles={SITUATIONAL_CIRCLES}
+          selected={circles}
+          locale={locale}
+          onAdd={add}
+        />
+      </div>
 
-      {isLoading ? (
-        <div className="onboarding-chip-row mb-10" aria-busy="true">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <Skeleton
-              key={i}
-              className={`h-[34px] ${SKELETON_WIDTHS[i % SKELETON_WIDTHS.length]} rounded-full`}
-            />
-          ))}
-        </div>
-      ) : isError ? (
-        <div className="mb-10 flex items-center gap-3">
-          <p className="onboarding-section-label">
-            {t("Failed to load circles.")}
-          </p>
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
-            {t("Try again")}
-          </Button>
-        </div>
-      ) : fetchedCircles.length === 0 ? (
-        <p className="onboarding-section-label mb-10">
-          {t("No circles match your search.")}
-        </p>
-      ) : (
-        <>
-          <div className="onboarding-chip-row mb-4">
-            {fetchedCircles.map((c) => {
-              const label = c.labels[locale]
-              const used = circles.some((sel) => sel.id === c.id)
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  className="onboarding-chip"
-                  data-used={used}
-                  onClick={() => add({ id: c.id, label })}
-                  aria-pressed={used}
-                >
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-          {hasNextPage && (
-            <div className="mb-10">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-              >
-                {isFetchingNextPage && (
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                )}
-                {t("Load more")}
-              </Button>
-            </div>
-          )}
-        </>
-      )}
+      <div className="mt-10 flex gap-2">
+        <Input
+          value={customInput}
+          onChange={(e) => setCustomInput(e.target.value)}
+          placeholder={t("Add your own…")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault()
+              addCustom()
+            }
+          }}
+          className="h-11 text-base"
+        />
+        <button
+          type="button"
+          className="onboarding-add-btn"
+          onClick={addCustom}
+          aria-label={t("Add circle")}
+        >
+          <Plus className="size-5" aria-hidden />
+        </button>
+      </div>
 
-      <div className="mt-6">
+      <div className="mt-10">
         <Button
           size="xl"
           className="landing-flicker tracking-[0.05em]"
           onClick={onSubmit}
-          disabled={circles.length === 0 || isSubmitting}
+          disabled={circles.length < 3 || isSubmitting}
         >
           {isSubmitting ? t("Saving...") : t("Enter Sondra →")}
         </Button>
