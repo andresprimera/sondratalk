@@ -689,9 +689,12 @@ function MatchCard({
           <>
             <Separator />
             <div>
-              <div className="mb-3 text-[0.6875rem] tracking-widest text-muted-foreground/60 uppercase">
+              <div className="mb-1.5 text-[0.6875rem] tracking-widest text-muted-foreground/60 uppercase">
                 {t("Next available")}
               </div>
+              <p className="mb-3 text-xs text-muted-foreground">
+                {t("Not seeing a good time? You can propose another time after scheduling.")}
+              </p>
               <div className="flex flex-col gap-3">
                 {(match.slots ?? []).map((day) => {
                   const dayLabel = day.date.toLocaleDateString(locale, {
