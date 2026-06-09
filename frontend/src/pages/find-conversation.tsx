@@ -1,25 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router"
 import { useTranslation } from "react-i18next"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { AlertCircleIcon, ArrowRight, ChevronLeft } from "lucide-react"
-import type {
-  Circle,
-  HeardCandidate,
-  MatchCandidate,
-} from "@base-dashboard/shared"
+import type { Circle, MatchCandidate } from "@base-dashboard/shared"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/hooks/use-auth"
-import {
-  useFindHeardMatch,
-  useFindTalkMatch,
-} from "@/hooks/use-find-talk-match"
+import { useFindTalkMatch } from "@/hooks/use-find-talk-match"
 import { fetchMyCirclesApi } from "@/lib/memberships"
 import { createMeetingApi } from "@/lib/meetings"
 import { ApiError } from "@/lib/api-error"
@@ -35,106 +27,6 @@ function isRealObjectId(id: string | number): id is string {
 type Stage = "request" | "searching" | "matches"
 type Intent = "specific" | "talk" | "heard"
 
-interface SuggestionRule {
-  words: string[]
-  circles: string[]
-}
-
-const SUGGESTION_RULES: SuggestionRule[] = [
-  {
-    words: [
-      "finance",
-      "money",
-      "budget",
-      "saving",
-      "invest",
-      "pension",
-      "tax",
-      "accounting",
-      "finanza",
-      "dinero",
-      "ahorr",
-      "inver",
-      "impuesto",
-    ],
-    circles: ["Personal Finance", "Financial Planning", "Accountant"],
-  },
-  {
-    words: [
-      "dress",
-      "outfit",
-      "style",
-      "fashion",
-      "clothes",
-      "wear",
-      "gala",
-      "wedding",
-      "moda",
-      "vestido",
-      "ropa",
-      "boda",
-    ],
-    circles: ["Fashion", "Personal Styling", "Event Planning"],
-  },
-  {
-    words: [
-      "gym",
-      "fitness",
-      "workout",
-      "training",
-      "run",
-      "marathon",
-      "sport",
-      "deporte",
-      "entrena",
-      "correr",
-      "marat",
-    ],
-    circles: ["Fitness", "Personal Training", "Health & Wellness"],
-  },
-  {
-    words: [
-      "business",
-      "startup",
-      "founder",
-      "idea",
-      "product",
-      "market",
-      "negocio",
-      "emprendi",
-      "fundador",
-      "producto",
-      "mercado",
-    ],
-    circles: ["Startup founder", "Entrepreneur", "Product"],
-  },
-  {
-    words: [
-      "relationship",
-      "partner",
-      "dating",
-      "love",
-      "marriage",
-      "relación",
-      "pareja",
-      "amor",
-      "matrimonio",
-    ],
-    circles: ["Life Coaching", "Relationships"],
-  },
-]
-
-const FALLBACK_SUGGESTIONS = ["Active listener", "Open conversation"]
-
-function suggestCircles(text: string): string[] {
-  const lower = text.toLowerCase()
-  if (!lower.trim()) return []
-  for (const rule of SUGGESTION_RULES) {
-    if (rule.words.some((w) => lower.includes(w))) return rule.circles
-  }
-  return FALLBACK_SUGGESTIONS
-}
-
 interface SlotTime {
   time: string // wall-clock HH:mm in requester's tz, for display
   startsAt: string // UTC ISO instant of the slot — the source of truth for booking
@@ -149,56 +41,10 @@ interface SlotDay {
 interface CardMatch {
   id: string | number
   available: boolean
-  isHost?: boolean
-  hostExp?: number
   circles?: string[]
   name?: string
   slots?: SlotDay[]
 }
-
-function daysFromNow(n: number): Date {
-  const d = new Date()
-  d.setDate(d.getDate() + n)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-// Mock entries never reach the backend (see isRealObjectId guard); startsAt is
-// synthesized from browser-local date + time purely so the type matches.
-function mockSlotTimes(date: Date, times: string[]): SlotTime[] {
-  return times.map((time) => {
-    const [hh, mm] = time.split(":").map(Number)
-    const d = new Date(date)
-    d.setHours(hh, mm, 0, 0)
-    return { time, startsAt: d.toISOString() }
-  })
-}
-
-const SPECIFIC_MOCK_POOL: CardMatch[] = [
-  {
-    id: 1,
-    available: true,
-    circles: ["Personal Finance", "Financial Planning"],
-  },
-  {
-    id: 2,
-    available: false,
-    circles: ["Accountant", "Tax Adviser"],
-    slots: [
-      {
-        dayKey: "Tomorrow",
-        date: daysFromNow(1),
-        times: mockSlotTimes(daysFromNow(1), ["09:00", "11:30", "15:00"]),
-      },
-      {
-        dayKey: "In a few days",
-        date: daysFromNow(3),
-        times: mockSlotTimes(daysFromNow(3), ["10:00", "14:30"]),
-      },
-    ],
-  },
-  { id: 3, available: true, circles: ["Financial Coach"] },
-]
 
 interface SelectedSlot {
   matchId: string | number
@@ -262,21 +108,6 @@ function realTalkToCardMatch(
   }
 }
 
-function realHeardToCardMatch(
-  candidate: HeardCandidate,
-  locale: "en" | "es",
-): CardMatch {
-  return {
-    id: candidate.id,
-    available: candidate.availableNow,
-    name: candidate.firstName,
-    isHost: true,
-    hostExp: candidate.hostExp,
-    circles: candidate.sharedCircles.map((c) => c.labels[locale]),
-    slots: candidate.availableNow ? undefined : groupSlotsByDate(candidate.slots),
-  }
-}
-
 export default function FindConversationPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -289,7 +120,6 @@ export default function FindConversationPage() {
     queryFn: fetchMyCirclesApi,
   })
   const talkMatch = useFindTalkMatch()
-  const heardMatch = useFindHeardMatch()
   const createMeeting = useMutation({
     mutationFn: createMeetingApi,
     onSuccess: (_meeting, variables) => {
@@ -311,8 +141,6 @@ export default function FindConversationPage() {
   const [offCircleIds, setOffCircleIds] = useState<Set<string>>(new Set())
   const [intent, setIntent] = useState<Intent | null>(isTalkNow ? "talk" : null)
   const autoStarted = useRef(false)
-  const [intentText, setIntentText] = useState("")
-  const [offTargetCircles, setOffTargetCircles] = useState<Set<string>>(new Set())
   const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null)
 
   const locale: "en" | "es" =
@@ -324,16 +152,6 @@ export default function FindConversationPage() {
     if (hour < 18) return t("Good afternoon")
     return t("Good evening")
   })()
-
-  const suggestedCircles = useMemo(
-    () => (intent === "specific" ? suggestCircles(intentText) : []),
-    [intent, intentText],
-  )
-  const suggestedKey = suggestedCircles.join("|")
-
-  useEffect(() => {
-    setOffTargetCircles(new Set())
-  }, [suggestedKey])
 
   const talkMutate = talkMatch.mutate
   useEffect(() => {
@@ -362,8 +180,7 @@ export default function FindConversationPage() {
     .map((c) => c.id)
   const hasNoCircles = !myCirclesQuery.isLoading && circles.length === 0
   const findDisabled =
-    activeCircleIds.length === 0 &&
-    (intent === "talk" || intent === "heard" || intent === null)
+    activeCircleIds.length === 0 && (intent === "talk" || intent === null)
 
   function toggleCircle(id: string) {
     setOffCircleIds((prev) => {
@@ -374,54 +191,42 @@ export default function FindConversationPage() {
     })
   }
 
-  function toggleTargetCircle(name: string) {
-    setOffTargetCircles((prev) => {
-      const next = new Set(prev)
-      if (next.has(name)) next.delete(name)
-      else next.add(name)
-      return next
-    })
-  }
-
   function startSearch() {
     const resolved: Intent = intent ?? "talk"
     setIntent(resolved)
     setSelectedSlot(null)
 
-    if (resolved === "talk" || resolved === "heard") {
-      if (activeCircleIds.length === 0) {
-        toast.error(t("Pick at least one circle"))
-        return
-      }
-      setStage("searching")
-      const mutation = resolved === "talk" ? talkMatch : heardMatch
-      mutation.mutate(
-        { circleIds: activeCircleIds },
-        {
-          onSettled: () => setStage("matches"),
-          onError: (err) => {
-            const isNotFound =
-              err instanceof ApiError && err.statusCode === 404
-            if (!isNotFound) {
-              const message =
-                err instanceof Error ? err.message : t("Something went wrong")
-              toast.error(message)
-            }
-          },
-        },
-      )
+    if (resolved === "specific" || resolved === "heard") {
+      toast.info(t("Not available in Beta yet."))
       return
     }
 
+    if (activeCircleIds.length === 0) {
+      toast.error(t("Pick at least one circle"))
+      return
+    }
     setStage("searching")
-    setTimeout(() => setStage("matches"), 2200)
+    talkMatch.mutate(
+      { circleIds: activeCircleIds },
+      {
+        onSettled: () => setStage("matches"),
+        onError: (err) => {
+          const isNotFound =
+            err instanceof ApiError && err.statusCode === 404
+          if (!isNotFound) {
+            const message =
+              err instanceof Error ? err.message : t("Something went wrong")
+            toast.error(message)
+          }
+        },
+      },
+    )
   }
 
   function reset() {
     setStage("request")
     setSelectedSlot(null)
     talkMatch.reset()
-    heardMatch.reset()
   }
 
   function confirmSelectedSlot() {
@@ -453,24 +258,13 @@ export default function FindConversationPage() {
   }
 
   if (stage === "searching") {
-    const lineMap: Record<Intent, string> = {
-      specific: t("Finding the right person for you…"),
-      talk: t("Looking for someone to talk to…"),
-      heard: t("Looking for an experienced listener…"),
-    }
-    const subMap: Record<Intent, string> = {
-      specific: t("Matching on your circles and intent"),
-      talk: t("Matching on your active circles"),
-      heard: t("Filtering for Host Exp only"),
-    }
-    const resolvedIntent: Intent = intent ?? "talk"
     return (
       <div className="mx-auto flex w-full max-w-2xl flex-col items-center justify-center py-24 text-center">
         <p className="mb-2 text-base text-foreground">
-          {lineMap[resolvedIntent]}
+          {t("Looking for someone to talk to…")}
         </p>
         <p className="mb-8 text-[0.6875rem] tracking-widest text-muted-foreground/60 uppercase">
-          {subMap[resolvedIntent]}
+          {t("Matching on your active circles")}
         </p>
         <div className="flex gap-2" aria-hidden>
           <span className="size-1.5 animate-pulse rounded-full bg-primary [animation-delay:-0.3s]" />
@@ -481,41 +275,18 @@ export default function FindConversationPage() {
     )
   }
 
-  let cardMatches: CardMatch[] = []
-  if (stage === "matches") {
-    const resolvedIntent: Intent = intent ?? "talk"
-    if (resolvedIntent === "talk") {
-      cardMatches = (talkMatch.data?.candidates ?? []).map((c) =>
-        realTalkToCardMatch(c, locale),
-      )
-    } else if (resolvedIntent === "heard") {
-      cardMatches = (heardMatch.data?.candidates ?? []).map((c) =>
-        realHeardToCardMatch(c, locale),
-      )
-    } else {
-      cardMatches = SPECIFIC_MOCK_POOL
-    }
-  }
+  const cardMatches: CardMatch[] =
+    stage === "matches"
+      ? (talkMatch.data?.candidates ?? []).map((c) =>
+          realTalkToCardMatch(c, locale),
+        )
+      : []
 
   if (stage === "matches") {
-    const resolvedIntent: Intent = intent ?? "talk"
-    const activeMutation =
-      resolvedIntent === "talk"
-        ? talkMatch
-        : resolvedIntent === "heard"
-          ? heardMatch
-          : null
     const noMatch =
-      activeMutation !== null &&
-      activeMutation.isError &&
-      activeMutation.error instanceof ApiError &&
-      activeMutation.error.statusCode === 404
-
-    const headingMap: Record<Intent, string> = {
-      specific: t("Here's who can help."),
-      talk: t("Someone is waiting."),
-      heard: t("A listener is ready."),
-    }
+      talkMatch.isError &&
+      talkMatch.error instanceof ApiError &&
+      talkMatch.error.statusCode === 404
 
     const eyebrow =
       cardMatches.length === 1
@@ -541,9 +312,9 @@ export default function FindConversationPage() {
         {noMatch ? (
           <NoMatchState
             onRetry={() => {
-              if (activeCircleIds.length === 0 || !activeMutation) return
+              if (activeCircleIds.length === 0) return
               setStage("searching")
-              activeMutation.mutate(
+              talkMatch.mutate(
                 { circleIds: activeCircleIds },
                 { onSettled: () => setStage("matches") },
               )
@@ -555,7 +326,7 @@ export default function FindConversationPage() {
             <div className="mb-2 text-[0.6875rem] tracking-widest text-primary/80 uppercase">
               {eyebrow}
             </div>
-            <h1 className="mb-2">{headingMap[resolvedIntent]}</h1>
+            <h1 className="mb-2">{t("Someone is waiting.")}</h1>
             <p className="mb-8 text-sm text-muted-foreground">{sub}</p>
 
             <div className="flex flex-col gap-4">
@@ -688,11 +459,6 @@ export default function FindConversationPage() {
 
       <div className="flex flex-col gap-2">
         <IntentChoice
-          label={t("Yes, I have something specific")}
-          selected={intent === "specific"}
-          onSelect={() => setIntent("specific")}
-        />
-        <IntentChoice
           label={t("Not really — just talk")}
           selected={intent === "talk"}
           onSelect={() => setIntent("talk")}
@@ -705,79 +471,22 @@ export default function FindConversationPage() {
           hintTo={hasNoCircles ? "/dashboard/my-circles" : undefined}
         />
         <IntentChoice
+          label={t("Yes, I have something specific")}
+          selected={intent === "specific"}
+          onSelect={() => setIntent("specific")}
+          hint={t("Not available in Beta yet.")}
+        />
+        <IntentChoice
           label={t("I just need to be heard")}
           selected={intent === "heard"}
           onSelect={() => setIntent("heard")}
-          disabled={hasNoCircles}
-          hint={
-            hasNoCircles
-              ? t("Add a circle so we can find you the right person.")
-              : undefined
-          }
-          hintTo={hasNoCircles ? "/dashboard/my-circles" : undefined}
+          hint={t("Not available in Beta yet.")}
         />
       </div>
 
-      {intent === "specific" && (
-        <div className="mt-4">
-          <Textarea
-            value={intentText}
-            onChange={(e) => setIntentText(e.target.value)}
-            placeholder={t(
-              "Describe what you're looking for — the more you share, the better the match…",
-            )}
-            rows={3}
-          />
-
-          {suggestedCircles.length > 0 && (
-            <div className="mt-3">
-              <div className="mb-2 text-[0.6875rem] tracking-widest text-muted-foreground/60 uppercase">
-                {t("Sondra will look for someone in")}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {suggestedCircles.map((name) => {
-                  const on = !offTargetCircles.has(name)
-                  return (
-                    <button
-                      key={name}
-                      type="button"
-                      onClick={() => toggleTargetCircle(name)}
-                      className={cn(
-                        "rounded-full border px-3 py-0.5 text-sm transition-colors",
-                        on
-                          ? "border-primary/40 bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground/60",
-                      )}
-                    >
-                      {t(name)}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {intent === "heard" && (
-        <Card className="mt-4 border-primary/30 bg-primary/5">
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              {t(
-                "Sondra will match you with someone who has Host Exp — people who've shown up as listeners and advisers for others before.",
-              )}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
       <div className="mt-10 flex flex-wrap items-center gap-3">
         <Button size="lg" onClick={startSearch} disabled={findDisabled}>
-          {intent === "specific"
-            ? t("Find someone who can help")
-            : intent === "heard"
-              ? t("Find a listener")
-              : t("Find someone")}
+          {t("Find someone")}
           <ArrowRight />
         </Button>
       </div>
@@ -917,11 +626,9 @@ function MatchCard({
   talkNowDisabled,
 }: MatchCardProps) {
   const { t } = useTranslation()
-  const idLabel = match.isHost
-    ? "✦"
-    : match.name
-      ? match.name.charAt(0).toUpperCase()
-      : String(match.id)
+  const idLabel = match.name
+    ? match.name.charAt(0).toUpperCase()
+    : String(match.id)
 
   return (
     <Card>
@@ -930,11 +637,9 @@ function MatchCard({
           <div
             className={cn(
               "flex size-8 shrink-0 items-center justify-center rounded-full border text-sm",
-              match.isHost
+              match.name
                 ? "border-primary/30 bg-primary/10 text-primary"
-                : match.name
-                  ? "border-primary/30 bg-primary/10 text-primary"
-                  : "border-border bg-muted text-muted-foreground",
+                : "border-border bg-muted text-muted-foreground",
             )}
             aria-hidden
           >
@@ -942,27 +647,10 @@ function MatchCard({
           </div>
           <div className="flex-1">
             {match.name && <h6 className="mb-1">{match.name}</h6>}
-            {match.isHost && (
-              <div className="mb-2 flex items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className="border-primary/30 text-primary"
-                >
-                  ✦ {t("Host")}
-                </Badge>
-                <span className="text-xs text-muted-foreground">
-                  {t("{{count}} conversations as listener or adviser", {
-                    count: match.hostExp ?? 0,
-                  })}
-                </span>
-              </div>
-            )}
             {(match.circles ?? []).length > 0 && (
               <>
                 <div className="mb-1 text-[0.6875rem] tracking-widest text-muted-foreground/60 uppercase">
-                  {match.name
-                    ? t("Shared circles")
-                    : t("Can help with")}
+                  {t("Shared circles")}
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {(match.circles ?? []).map((c) => (
