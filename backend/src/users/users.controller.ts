@@ -26,6 +26,7 @@ import { toUser } from './users.mapper';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import {
   updateUserRoleSchema,
@@ -42,6 +43,7 @@ import {
   type UpdateLanguagesInput,
   updateApplicationSchema,
   type UpdateApplicationInput,
+  type FoundingMembersCount,
 } from '@base-dashboard/shared';
 import {
   paginationQuerySchema,
@@ -71,6 +73,15 @@ export class UsersController {
     private membershipsService: MembershipsService,
     private availabilityService: AvailabilityService,
   ) {}
+
+  // --- Public endpoints ---
+
+  @Public()
+  @Get('count')
+  async getFoundingMembersCount(): Promise<FoundingMembersCount> {
+    const count = await this.usersService.countUsers();
+    return { count };
+  }
 
   // --- Current user endpoints (all authenticated users) ---
 

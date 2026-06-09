@@ -36,6 +36,8 @@ export {
   type UpdateLanguagesInput,
   updateApplicationSchema,
   type UpdateApplicationInput,
+  foundingMembersCountSchema,
+  type FoundingMembersCount,
 } from "./schemas/user";
 
 export {

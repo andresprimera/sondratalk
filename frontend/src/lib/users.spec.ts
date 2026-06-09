@@ -1,8 +1,9 @@
-import { fetchUsersApi, updateUserRoleApi, removeUserApi, createUserApi } from "@/lib/users"
-import { authFetch } from "@/lib/api"
+import { fetchUsersApi, updateUserRoleApi, removeUserApi, createUserApi, fetchFoundingMembersCountApi } from "@/lib/users"
+import { authFetch, publicFetch } from "@/lib/api"
 
 vi.mock("@/lib/api", () => ({
   authFetch: vi.fn(),
+  publicFetch: vi.fn(),
 }))
 
 const mockJsonResponse = (data: unknown): Response =>
@@ -65,6 +66,17 @@ describe("users API", () => {
         body: JSON.stringify(data),
       })
       expect(result).toEqual(user)
+    })
+  })
+
+  describe("fetchFoundingMembersCountApi", () => {
+    it("GETs /api/users/count and returns the count", async () => {
+      vi.mocked(publicFetch).mockResolvedValue(mockJsonResponse({ count: 42 }))
+
+      const result = await fetchFoundingMembersCountApi()
+
+      expect(publicFetch).toHaveBeenCalledWith("/api/users/count")
+      expect(result).toEqual({ count: 42 })
     })
   })
 })

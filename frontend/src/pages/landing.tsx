@@ -1,9 +1,11 @@
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
+import { useQuery } from "@tanstack/react-query"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LanguageToggle } from "@/components/language-toggle"
+import { fetchFoundingMembersCountApi } from "@/lib/users"
 
 function SectionDivider() {
   return (
@@ -37,6 +39,12 @@ const steps = [
 
 export default function LandingPage() {
   const { t } = useTranslation()
+  const countQuery = useQuery({
+    queryKey: ["users", "count"] as const,
+    queryFn: fetchFoundingMembersCountApi,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  })
 
   return (
     <div className="landing-bg flex min-h-svh flex-col overflow-x-hidden text-foreground">
@@ -104,6 +112,12 @@ export default function LandingPage() {
               {t("Apply")}
             </Button>
           </div>
+
+          {countQuery.data?.count !== undefined && (
+            <p className="mt-6 text-[0.8rem] tracking-[0.12em] text-muted-foreground/70 uppercase">
+              {t("{{count}} founding members · Applications open", { count: countQuery.data.count })}
+            </p>
+          )}
         </section>
 
         <SectionDivider />

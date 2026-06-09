@@ -2,8 +2,15 @@ import {
   type User,
   type PaginatedResponse,
   type CreateUserInput,
+  type FoundingMembersCount,
+  foundingMembersCountSchema,
 } from "@base-dashboard/shared"
-import { authFetch } from "@/lib/api"
+import { authFetch, publicFetch } from "@/lib/api"
+
+export async function fetchFoundingMembersCountApi(): Promise<FoundingMembersCount> {
+  const res = await publicFetch("/api/users/count")
+  return foundingMembersCountSchema.parse(await res.json())
+}
 
 export async function fetchUsersApi(
   page: number,
