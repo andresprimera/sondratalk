@@ -50,13 +50,18 @@ const AUTHORED: readonly AuthoredTimezone[] = [
   { iana: "Europe/Dublin", city: "Dublin", countryCode: "IE" },
   { iana: "Europe/Lisbon", city: "Lisbon", countryCode: "PT" },
   { iana: "Europe/Madrid", city: "Madrid", countryCode: "ES" },
+  { iana: "Europe/Madrid", city: "Barcelona", countryCode: "ES" },
+  { iana: "Europe/Madrid", city: "Valencia", countryCode: "ES" },
+  { iana: "Europe/Madrid", city: "Seville", countryCode: "ES" },
   { iana: "Europe/Paris", city: "Paris", countryCode: "FR" },
   { iana: "Europe/Brussels", city: "Brussels", countryCode: "BE" },
   { iana: "Europe/Amsterdam", city: "Amsterdam", countryCode: "NL" },
   { iana: "Europe/Berlin", city: "Berlin", countryCode: "DE" },
+  { iana: "Europe/Berlin", city: "Munich", countryCode: "DE" },
   { iana: "Europe/Zurich", city: "Zurich", countryCode: "CH" },
   { iana: "Europe/Vienna", city: "Vienna", countryCode: "AT" },
   { iana: "Europe/Rome", city: "Rome", countryCode: "IT" },
+  { iana: "Europe/Rome", city: "Milan", countryCode: "IT" },
   { iana: "Europe/Copenhagen", city: "Copenhagen", countryCode: "DK" },
   { iana: "Europe/Oslo", city: "Oslo", countryCode: "NO" },
   { iana: "Europe/Stockholm", city: "Stockholm", countryCode: "SE" },
@@ -90,6 +95,8 @@ const AUTHORED: readonly AuthoredTimezone[] = [
   { iana: "Asia/Tehran", city: "Tehran", countryCode: "IR" },
   { iana: "Asia/Karachi", city: "Karachi", countryCode: "PK" },
   { iana: "Asia/Kolkata", city: "Mumbai", countryCode: "IN" },
+  { iana: "Asia/Kolkata", city: "Delhi", countryCode: "IN" },
+  { iana: "Asia/Kolkata", city: "Bangalore", countryCode: "IN" },
   { iana: "Asia/Dhaka", city: "Dhaka", countryCode: "BD" },
   { iana: "Asia/Bangkok", city: "Bangkok", countryCode: "TH" },
   { iana: "Asia/Jakarta", city: "Jakarta", countryCode: "ID" },
@@ -98,6 +105,7 @@ const AUTHORED: readonly AuthoredTimezone[] = [
   { iana: "Asia/Manila", city: "Manila", countryCode: "PH" },
   { iana: "Asia/Hong_Kong", city: "Hong Kong", countryCode: "HK" },
   { iana: "Asia/Shanghai", city: "Shanghai", countryCode: "CN" },
+  { iana: "Asia/Shanghai", city: "Beijing", countryCode: "CN" },
   { iana: "Asia/Taipei", city: "Taipei", countryCode: "TW" },
   { iana: "Asia/Seoul", city: "Seoul", countryCode: "KR" },
   { iana: "Asia/Tokyo", city: "Tokyo", countryCode: "JP" },
@@ -148,10 +156,17 @@ export const TIMEZONES: readonly TimezoneEntry[] = AUTHORED.map((entry) => ({
   utcOffsetMinutes: getOffsetMinutes(entry.iana, NOW),
 })).sort((a, b) => a.utcOffsetMinutes - b.utcOffsetMinutes)
 
-const TIMEZONES_BY_IANA = new Map(TIMEZONES.map((t) => [t.iana, t]))
+const TIMEZONES_BY_IANA = new Map<string, TimezoneEntry>()
+for (const t of TIMEZONES) {
+  if (!TIMEZONES_BY_IANA.has(t.iana)) TIMEZONES_BY_IANA.set(t.iana, t)
+}
 
 export function getTimezoneByIana(iana: string): TimezoneEntry | undefined {
   return TIMEZONES_BY_IANA.get(iana)
+}
+
+export function getTimezoneEntry(iana: string, city: string): TimezoneEntry | undefined {
+  return TIMEZONES.find((t) => t.iana === iana && t.city === city) ?? getTimezoneByIana(iana)
 }
 
 export function detectTimezone(): TimezoneEntry | undefined {

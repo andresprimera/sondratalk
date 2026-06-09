@@ -160,10 +160,11 @@ export class UsersService {
   async updateTimezone(
     userId: string,
     timezone: string,
+    city?: string,
   ): Promise<UserDocument | null> {
     return this.userModel.findByIdAndUpdate(
       userId,
-      { timezone },
+      { timezone, ...(city !== undefined && { city }) },
       { new: true },
     );
   }

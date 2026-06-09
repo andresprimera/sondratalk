@@ -1,5 +1,6 @@
 import {
   type User,
+  type UpdateTimezoneInput,
   type UpdateLanguagesInput,
   type UpdateApplicationInput,
 } from "@base-dashboard/shared"
@@ -26,10 +27,10 @@ export async function changePasswordApi(
   })
 }
 
-export async function updateTimezoneApi(timezone: string): Promise<User> {
+export async function updateTimezoneApi(input: UpdateTimezoneInput): Promise<User> {
   const res = await authFetch("/api/users/me/timezone", {
     method: "PATCH",
-    body: JSON.stringify({ timezone }),
+    body: JSON.stringify(input),
   })
   return res.json()
 }

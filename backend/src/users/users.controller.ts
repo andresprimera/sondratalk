@@ -116,7 +116,7 @@ export class UsersController {
     @Body(new ZodValidationPipe(updateTimezoneSchema))
     dto: UpdateTimezoneInput,
   ): Promise<User> {
-    const user = await this.usersService.updateTimezone(userId, dto.timezone);
+    const user = await this.usersService.updateTimezone(userId, dto.timezone, dto.city);
     if (!user) {
       throw new NotFoundException('User not found');
     }

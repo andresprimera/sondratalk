@@ -61,6 +61,9 @@ export class User {
   @Prop({ required: true, default: 'UTC' })
   timezone!: string;
 
+  @Prop({ default: '' })
+  city!: string;
+
   @Prop({ type: [UserLanguageSchema], default: [] })
   languages!: UserLanguage[];
 

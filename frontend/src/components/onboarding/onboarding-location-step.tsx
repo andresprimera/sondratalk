@@ -15,7 +15,7 @@ import {
   TIMEZONES,
   formatUtcOffset,
   getCountryDisplayName,
-  getTimezoneByIana,
+  getTimezoneEntry,
   getTimezoneLongName,
   type TimezoneEntry,
 } from "@/lib/timezones"
@@ -23,7 +23,10 @@ import {
 interface OnboardingLocationStepProps {
   selectedIana: string
   onSelectIana: (iana: string) => void
+  selectedCity: string
+  onSelectCity: (city: string) => void
   detectedIana: string
+  detectedCity: string
   onNext: () => void
   isSubmitting?: boolean
 }
@@ -31,7 +34,10 @@ interface OnboardingLocationStepProps {
 export function OnboardingLocationStep({
   selectedIana,
   onSelectIana,
+  selectedCity,
+  onSelectCity,
   detectedIana,
+  detectedCity,
   onNext,
   isSubmitting,
 }: OnboardingLocationStepProps) {
@@ -39,8 +45,9 @@ export function OnboardingLocationStep({
   const locale = i18n.language
   const [isEditing, setIsEditing] = useState(false)
 
-  const tz: TimezoneEntry | undefined = getTimezoneByIana(selectedIana)
-  const isAutoDetected = selectedIana === detectedIana && tz !== undefined
+  const tz: TimezoneEntry | undefined = getTimezoneEntry(selectedIana, selectedCity)
+  const isAutoDetected =
+    selectedIana === detectedIana && selectedCity === detectedCity && tz !== undefined
 
   function formatCityCountry(entry: TimezoneEntry): string {
     return `${t(entry.city)}, ${getCountryDisplayName(entry.countryCode, locale)}`
@@ -86,10 +93,11 @@ export function OnboardingLocationStep({
             items={TIMEZONES}
             value={tz ?? null}
             itemToStringLabel={formatCityCountry}
-            isItemEqualToValue={(a, b) => a.iana === b.iana}
+            isItemEqualToValue={(a, b) => a.iana === b.iana && a.city === b.city}
             onValueChange={(picked) => {
               if (!picked) return
               onSelectIana(picked.iana)
+              onSelectCity(picked.city)
               setIsEditing(false)
             }}
           >
@@ -102,7 +110,7 @@ export function OnboardingLocationStep({
                 <ComboboxEmpty>{t("No matches")}</ComboboxEmpty>
                 <ComboboxCollection>
                   {(entry: TimezoneEntry) => (
-                    <ComboboxItem key={entry.iana} value={entry}>
+                    <ComboboxItem key={`${entry.iana}:${entry.city}`} value={entry}>
                       {formatCityCountry(entry)} · {entry.abbr}
                     </ComboboxItem>
                   )}
@@ -119,6 +127,7 @@ export function OnboardingLocationStep({
         onClick={() => {
           if (isEditing) {
             onSelectIana(detectedIana)
+            onSelectCity(detectedCity)
             setIsEditing(false)
           } else {
             setIsEditing(true)

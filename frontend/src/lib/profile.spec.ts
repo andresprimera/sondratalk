@@ -48,21 +48,22 @@ describe("profile API", () => {
   })
 
   describe("updateTimezoneApi", () => {
-    it("should PATCH /api/users/me/timezone with the timezone string", async () => {
+    it("PATCHes /api/users/me/timezone with timezone and optional city", async () => {
       const user = {
         id: "u1",
         name: "Test",
         email: "t@test.com",
         role: "user",
         timezone: "Europe/Madrid",
+        city: "Barcelona",
       }
       vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(user))
 
-      const result = await updateTimezoneApi("Europe/Madrid")
+      const result = await updateTimezoneApi({ timezone: "Europe/Madrid", city: "Barcelona" })
 
       expect(authFetch).toHaveBeenCalledWith("/api/users/me/timezone", {
         method: "PATCH",
-        body: JSON.stringify({ timezone: "Europe/Madrid" }),
+        body: JSON.stringify({ timezone: "Europe/Madrid", city: "Barcelona" }),
       })
       expect(result).toEqual(user)
     })

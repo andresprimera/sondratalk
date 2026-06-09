@@ -14,6 +14,7 @@ export function toUser(doc: UserDocument): User {
     // eslint-disable-next-line no-restricted-syntax
     role: doc.role as Role,
     timezone: doc.timezone,
+    city: doc.city ?? "",
     languages: (doc.languages ?? []).map((l) => ({
       code: l.code,
       // eslint-disable-next-line no-restricted-syntax

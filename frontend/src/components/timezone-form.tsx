@@ -26,7 +26,7 @@ import {
   detectTimezone,
   formatUtcOffset,
   getCountryDisplayName,
-  getTimezoneByIana,
+  getTimezoneEntry,
   type TimezoneEntry,
 } from "@/lib/timezones"
 
@@ -36,13 +36,18 @@ export function TimezoneForm() {
   const locale: "en" | "es" =
     i18n.language?.split("-")[0] === "es" ? "es" : "en"
 
-  const initial =
-    user?.timezone ?? detectTimezone()?.iana ?? Intl.DateTimeFormat().resolvedOptions().timeZone
-  const [selectedIana, setSelectedIana] = useState<string>(initial)
+  const detectedEntry = detectTimezone()
+  const initialIana =
+    user?.timezone ?? detectedEntry?.iana ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+  const initialCity = user?.city ?? detectedEntry?.city ?? ""
+
+  const [selectedIana, setSelectedIana] = useState<string>(initialIana)
+  const [selectedCity, setSelectedCity] = useState<string>(initialCity)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const tz: TimezoneEntry | undefined = getTimezoneByIana(selectedIana)
-  const isDirty = selectedIana !== (user?.timezone ?? null)
+  const tz: TimezoneEntry | undefined = getTimezoneEntry(selectedIana, selectedCity)
+  const isDirty =
+    selectedIana !== (user?.timezone ?? null) || selectedCity !== (user?.city ?? "")
 
   function formatLabel(entry: TimezoneEntry): string {
     return `${t(entry.city)}, ${getCountryDisplayName(entry.countryCode, locale)} · ${entry.abbr} (${formatUtcOffset(entry.utcOffsetMinutes)})`
@@ -51,8 +56,8 @@ export function TimezoneForm() {
   async function handleSave() {
     setIsSubmitting(true)
     try {
-      const updated = await updateTimezoneApi(selectedIana)
-      if (user) updateUser({ ...user, timezone: updated.timezone })
+      const updated = await updateTimezoneApi({ timezone: selectedIana, city: selectedCity })
+      if (user) updateUser({ ...user, timezone: updated.timezone, city: updated.city })
       toast.success(t("Saved"))
     } catch (err) {
       toast.error(
@@ -78,10 +83,11 @@ export function TimezoneForm() {
               items={TIMEZONES}
               value={tz ?? null}
               itemToStringLabel={formatLabel}
-              isItemEqualToValue={(a, b) => a.iana === b.iana}
+              isItemEqualToValue={(a, b) => a.iana === b.iana && a.city === b.city}
               onValueChange={(picked) => {
                 if (!picked) return
                 setSelectedIana(picked.iana)
+                setSelectedCity(picked.city)
               }}
             >
               <ComboboxInput
@@ -93,7 +99,7 @@ export function TimezoneForm() {
                   <ComboboxEmpty>{t("No matches")}</ComboboxEmpty>
                   <ComboboxCollection>
                     {(entry: TimezoneEntry) => (
-                      <ComboboxItem key={entry.iana} value={entry}>
+                      <ComboboxItem key={`${entry.iana}:${entry.city}`} value={entry}>
                         {formatLabel(entry)}
                       </ComboboxItem>
                     )}

@@ -47,6 +47,7 @@ function detectInitialIana(fallback: string): string {
   return fallback
 }
 
+
 function detectInitialLanguages(): OnboardingLanguage[] {
   const lang = detectBrowserLanguage()
   if (!lang) return []
@@ -64,8 +65,12 @@ export default function OnboardingPage() {
       user?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
     ),
   )
+  const [detectedCity] = useState(() => detectTimezone()?.city ?? user?.city ?? "")
   const [selectedIana, setSelectedIana] = useState(
     () => user?.timezone ?? detectedIana,
+  )
+  const [selectedCity, setSelectedCity] = useState(
+    () => user?.city ?? detectedCity,
   )
   const [languages, setLanguages] = useState<OnboardingLanguage[]>(
     detectInitialLanguages
@@ -108,7 +113,7 @@ export default function OnboardingPage() {
   const timezoneMutation = useMutation({
     mutationFn: updateTimezoneApi,
     onSuccess: (data) => {
-      if (user) updateUser({ ...user, timezone: data.timezone })
+      if (user) updateUser({ ...user, timezone: data.timezone, city: data.city })
       setStep(2)
       window.scrollTo(0, 0)
     },
@@ -181,8 +186,11 @@ export default function OnboardingPage() {
           <OnboardingLocationStep
             selectedIana={selectedIana}
             onSelectIana={setSelectedIana}
+            selectedCity={selectedCity}
+            onSelectCity={setSelectedCity}
             detectedIana={detectedIana}
-            onNext={() => timezoneMutation.mutate(selectedIana)}
+            detectedCity={detectedCity}
+            onNext={() => timezoneMutation.mutate({ timezone: selectedIana, city: selectedCity })}
             isSubmitting={timezoneMutation.isPending}
           />
         )}

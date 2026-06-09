@@ -36,6 +36,7 @@ export const userSchema = z.object({
   name: z.string(),
   role: roleEnum,
   timezone: timezoneSchema,
+  city: z.string().default(""),
   languages: z.array(userLanguageSchema).default([]),
   locale: localeKeyEnum.default("en"),
   createdAt: z.string(),
@@ -45,6 +46,7 @@ export type User = z.infer<typeof userSchema>;
 
 export const updateTimezoneSchema = z.object({
   timezone: timezoneSchema,
+  city: z.string().optional(),
 });
 export type UpdateTimezoneInput = z.infer<typeof updateTimezoneSchema>;
 
