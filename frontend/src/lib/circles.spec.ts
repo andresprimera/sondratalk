@@ -1,5 +1,6 @@
 import {
   fetchCirclesApi,
+  fetchAllCirclesApi,
   fetchCircleByIdApi,
   createCircleApi,
   updateCircleApi,
@@ -18,6 +19,7 @@ const sampleCircle = {
   id: "c1",
   slug: "german-shepherd",
   themeId: "t1",
+  type: "what-you-love",
   labels: { en: "German Shepherd", es: "Pastor Alemán" },
   aliases: { en: ["GSD"], es: [] },
   popularity: 0,
@@ -123,6 +125,17 @@ describe("circles API", () => {
     })
   })
 
+  describe("fetchAllCirclesApi", () => {
+    it("GETs /api/circles/all and returns the list", async () => {
+      vi.mocked(authFetch).mockResolvedValue(mockJsonResponse([sampleCircle]))
+
+      const result = await fetchAllCirclesApi()
+
+      expect(authFetch).toHaveBeenCalledWith("/api/circles/all")
+      expect(result).toEqual([sampleCircle])
+    })
+  })
+
   describe("fetchCircleByIdApi", () => {
     it("GETs /api/circles/:id", async () => {
       vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(sampleCircle))
@@ -141,6 +154,7 @@ describe("circles API", () => {
       const dto = {
         slug: "german-shepherd",
         themeId: "t1",
+        type: "what-you-love" as const,
         labels: { en: "German Shepherd", es: "Pastor Alemán" },
         aliases: { en: ["GSD"], es: [] },
       }

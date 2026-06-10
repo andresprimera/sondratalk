@@ -59,6 +59,13 @@ export class Circle {
   })
   themeId: Types.ObjectId;
 
+  @Prop({
+    required: true,
+    enum: ['who-you-are', 'what-you-love', 'where-you-are'],
+    default: 'who-you-are',
+  })
+  type: string;
+
   @Prop({ type: CircleLabelsSchema, required: true })
   labels: CircleLabels;
 

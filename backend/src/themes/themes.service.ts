@@ -63,4 +63,10 @@ export class ThemesService {
   async remove(id: string): Promise<void> {
     await this.themeModel.findByIdAndDelete(id);
   }
+
+  // Bulk delete used by the catalog reset to converge the collection to the
+  // seed. Themes are reseeded with their fixed ids immediately after.
+  async removeAll(): Promise<void> {
+    await this.themeModel.deleteMany({});
+  }
 }

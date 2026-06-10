@@ -10,6 +10,7 @@
     "start:dev": "nest start --watch --exec tsx",
     "start:debug": "nest start --debug --watch --exec tsx",
     "start:prod": "tsx dist/main.js",
+    "seed:reset": "nest build && tsx dist/seeder/reset-catalog.js",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",

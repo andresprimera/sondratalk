@@ -5,128 +5,39 @@ import { type CreateCircleInput } from '@base-dashboard/shared';
  * SeederService upserts by id on every boot, so editing labels/aliases
  * takes effect on next start. Editing the id reseeds as a new row.
  *
- * `themeId` references a fixed id from `themes.ts` — keep them in sync.
+ * Two independent dimensions per circle:
+ *  - `themeId` → a topical umbrella (see ./themes.ts) used for admin/search.
+ *  - `type`    → the onboarding category (who-you-are / what-you-love /
+ *                where-you-are) used to group circles in the onboarding step.
+ * They are orthogonal: a theme can span multiple types (e.g. "Work & Ambition"
+ * holds Entrepreneur (who-you-are) alongside Career Change (where-you-are)).
  *
- * Convention: ids start with `bbbb....` to distinguish from themes.
+ * Convention: ids start with `eeee....`. (football is the one legacy `bbbb`
+ * id, kept so existing memberships survive a reseed.)
  */
 export interface CircleSeed extends CreateCircleInput {
   id: string;
 }
 
 // Theme id constants (mirror seeder/data/themes.ts) — keeps the FKs readable.
-const THEME_DOGS = 'aaaaaaaaaaaaaaaaaaaa0001';
-const THEME_CARS = 'aaaaaaaaaaaaaaaaaaaa0002';
-const THEME_MUSIC = 'aaaaaaaaaaaaaaaaaaaa0003';
-const THEME_COOKING = 'aaaaaaaaaaaaaaaaaaaa0004';
-const THEME_SPORTS = 'aaaaaaaaaaaaaaaaaaaa0005';
-const THEME_IDENTITY = 'cccccccccccccccccccc0001';
-const THEME_INTERESTS = 'cccccccccccccccccccc0002';
-const THEME_LIFE_MOMENTS = 'cccccccccccccccccccc0003';
+const THEME_HERITAGE = 'dddddddddddddddddddd0001';
+const THEME_WORK = 'dddddddddddddddddddd0002';
+const THEME_ARTS = 'dddddddddddddddddddd0003';
+const THEME_SPORTS = 'dddddddddddddddddddd0004';
+const THEME_MIND = 'dddddddddddddddddddd0005';
+const THEME_COMMUNITY = 'dddddddddddddddddddd0006';
+const THEME_FOOD_TRAVEL = 'dddddddddddddddddddd0007';
+const THEME_FAMILY = 'dddddddddddddddddddd0008';
+const THEME_NEW_CHAPTERS = 'dddddddddddddddddddd0009';
+const THEME_HEALTH = 'dddddddddddddddddddd000a';
 
 export const SEED_CIRCLES: CircleSeed[] = [
-  // Dogs
-  {
-    id: 'bbbbbbbbbbbbbbbbbbbb0001',
-    slug: 'german-shepherd',
-    themeId: THEME_DOGS,
-    labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
-    aliases: { en: ['GSD', 'Alsatian'], es: [] },
-    popularity: 10,
-  },
-  {
-    id: 'bbbbbbbbbbbbbbbbbbbb0002',
-    slug: 'golden-retriever',
-    themeId: THEME_DOGS,
-    labels: { en: 'Golden Retriever', es: 'Golden Retriever' },
-    aliases: { en: ['Goldie'], es: [] },
-    popularity: 8,
-  },
-  {
-    id: 'bbbbbbbbbbbbbbbbbbbb0003',
-    slug: 'dog-walking',
-    themeId: THEME_DOGS,
-    labels: { en: 'Dog Walking', es: 'Paseo de perros' },
-    aliases: { en: [], es: ['Pasear perros'] },
-    popularity: 5,
-  },
-
-  // Cars
-  {
-    id: 'bbbbbbbbbbbbbbbbbbbb0010',
-    slug: 'classic-cars',
-    themeId: THEME_CARS,
-    labels: { en: 'Classic Cars', es: 'Autos clásicos' },
-    aliases: { en: ['Vintage Cars', 'Oldtimers'], es: ['Coches clásicos'] },
-    popularity: 7,
-  },
-  {
-    id: 'bbbbbbbbbbbbbbbbbbbb0011',
-    slug: 'electric-vehicles',
-    themeId: THEME_CARS,
-    labels: { en: 'Electric Vehicles', es: 'Vehículos eléctricos' },
-    aliases: { en: ['EVs'], es: ['Autos eléctricos'] },
-    popularity: 9,
-  },
-
-  // Music
-  {
-    id: 'bbbbbbbbbbbbbbbbbbbb0020',
-    slug: 'jazz',
-    themeId: THEME_MUSIC,
-    labels: { en: 'Jazz', es: 'Jazz' },
-    aliases: { en: [], es: [] },
-    popularity: 6,
-  },
-  {
-    id: 'bbbbbbbbbbbbbbbbbbbb0021',
-    slug: 'flamenco',
-    themeId: THEME_MUSIC,
-    labels: { en: 'Flamenco', es: 'Flamenco' },
-    aliases: { en: [], es: ['Cante flamenco'] },
-    popularity: 4,
-  },
-
-  // Cooking
-  {
-    id: 'bbbbbbbbbbbbbbbbbbbb0030',
-    slug: 'spanish-cuisine',
-    themeId: THEME_COOKING,
-    labels: { en: 'Spanish Cuisine', es: 'Cocina española' },
-    aliases: { en: ['Tapas'], es: ['Comida española', 'Gastronomía española'] },
-    popularity: 7,
-  },
-  {
-    id: 'bbbbbbbbbbbbbbbbbbbb0031',
-    slug: 'baking',
-    themeId: THEME_COOKING,
-    labels: { en: 'Baking', es: 'Repostería' },
-    aliases: { en: ['Pastry'], es: ['Pastelería'] },
-    popularity: 6,
-  },
-
-  // Sports
-  {
-    id: 'bbbbbbbbbbbbbbbbbbbb0040',
-    slug: 'football',
-    themeId: THEME_SPORTS,
-    labels: { en: 'Football', es: 'Fútbol' },
-    aliases: { en: ['Soccer'], es: ['Balompié'] },
-    popularity: 10,
-  },
-  {
-    id: 'bbbbbbbbbbbbbbbbbbbb0041',
-    slug: 'tennis',
-    themeId: THEME_SPORTS,
-    labels: { en: 'Tennis', es: 'Tenis' },
-    aliases: { en: [], es: [] },
-    popularity: 6,
-  },
-
-  // Identity
+  // Heritage & Migration
   {
     id: 'eeeeeeeeeeeeeeeeeeee0001',
     slug: 'venezuelan',
-    themeId: THEME_IDENTITY,
+    themeId: THEME_HERITAGE,
+    type: 'who-you-are',
     labels: { en: 'Venezuelan', es: 'Venezolano/a' },
     aliases: { en: [], es: [] },
     popularity: 7,
@@ -134,7 +45,8 @@ export const SEED_CIRCLES: CircleSeed[] = [
   {
     id: 'eeeeeeeeeeeeeeeeeeee0002',
     slug: 'spanish',
-    themeId: THEME_IDENTITY,
+    themeId: THEME_HERITAGE,
+    type: 'who-you-are',
     labels: { en: 'Spanish', es: 'Español/a' },
     aliases: { en: [], es: [] },
     popularity: 8,
@@ -142,7 +54,8 @@ export const SEED_CIRCLES: CircleSeed[] = [
   {
     id: 'eeeeeeeeeeeeeeeeeeee0003',
     slug: 'immigrant',
-    themeId: THEME_IDENTITY,
+    themeId: THEME_HERITAGE,
+    type: 'who-you-are',
     labels: { en: 'Immigrant', es: 'Inmigrante' },
     aliases: { en: [], es: [] },
     popularity: 9,
@@ -150,7 +63,8 @@ export const SEED_CIRCLES: CircleSeed[] = [
   {
     id: 'eeeeeeeeeeeeeeeeeeee0004',
     slug: 'expat',
-    themeId: THEME_IDENTITY,
+    themeId: THEME_HERITAGE,
+    type: 'who-you-are',
     labels: { en: 'Expat', es: 'Expatriado/a' },
     aliases: { en: [], es: [] },
     popularity: 9,
@@ -158,31 +72,19 @@ export const SEED_CIRCLES: CircleSeed[] = [
   {
     id: 'eeeeeeeeeeeeeeeeeeee0005',
     slug: 'first-generation',
-    themeId: THEME_IDENTITY,
+    themeId: THEME_HERITAGE,
+    type: 'who-you-are',
     labels: { en: 'First Generation', es: 'Primera generación' },
     aliases: { en: ['First-gen'], es: [] },
     popularity: 8,
   },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee0006',
-    slug: 'lgbtq-plus',
-    themeId: THEME_IDENTITY,
-    labels: { en: 'LGBTQ+', es: 'LGBTQ+' },
-    aliases: { en: ['LGBTQ', 'queer'], es: [] },
-    popularity: 10,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee0007',
-    slug: 'parent',
-    themeId: THEME_IDENTITY,
-    labels: { en: 'Parent', es: 'Padre o Madre' },
-    aliases: { en: ['father', 'mother', 'dad', 'mom'], es: ['padre', 'madre'] },
-    popularity: 10,
-  },
+
+  // Work & Ambition
   {
     id: 'eeeeeeeeeeeeeeeeeeee0008',
     slug: 'entrepreneur',
-    themeId: THEME_IDENTITY,
+    themeId: THEME_WORK,
+    type: 'who-you-are',
     labels: { en: 'Entrepreneur', es: 'Emprendedor/a' },
     aliases: { en: ['founder', 'startup'], es: ['fundador'] },
     popularity: 10,
@@ -190,7 +92,8 @@ export const SEED_CIRCLES: CircleSeed[] = [
   {
     id: 'eeeeeeeeeeeeeeeeeeee0009',
     slug: 'business-owner',
-    themeId: THEME_IDENTITY,
+    themeId: THEME_WORK,
+    type: 'who-you-are',
     labels: { en: 'Business Owner', es: 'Dueño de negocio' },
     aliases: { en: ['self-employed'], es: [] },
     popularity: 8,
@@ -198,15 +101,46 @@ export const SEED_CIRCLES: CircleSeed[] = [
   {
     id: 'eeeeeeeeeeeeeeeeeeee000a',
     slug: 'freelancer',
-    themeId: THEME_IDENTITY,
+    themeId: THEME_WORK,
+    type: 'who-you-are',
     labels: { en: 'Freelancer', es: 'Freelancer' },
     aliases: { en: ['contractor', 'independent'], es: ['autónomo'] },
     popularity: 9,
   },
   {
+    id: 'eeeeeeeeeeeeeeeeeeee000e',
+    slug: 'digital-nomad',
+    themeId: THEME_WORK,
+    type: 'who-you-are',
+    labels: { en: 'Digital Nomad', es: 'Nómada digital' },
+    aliases: { en: ['remote worker'], es: ['trabajo remoto'] },
+    popularity: 9,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0027',
+    slug: 'career-change',
+    themeId: THEME_WORK,
+    type: 'where-you-are',
+    labels: { en: 'Career Change', es: 'Cambio de carrera' },
+    aliases: { en: ['job change', 'career transition'], es: ['cambio profesional'] },
+    popularity: 10,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0034',
+    slug: 'first-job',
+    themeId: THEME_WORK,
+    type: 'where-you-are',
+    labels: { en: 'First Job', es: 'Primer trabajo' },
+    aliases: { en: ['entry level', 'new graduate'], es: ['recién graduado'] },
+    popularity: 8,
+  },
+
+  // Arts & Creativity
+  {
     id: 'eeeeeeeeeeeeeeeeeeee000b',
     slug: 'artist',
-    themeId: THEME_IDENTITY,
+    themeId: THEME_ARTS,
+    type: 'who-you-are',
     labels: { en: 'Artist', es: 'Artista' },
     aliases: { en: [], es: [] },
     popularity: 8,
@@ -214,7 +148,8 @@ export const SEED_CIRCLES: CircleSeed[] = [
   {
     id: 'eeeeeeeeeeeeeeeeeeee000c',
     slug: 'musician',
-    themeId: THEME_IDENTITY,
+    themeId: THEME_ARTS,
+    type: 'who-you-are',
     labels: { en: 'Musician', es: 'Músico/a' },
     aliases: { en: [], es: ['músico', 'música'] },
     popularity: 8,
@@ -222,73 +157,17 @@ export const SEED_CIRCLES: CircleSeed[] = [
   {
     id: 'eeeeeeeeeeeeeeeeeeee000d',
     slug: 'writer',
-    themeId: THEME_IDENTITY,
+    themeId: THEME_ARTS,
+    type: 'who-you-are',
     labels: { en: 'Writer', es: 'Escritor/a' },
     aliases: { en: ['author'], es: ['autor'] },
     popularity: 7,
   },
   {
-    id: 'eeeeeeeeeeeeeeeeeeee000e',
-    slug: 'digital-nomad',
-    themeId: THEME_IDENTITY,
-    labels: { en: 'Digital Nomad', es: 'Nómada digital' },
-    aliases: { en: ['remote worker'], es: ['trabajo remoto'] },
-    popularity: 9,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee000f',
-    slug: 'introvert',
-    themeId: THEME_IDENTITY,
-    labels: { en: 'Introvert', es: 'Introvertido/a' },
-    aliases: { en: [], es: [] },
-    popularity: 8,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee0010',
-    slug: 'activist',
-    themeId: THEME_IDENTITY,
-    labels: { en: 'Activist', es: 'Activista' },
-    aliases: { en: [], es: [] },
-    popularity: 7,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee0011',
-    slug: 'believer',
-    themeId: THEME_IDENTITY,
-    labels: { en: 'Believer', es: 'Creyente' },
-    aliases: { en: ['religious', 'spiritual'], es: ['religioso', 'espiritual'] },
-    popularity: 7,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee0012',
-    slug: 'athlete',
-    themeId: THEME_IDENTITY,
-    labels: { en: 'Athlete', es: 'Atleta' },
-    aliases: { en: [], es: [] },
-    popularity: 8,
-  },
-
-  // Interests
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee0013',
-    slug: 'cooking',
-    themeId: THEME_INTERESTS,
-    labels: { en: 'Cooking', es: 'Cocina' },
-    aliases: { en: ['food', 'culinary'], es: ['gastronomía'] },
-    popularity: 10,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee0014',
-    slug: 'astrology',
-    themeId: THEME_INTERESTS,
-    labels: { en: 'Astrology', es: 'Astrología' },
-    aliases: { en: [], es: [] },
-    popularity: 9,
-  },
-  {
     id: 'eeeeeeeeeeeeeeeeeeee0015',
     slug: 'photography',
-    themeId: THEME_INTERESTS,
+    themeId: THEME_ARTS,
+    type: 'what-you-love',
     labels: { en: 'Photography', es: 'Fotografía' },
     aliases: { en: [], es: [] },
     popularity: 9,
@@ -296,7 +175,8 @@ export const SEED_CIRCLES: CircleSeed[] = [
   {
     id: 'eeeeeeeeeeeeeeeeeeee0016',
     slug: 'music',
-    themeId: THEME_INTERESTS,
+    themeId: THEME_ARTS,
+    type: 'what-you-love',
     labels: { en: 'Music', es: 'Música' },
     aliases: { en: [], es: [] },
     popularity: 10,
@@ -304,79 +184,35 @@ export const SEED_CIRCLES: CircleSeed[] = [
   {
     id: 'eeeeeeeeeeeeeeeeeeee0017',
     slug: 'books',
-    themeId: THEME_INTERESTS,
+    themeId: THEME_ARTS,
+    type: 'what-you-love',
     labels: { en: 'Books', es: 'Libros' },
     aliases: { en: ['reading', 'literature'], es: ['lectura'] },
     popularity: 10,
   },
   {
-    id: 'eeeeeeeeeeeeeeeeeeee0018',
-    slug: 'travel',
-    themeId: THEME_INTERESTS,
-    labels: { en: 'Travel', es: 'Viajes' },
-    aliases: { en: ['travelling', 'traveling'], es: ['viajar'] },
-    popularity: 10,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee0019',
-    slug: 'yoga',
-    themeId: THEME_INTERESTS,
-    labels: { en: 'Yoga', es: 'Yoga' },
-    aliases: { en: [], es: [] },
-    popularity: 9,
-  },
-  {
     id: 'eeeeeeeeeeeeeeeeeeee001a',
     slug: 'film',
-    themeId: THEME_INTERESTS,
+    themeId: THEME_ARTS,
+    type: 'what-you-love',
     labels: { en: 'Film', es: 'Cine' },
     aliases: { en: ['movies', 'cinema'], es: ['películas'] },
     popularity: 10,
   },
   {
-    id: 'eeeeeeeeeeeeeeeeeeee001b',
-    slug: 'running',
-    themeId: THEME_INTERESTS,
-    labels: { en: 'Running', es: 'Running' },
-    aliases: { en: ['jogging'], es: ['correr'] },
-    popularity: 9,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee001c',
-    slug: 'gaming',
-    themeId: THEME_INTERESTS,
-    labels: { en: 'Gaming', es: 'Videojuegos' },
-    aliases: { en: ['video games'], es: ['juegos'] },
-    popularity: 9,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee001d',
-    slug: 'meditation',
-    themeId: THEME_INTERESTS,
-    labels: { en: 'Meditation', es: 'Meditación' },
-    aliases: { en: ['mindfulness'], es: ['mindfulness'] },
-    popularity: 9,
-  },
-  {
     id: 'eeeeeeeeeeeeeeeeeeee001e',
     slug: 'art',
-    themeId: THEME_INTERESTS,
+    themeId: THEME_ARTS,
+    type: 'what-you-love',
     labels: { en: 'Art', es: 'Arte' },
     aliases: { en: [], es: [] },
     popularity: 9,
   },
   {
-    id: 'eeeeeeeeeeeeeeeeeeee001f',
-    slug: 'hiking',
-    themeId: THEME_INTERESTS,
-    labels: { en: 'Hiking', es: 'Senderismo' },
-    aliases: { en: ['trekking', 'walking'], es: ['montaña'] },
-    popularity: 9,
-  },
-  {
     id: 'eeeeeeeeeeeeeeeeeeee0020',
     slug: 'theatre',
-    themeId: THEME_INTERESTS,
+    themeId: THEME_ARTS,
+    type: 'what-you-love',
     labels: { en: 'Theatre', es: 'Teatro' },
     aliases: { en: ['theater'], es: [] },
     popularity: 7,
@@ -384,137 +220,217 @@ export const SEED_CIRCLES: CircleSeed[] = [
   {
     id: 'eeeeeeeeeeeeeeeeeeee0021',
     slug: 'dance',
-    themeId: THEME_INTERESTS,
+    themeId: THEME_ARTS,
+    type: 'what-you-love',
     labels: { en: 'Dance', es: 'Baile' },
     aliases: { en: ['dancing'], es: ['bailar', 'danza'] },
     popularity: 9,
   },
   {
-    id: 'eeeeeeeeeeeeeeeeeeee0022',
-    slug: 'surf',
-    themeId: THEME_INTERESTS,
-    labels: { en: 'Surf', es: 'Surf' },
-    aliases: { en: ['surfing'], es: ['surfear'] },
-    popularity: 8,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee0023',
-    slug: 'chess',
-    themeId: THEME_INTERESTS,
-    labels: { en: 'Chess', es: 'Ajedrez' },
-    aliases: { en: [], es: [] },
-    popularity: 7,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee0024',
-    slug: 'cycling',
-    themeId: THEME_INTERESTS,
-    labels: { en: 'Cycling', es: 'Ciclismo' },
-    aliases: { en: ['biking', 'bicycle'], es: ['bicicleta'] },
-    popularity: 8,
-  },
-  {
     id: 'eeeeeeeeeeeeeeeeeeee0025',
     slug: 'writing',
-    themeId: THEME_INTERESTS,
+    themeId: THEME_ARTS,
+    type: 'what-you-love',
     labels: { en: 'Writing', es: 'Escritura' },
     aliases: { en: ['journaling'], es: ['escribir'] },
     popularity: 8,
   },
 
-  // Life Moments
+  // Sports & Movement
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0012',
+    slug: 'athlete',
+    themeId: THEME_SPORTS,
+    type: 'who-you-are',
+    labels: { en: 'Athlete', es: 'Atleta' },
+    aliases: { en: [], es: [] },
+    popularity: 8,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0019',
+    slug: 'yoga',
+    themeId: THEME_SPORTS,
+    type: 'what-you-love',
+    labels: { en: 'Yoga', es: 'Yoga' },
+    aliases: { en: [], es: [] },
+    popularity: 9,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee001b',
+    slug: 'running',
+    themeId: THEME_SPORTS,
+    type: 'what-you-love',
+    labels: { en: 'Running', es: 'Running' },
+    aliases: { en: ['jogging'], es: ['correr'] },
+    popularity: 9,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee001f',
+    slug: 'hiking',
+    themeId: THEME_SPORTS,
+    type: 'what-you-love',
+    labels: { en: 'Hiking', es: 'Senderismo' },
+    aliases: { en: ['trekking', 'walking'], es: ['montaña'] },
+    popularity: 9,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0022',
+    slug: 'surf',
+    themeId: THEME_SPORTS,
+    type: 'what-you-love',
+    labels: { en: 'Surf', es: 'Surf' },
+    aliases: { en: ['surfing'], es: ['surfear'] },
+    popularity: 8,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0024',
+    slug: 'cycling',
+    themeId: THEME_SPORTS,
+    type: 'what-you-love',
+    labels: { en: 'Cycling', es: 'Ciclismo' },
+    aliases: { en: ['biking', 'bicycle'], es: ['bicicleta'] },
+    popularity: 8,
+  },
+  {
+    // Legacy `bbbb` id, preserved so existing football memberships survive.
+    id: 'bbbbbbbbbbbbbbbbbbbb0040',
+    slug: 'football',
+    themeId: THEME_SPORTS,
+    type: 'what-you-love',
+    labels: { en: 'Football', es: 'Fútbol' },
+    aliases: { en: ['Soccer'], es: ['Balompié'] },
+    popularity: 10,
+  },
+
+  // Mind, Spirit & Play
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee000f',
+    slug: 'introvert',
+    themeId: THEME_MIND,
+    type: 'who-you-are',
+    labels: { en: 'Introvert', es: 'Introvertido/a' },
+    aliases: { en: [], es: [] },
+    popularity: 8,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0014',
+    slug: 'astrology',
+    themeId: THEME_MIND,
+    type: 'what-you-love',
+    labels: { en: 'Astrology', es: 'Astrología' },
+    aliases: { en: [], es: [] },
+    popularity: 9,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee001d',
+    slug: 'meditation',
+    themeId: THEME_MIND,
+    type: 'what-you-love',
+    labels: { en: 'Meditation', es: 'Meditación' },
+    aliases: { en: ['mindfulness'], es: ['mindfulness'] },
+    popularity: 9,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee001c',
+    slug: 'gaming',
+    themeId: THEME_MIND,
+    type: 'what-you-love',
+    labels: { en: 'Gaming', es: 'Videojuegos' },
+    aliases: { en: ['video games'], es: ['juegos'] },
+    popularity: 9,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0023',
+    slug: 'chess',
+    themeId: THEME_MIND,
+    type: 'what-you-love',
+    labels: { en: 'Chess', es: 'Ajedrez' },
+    aliases: { en: [], es: [] },
+    popularity: 7,
+  },
+
+  // Community & Beliefs
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0006',
+    slug: 'lgbtq-plus',
+    themeId: THEME_COMMUNITY,
+    type: 'who-you-are',
+    labels: { en: 'LGBTQ+', es: 'LGBTQ+' },
+    aliases: { en: ['LGBTQ', 'queer'], es: [] },
+    popularity: 10,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0010',
+    slug: 'activist',
+    themeId: THEME_COMMUNITY,
+    type: 'who-you-are',
+    labels: { en: 'Activist', es: 'Activista' },
+    aliases: { en: [], es: [] },
+    popularity: 7,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0011',
+    slug: 'believer',
+    themeId: THEME_COMMUNITY,
+    type: 'who-you-are',
+    labels: { en: 'Believer', es: 'Creyente' },
+    aliases: { en: ['religious', 'spiritual'], es: ['religioso', 'espiritual'] },
+    popularity: 7,
+  },
+
+  // Food & Travel
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0013',
+    slug: 'cooking',
+    themeId: THEME_FOOD_TRAVEL,
+    type: 'what-you-love',
+    labels: { en: 'Cooking', es: 'Cocina' },
+    aliases: { en: ['food', 'culinary'], es: ['gastronomía'] },
+    popularity: 10,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0018',
+    slug: 'travel',
+    themeId: THEME_FOOD_TRAVEL,
+    type: 'what-you-love',
+    labels: { en: 'Travel', es: 'Viajes' },
+    aliases: { en: ['travelling', 'traveling'], es: ['viajar'] },
+    popularity: 10,
+  },
+
+  // Family & Relationships
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0007',
+    slug: 'parent',
+    themeId: THEME_FAMILY,
+    type: 'who-you-are',
+    labels: { en: 'Parent', es: 'Padre o Madre' },
+    aliases: { en: ['father', 'mother', 'dad', 'mom'], es: ['padre', 'madre'] },
+    popularity: 10,
+  },
   {
     id: 'eeeeeeeeeeeeeeeeeeee0026',
     slug: 'new-parent',
-    themeId: THEME_LIFE_MOMENTS,
+    themeId: THEME_FAMILY,
+    type: 'where-you-are',
     labels: { en: 'New Parent', es: 'Nuevo padre o madre' },
     aliases: { en: ['newborn', 'baby'], es: ['bebé'] },
     popularity: 9,
   },
   {
-    id: 'eeeeeeeeeeeeeeeeeeee0027',
-    slug: 'career-change',
-    themeId: THEME_LIFE_MOMENTS,
-    labels: { en: 'Career Change', es: 'Cambio de carrera' },
-    aliases: { en: ['job change', 'career transition'], es: ['cambio profesional'] },
-    popularity: 10,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee0028',
-    slug: 'grief',
-    themeId: THEME_LIFE_MOMENTS,
-    labels: { en: 'Grief', es: 'Duelo' },
-    aliases: { en: ['loss', 'bereavement'], es: ['pérdida'] },
-    popularity: 8,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee0029',
-    slug: 'starting-new',
-    themeId: THEME_LIFE_MOMENTS,
-    labels: { en: 'Starting Over', es: 'Empezando de nuevo' },
-    aliases: { en: ['fresh start'], es: [] },
-    popularity: 9,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee002a',
-    slug: 'new-to-city',
-    themeId: THEME_LIFE_MOMENTS,
-    labels: { en: 'New to the City', es: 'Nuevo/a en la ciudad' },
-    aliases: { en: ['moved', 'relocation'], es: ['recién llegado'] },
-    popularity: 9,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee002b',
-    slug: 'end-of-relationship',
-    themeId: THEME_LIFE_MOMENTS,
-    labels: { en: 'End of a Relationship', es: 'Fin de una relación' },
-    aliases: { en: ['breakup', 'separation'], es: ['ruptura'] },
-    popularity: 9,
-  },
-  {
     id: 'eeeeeeeeeeeeeeeeeeee002c',
     slug: 'caring-for-parent',
-    themeId: THEME_LIFE_MOMENTS,
+    themeId: THEME_FAMILY,
+    type: 'where-you-are',
     labels: { en: 'Caring for a Parent', es: 'Cuidando a mis padres' },
     aliases: { en: ['caregiver'], es: ['cuidador'] },
     popularity: 7,
   },
   {
-    id: 'eeeeeeeeeeeeeeeeeeee002d',
-    slug: 'retirement',
-    themeId: THEME_LIFE_MOMENTS,
-    labels: { en: 'Retirement', es: 'Jubilación' },
-    aliases: { en: ['retired'], es: ['jubilado'] },
-    popularity: 7,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee002e',
-    slug: 'living-alone',
-    themeId: THEME_LIFE_MOMENTS,
-    labels: { en: 'Living Alone', es: 'Viviendo solo/a' },
-    aliases: { en: ['solo living'], es: [] },
-    popularity: 9,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee002f',
-    slug: 'chronic-illness',
-    themeId: THEME_LIFE_MOMENTS,
-    labels: { en: 'Chronic Illness', es: 'Enfermedad crónica' },
-    aliases: { en: ['chronic pain', 'long-term illness'], es: ['dolor crónico'] },
-    popularity: 7,
-  },
-  {
-    id: 'eeeeeeeeeeeeeeeeeeee0030',
-    slug: 'bumpy-relationship',
-    themeId: THEME_LIFE_MOMENTS,
-    labels: { en: 'Bumpy Relationship', es: 'Relación difícil' },
-    aliases: { en: ['relationship problems'], es: ['problemas de pareja'] },
-    popularity: 8,
-  },
-  {
     id: 'eeeeeeeeeeeeeeeeeeee0031',
     slug: 'empty-nest',
-    themeId: THEME_LIFE_MOMENTS,
+    themeId: THEME_FAMILY,
+    type: 'where-you-are',
     labels: { en: 'Empty Nest', es: 'Nido vacío' },
     aliases: { en: ['kids left home'], es: [] },
     popularity: 7,
@@ -522,33 +438,104 @@ export const SEED_CIRCLES: CircleSeed[] = [
   {
     id: 'eeeeeeeeeeeeeeeeeeee0032',
     slug: 'single-parenting',
-    themeId: THEME_LIFE_MOMENTS,
+    themeId: THEME_FAMILY,
+    type: 'where-you-are',
     labels: { en: 'Single Parenting', es: 'Crianza en solitario' },
     aliases: { en: ['single parent', 'solo parent'], es: ['padre soltero', 'madre soltera'] },
     popularity: 8,
   },
   {
-    id: 'eeeeeeeeeeeeeeeeeeee0033',
-    slug: 'far-from-family',
-    themeId: THEME_LIFE_MOMENTS,
-    labels: { en: 'Far from Family', es: 'Lejos de la familia' },
-    aliases: { en: ['homesick'], es: ['morriña'] },
+    id: 'eeeeeeeeeeeeeeeeeeee002b',
+    slug: 'end-of-relationship',
+    themeId: THEME_FAMILY,
+    type: 'where-you-are',
+    labels: { en: 'End of a Relationship', es: 'Fin de una relación' },
+    aliases: { en: ['breakup', 'separation'], es: ['ruptura'] },
     popularity: 9,
   },
   {
-    id: 'eeeeeeeeeeeeeeeeeeee0034',
-    slug: 'first-job',
-    themeId: THEME_LIFE_MOMENTS,
-    labels: { en: 'First Job', es: 'Primer trabajo' },
-    aliases: { en: ['entry level', 'new graduate'], es: ['recién graduado'] },
+    id: 'eeeeeeeeeeeeeeeeeeee0030',
+    slug: 'bumpy-relationship',
+    themeId: THEME_FAMILY,
+    type: 'where-you-are',
+    labels: { en: 'Bumpy Relationship', es: 'Relación difícil' },
+    aliases: { en: ['relationship problems'], es: ['problemas de pareja'] },
     popularity: 8,
   },
   {
     id: 'eeeeeeeeeeeeeeeeeeee0035',
     slug: 'recently-divorced',
-    themeId: THEME_LIFE_MOMENTS,
+    themeId: THEME_FAMILY,
+    type: 'where-you-are',
     labels: { en: 'Recently Divorced', es: 'Recién divorciado/a' },
     aliases: { en: ['divorce'], es: ['divorcio'] },
+    popularity: 7,
+  },
+
+  // New Chapters
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0029',
+    slug: 'starting-new',
+    themeId: THEME_NEW_CHAPTERS,
+    type: 'where-you-are',
+    labels: { en: 'Starting Over', es: 'Empezando de nuevo' },
+    aliases: { en: ['fresh start'], es: [] },
+    popularity: 9,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee002a',
+    slug: 'new-to-city',
+    themeId: THEME_NEW_CHAPTERS,
+    type: 'where-you-are',
+    labels: { en: 'New to the City', es: 'Nuevo/a en la ciudad' },
+    aliases: { en: ['moved', 'relocation'], es: ['recién llegado'] },
+    popularity: 9,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee002d',
+    slug: 'retirement',
+    themeId: THEME_NEW_CHAPTERS,
+    type: 'where-you-are',
+    labels: { en: 'Retirement', es: 'Jubilación' },
+    aliases: { en: ['retired'], es: ['jubilado'] },
+    popularity: 7,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee002e',
+    slug: 'living-alone',
+    themeId: THEME_NEW_CHAPTERS,
+    type: 'where-you-are',
+    labels: { en: 'Living Alone', es: 'Viviendo solo/a' },
+    aliases: { en: ['solo living'], es: [] },
+    popularity: 9,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0033',
+    slug: 'far-from-family',
+    themeId: THEME_NEW_CHAPTERS,
+    type: 'where-you-are',
+    labels: { en: 'Far from Family', es: 'Lejos de la familia' },
+    aliases: { en: ['homesick'], es: ['morriña'] },
+    popularity: 9,
+  },
+
+  // Health & Resilience
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee0028',
+    slug: 'grief',
+    themeId: THEME_HEALTH,
+    type: 'where-you-are',
+    labels: { en: 'Grief', es: 'Duelo' },
+    aliases: { en: ['loss', 'bereavement'], es: ['pérdida'] },
+    popularity: 8,
+  },
+  {
+    id: 'eeeeeeeeeeeeeeeeeeee002f',
+    slug: 'chronic-illness',
+    themeId: THEME_HEALTH,
+    type: 'where-you-are',
+    labels: { en: 'Chronic Illness', es: 'Enfermedad crónica' },
+    aliases: { en: ['chronic pain', 'long-term illness'], es: ['dolor crónico'] },
     popularity: 7,
   },
 ];

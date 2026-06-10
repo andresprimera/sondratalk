@@ -118,4 +118,16 @@ export class MembershipsService {
     }
     return out;
   }
+
+  // Deletes memberships pointing at a circle that no longer exists. Used by
+  // the catalog reset after circles are reseeded (a bulk circle delete does
+  // not fire the per-document cascade hook). Returns the number removed.
+  async removeOrphaned(): Promise<number> {
+    const circles = await this.circlesService.findAll();
+    const validIds = circles.map((c) => new Types.ObjectId(c.id));
+    const res = await this.membershipModel.deleteMany({
+      circleId: { $nin: validIds },
+    });
+    return res.deletedCount ?? 0;
+  }
 }

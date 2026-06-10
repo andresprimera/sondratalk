@@ -113,6 +113,12 @@ export class CirclesController {
     };
   }
 
+  @Get('all')
+  async findAllUnpaginated(): Promise<Circle[]> {
+    const docs = await this.circlesService.findAll();
+    return docs.map(toCircle);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<Circle> {
     const doc = await this.circlesService.findById(id);

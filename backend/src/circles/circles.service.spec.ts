@@ -24,6 +24,7 @@ describe('CirclesService', () => {
       findById: jest.fn(),
       findByIdAndUpdate: jest.fn(),
       findByIdAndDelete: jest.fn(),
+      deleteMany: jest.fn(),
       exists: jest.fn(),
       aggregate: jest.fn(),
       hydrate: jest.fn((doc: unknown) => doc),
@@ -49,6 +50,7 @@ describe('CirclesService', () => {
         {
           slug: 'german-shepherd',
           themeId: 'theme-1',
+          type: 'what-you-love',
           labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
           popularity: 0,
         },
@@ -58,6 +60,7 @@ describe('CirclesService', () => {
       expect(model.create).toHaveBeenCalledWith({
         slug: 'german-shepherd',
         themeId: 'theme-1',
+        type: 'what-you-love',
         labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
         aliases: { en: [], es: [] },
         themeLabels,
@@ -73,6 +76,7 @@ describe('CirclesService', () => {
         {
           slug: 'german-shepherd',
           themeId: 'theme-1',
+          type: 'what-you-love',
           labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
           aliases: { en: ['GSD'], es: [] },
           popularity: 0,
@@ -85,6 +89,21 @@ describe('CirclesService', () => {
           aliases: { en: ['GSD'], es: [] },
         }),
       );
+    });
+  });
+
+  describe('findAll', () => {
+    it('returns every circle sorted by popularity then slug', async () => {
+      const chainable = {
+        sort: jest.fn().mockResolvedValue([mockCircle]),
+      };
+      model.find.mockReturnValue(chainable);
+
+      const result = await service.findAll();
+
+      expect(model.find).toHaveBeenCalledWith();
+      expect(chainable.sort).toHaveBeenCalledWith({ popularity: -1, slug: 1 });
+      expect(result).toEqual([mockCircle]);
     });
   });
 
@@ -324,6 +343,7 @@ describe('CirclesService', () => {
       const seed = {
         slug: 'german-shepherd',
         themeId: 'theme-1',
+        type: 'what-you-love' as const,
         labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
         popularity: 0,
       };
@@ -343,6 +363,7 @@ describe('CirclesService', () => {
       const seed = {
         slug: 'german-shepherd',
         themeId: 'theme-1',
+        type: 'what-you-love' as const,
         labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
         aliases: { en: ['GSD'], es: [] },
         popularity: 0,
@@ -364,6 +385,14 @@ describe('CirclesService', () => {
       model.findByIdAndDelete.mockResolvedValue(mockCircle);
       await service.remove('circle-1');
       expect(model.findByIdAndDelete).toHaveBeenCalledWith('circle-1');
+    });
+  });
+
+  describe('removeAll', () => {
+    it('deletes every circle via deleteMany', async () => {
+      model.deleteMany.mockResolvedValue({ deletedCount: 3 });
+      await service.removeAll();
+      expect(model.deleteMany).toHaveBeenCalledWith({});
     });
   });
 });

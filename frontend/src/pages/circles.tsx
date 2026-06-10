@@ -7,6 +7,7 @@ import {
   keepPreviousData,
 } from "@tanstack/react-query"
 import { fetchCirclesApi, removeCircleApi } from "@/lib/circles"
+import { circleTypeLabel } from "@/lib/circle-types"
 import { fetchAllThemesApi } from "@/lib/themes"
 import type { Circle } from "@base-dashboard/shared"
 import { AddCircleDialog } from "@/components/add-circle-dialog"
@@ -195,6 +196,7 @@ export default function CirclesPage() {
                 <TableHead>{t("English label")}</TableHead>
                 <TableHead>{t("Spanish label")}</TableHead>
                 <TableHead>{t("Theme")}</TableHead>
+                <TableHead>{t("Type")}</TableHead>
                 <TableHead>{t("Popularity")}</TableHead>
                 <TableHead className="w-25">{t("Actions")}</TableHead>
               </TableRow>
@@ -214,6 +216,9 @@ export default function CirclesPage() {
                     </TableCell>
                     <TableCell>
                       <Skeleton className="h-4 w-20" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-28" />
                     </TableCell>
                     <TableCell>
                       <Skeleton className="h-4 w-8" />
@@ -270,7 +275,7 @@ export default function CirclesPage() {
           <TableBody>
             {circles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center">
+                <TableCell colSpan={7} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                     <CircleDotIcon className="size-8" />
                     <p>
@@ -293,6 +298,7 @@ export default function CirclesPage() {
                     ] ??
                       c.themeId}
                   </TableCell>
+                  <TableCell>{t(circleTypeLabel(c.type))}</TableCell>
                   <TableCell>{c.popularity}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">

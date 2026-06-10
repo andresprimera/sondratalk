@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { ThemesService } from '../themes/themes.service';
 import { CirclesService } from '../circles/circles.service';
+import { MembershipsService } from '../memberships/memberships.service';
 import { SEED_THEMES } from './data/themes';
 import { SEED_CIRCLES } from './data/circles';
 
@@ -15,6 +16,7 @@ export class SeederService implements OnModuleInit {
     private readonly usersService: UsersService,
     private readonly themesService: ThemesService,
     private readonly circlesService: CirclesService,
+    private readonly membershipsService: MembershipsService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -26,6 +28,20 @@ export class SeederService implements OnModuleInit {
     await this.seedAdminUser();
     await this.seedThemes();
     await this.seedCircles();
+  }
+
+  // Destructive: converges the themes + circles collections to exactly the
+  // seed data, then deletes memberships orphaned by removed circles. Invoked
+  // on demand by the `seed:reset` script — never on boot.
+  async resetCatalog(): Promise<void> {
+    this.logger.log('Resetting catalog to seed data…');
+    await this.themesService.removeAll();
+    await this.seedThemes();
+    await this.circlesService.removeAll();
+    await this.seedCircles();
+    const orphans = await this.membershipsService.removeOrphaned();
+    this.logger.log(`Removed ${orphans} orphaned membership(s)`);
+    this.logger.log('Catalog reset complete');
   }
 
   private async seedAdminUser(): Promise<void> {

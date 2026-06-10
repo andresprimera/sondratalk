@@ -9,7 +9,7 @@ import { CirclesService } from '../circles/circles.service';
 describe('MembershipsService', () => {
   let service: MembershipsService;
   let membershipModel: Record<string, jest.Mock>;
-  let circlesService: { findByIds: jest.Mock };
+  let circlesService: { findByIds: jest.Mock; findAll: jest.Mock };
 
   const userId = '507f1f77bcf86cd799439011';
   const circleId1 = '507f1f77bcf86cd799439021';
@@ -31,9 +31,11 @@ describe('MembershipsService', () => {
     membershipModel = {
       find: jest.fn(),
       bulkWrite: jest.fn(),
+      deleteMany: jest.fn(),
     };
     circlesService = {
       findByIds: jest.fn(),
+      findAll: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -175,6 +177,25 @@ describe('MembershipsService', () => {
       const result = await service.findCirclesForUser(userId);
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('removeOrphaned', () => {
+    it('deletes memberships whose circle is no longer in the catalog', async () => {
+      const c1 = buildMockCircle(circleId1, 'cooking');
+      const c2 = buildMockCircle(circleId2, 'music');
+      circlesService.findAll.mockResolvedValue([c1, c2]);
+      membershipModel.deleteMany.mockResolvedValue({ deletedCount: 4 });
+
+      const removed = await service.removeOrphaned();
+
+      expect(membershipModel.deleteMany).toHaveBeenCalledTimes(1);
+      const filter = membershipModel.deleteMany.mock.calls[0][0];
+      const ninIds = filter.circleId.$nin.map((id: { toString(): string }) =>
+        id.toString(),
+      );
+      expect(ninIds).toEqual([circleId1, circleId2]);
+      expect(removed).toBe(4);
     });
   });
 });

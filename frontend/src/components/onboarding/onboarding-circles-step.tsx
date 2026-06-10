@@ -1,12 +1,12 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { useQuery } from "@tanstack/react-query"
 import { ArrowLeft, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  CIRCLE_CATALOG,
-  type CatalogCircle,
-} from "@/lib/circle-catalog"
+import { Skeleton } from "@/components/ui/skeleton"
+import { fetchAllCirclesApi } from "@/lib/circles"
+import type { Circle, CircleType } from "@base-dashboard/shared"
 
 export interface OnboardingCircle {
   id: string
@@ -23,12 +23,6 @@ interface OnboardingCirclesStepProps {
 
 const INITIAL_SHOW = 9
 
-const IDENTITY_CIRCLES = CIRCLE_CATALOG.filter((c) => c.type === "identity")
-const INTEREST_CIRCLES = CIRCLE_CATALOG.filter((c) => c.type === "interest")
-const SITUATIONAL_CIRCLES = CIRCLE_CATALOG.filter(
-  (c) => c.type === "situational",
-)
-
 function CircleGroup({
   label,
   circles: groupCircles,
@@ -37,7 +31,7 @@ function CircleGroup({
   onAdd,
 }: {
   label: string
-  circles: CatalogCircle[]
+  circles: Circle[]
   selected: OnboardingCircle[]
   locale: "en" | "es"
   onAdd: (c: OnboardingCircle) => void
@@ -47,6 +41,8 @@ function CircleGroup({
   const visible = expanded ? groupCircles : groupCircles.slice(0, INITIAL_SHOW)
   const remaining = groupCircles.length - INITIAL_SHOW
 
+  if (groupCircles.length === 0) return null
+
   return (
     <div>
       <div className="mb-3 flex items-center gap-3">
@@ -55,7 +51,7 @@ function CircleGroup({
       </div>
       <div className="onboarding-chip-row">
         {visible.map((c) => {
-          const displayLabel = locale === "es" ? c.es : c.en
+          const displayLabel = c.labels[locale]
           const used = selected.some((s) => s.id === c.id)
           return (
             <button
@@ -86,6 +82,29 @@ function CircleGroup({
   )
 }
 
+function CircleGroupSkeleton() {
+  return (
+    <div>
+      <div className="mb-3 flex items-center gap-3">
+        <Skeleton className="h-4 w-32" />
+        <div className="h-px flex-1 bg-border/20" aria-hidden />
+      </div>
+      <div className="onboarding-chip-row">
+        {Array.from({ length: INITIAL_SHOW }).map((_, i) => (
+          <Skeleton key={i} className="h-9 w-24 rounded-full" />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Section heading per circle type. Order here is the order shown on screen.
+const GROUP_LABELS: { type: CircleType; label: string }[] = [
+  { type: "who-you-are", label: "Who you are" },
+  { type: "what-you-love", label: "What you love" },
+  { type: "where-you-are", label: "Where you are right now" },
+]
+
 export function OnboardingCirclesStep({
   circles,
   onCirclesChange,
@@ -97,6 +116,19 @@ export function OnboardingCirclesStep({
   const locale: "en" | "es" =
     i18n.language?.split("-")[0] === "es" ? "es" : "en"
   const [customInput, setCustomInput] = useState("")
+
+  const circlesQuery = useQuery({
+    queryKey: ["circles", "all"] as const,
+    queryFn: fetchAllCirclesApi,
+  })
+
+  const groups = useMemo(() => {
+    const all = circlesQuery.data ?? []
+    return GROUP_LABELS.map((g) => ({
+      ...g,
+      circles: all.filter((c) => c.type === g.type),
+    }))
+  }, [circlesQuery.data])
 
   function add(circle: OnboardingCircle) {
     if (circles.some((c) => c.id === circle.id)) return
@@ -180,29 +212,35 @@ export function OnboardingCirclesStep({
         <span className="onboarding-reveal-rule" aria-hidden />
       </div>
 
-      <div className="flex flex-col gap-8">
-        <CircleGroup
-          label={t("Who you are")}
-          circles={IDENTITY_CIRCLES}
-          selected={circles}
-          locale={locale}
-          onAdd={add}
-        />
-        <CircleGroup
-          label={t("What you love")}
-          circles={INTEREST_CIRCLES}
-          selected={circles}
-          locale={locale}
-          onAdd={add}
-        />
-        <CircleGroup
-          label={t("Where you are right now")}
-          circles={SITUATIONAL_CIRCLES}
-          selected={circles}
-          locale={locale}
-          onAdd={add}
-        />
-      </div>
+      {circlesQuery.isLoading ? (
+        <div className="flex flex-col gap-8">
+          <CircleGroupSkeleton />
+          <CircleGroupSkeleton />
+          <CircleGroupSkeleton />
+        </div>
+      ) : circlesQuery.isError ? (
+        <div className="flex flex-col items-center gap-4 py-8">
+          <p className="text-sm text-muted-foreground">
+            {t("Failed to load circles.")}
+          </p>
+          <Button variant="outline" onClick={() => circlesQuery.refetch()}>
+            {t("Try again")}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-8">
+          {groups.map((g) => (
+            <CircleGroup
+              key={g.type}
+              label={t(g.label)}
+              circles={g.circles}
+              selected={circles}
+              locale={locale}
+              onAdd={add}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="mt-10 flex gap-2">
         <Input

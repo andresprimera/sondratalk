@@ -22,6 +22,7 @@ describe('ThemesService', () => {
       findById: jest.fn(),
       findByIdAndUpdate: jest.fn(),
       findByIdAndDelete: jest.fn(),
+      deleteMany: jest.fn(),
       exists: jest.fn(),
     };
 
@@ -181,6 +182,16 @@ describe('ThemesService', () => {
       await service.remove('theme-1');
 
       expect(model.findByIdAndDelete).toHaveBeenCalledWith('theme-1');
+    });
+  });
+
+  describe('removeAll', () => {
+    it('should delete every theme via deleteMany', async () => {
+      model.deleteMany.mockResolvedValue({ deletedCount: 8 });
+
+      await service.removeAll();
+
+      expect(model.deleteMany).toHaveBeenCalledWith({});
     });
   });
 });

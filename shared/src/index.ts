@@ -75,6 +75,8 @@ export {
 export {
   LOCALE_KEYS,
   type LocaleKey,
+  circleTypeEnum,
+  type CircleType,
   circleSchema,
   type Circle,
   createCircleSchema,

@@ -20,6 +20,11 @@ export async function fetchCirclesApi(
   return res.json()
 }
 
+export async function fetchAllCirclesApi(): Promise<Circle[]> {
+  const res = await authFetch("/api/circles/all")
+  return res.json()
+}
+
 export async function fetchCircleByIdApi(id: string): Promise<Circle> {
   const res = await authFetch(`/api/circles/${id}`)
   return res.json()

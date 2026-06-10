@@ -7,6 +7,7 @@ import {
   type CreateCircleInput,
 } from "@base-dashboard/shared"
 import { createCircleApi } from "@/lib/circles"
+import { circleTypeOptions } from "@/lib/circle-types"
 import { fetchAllThemesApi } from "@/lib/themes"
 import { toast } from "sonner"
 import {
@@ -37,6 +38,7 @@ import {
 const EMPTY_DEFAULTS: CreateCircleInput = {
   slug: "",
   themeId: "",
+  type: "who-you-are",
   labels: { en: "", es: "" },
   aliases: { en: [], es: [] },
 }
@@ -153,6 +155,41 @@ export function AddCircleDialog({
               {errors.themeId && (
                 <FieldDescription className="text-destructive">
                   {t(errors.themeId.message ?? "")}
+                </FieldDescription>
+              )}
+            </Field>
+            <Field>
+              <FieldLabel>{t("Type")}</FieldLabel>
+              <Controller
+                name="type"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    items={circleTypeOptions.map((opt) => ({
+                      value: opt.value,
+                      label: t(opt.label),
+                    }))}
+                    value={field.value || ""}
+                    onValueChange={(val) => {
+                      if (val) field.onChange(val)
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("Select a type")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {circleTypeOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {t(opt.label)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.type && (
+                <FieldDescription className="text-destructive">
+                  {t(errors.type.message ?? "")}
                 </FieldDescription>
               )}
             </Field>

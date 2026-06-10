@@ -19,10 +19,18 @@ const aliasesSchemaRequired = z.object({
   es: z.array(z.string()),
 });
 
+export const circleTypeEnum = z.enum([
+  "who-you-are",
+  "what-you-love",
+  "where-you-are",
+]);
+export type CircleType = z.infer<typeof circleTypeEnum>;
+
 export const circleSchema = z.object({
   id: z.string(),
   slug: slugSchema,
   themeId: z.string(),
+  type: circleTypeEnum,
   labels: labelsSchema,
   aliases: aliasesSchemaRequired,
   popularity: z.number(),
@@ -33,6 +41,7 @@ export type Circle = z.infer<typeof circleSchema>;
 export const createCircleSchema = z.object({
   slug: slugSchema,
   themeId: z.string().min(1, "Theme is required"),
+  type: circleTypeEnum,
   labels: labelsSchema,
   aliases: aliasesSchemaRequired.optional(),
   popularity: z.number().int().min(0).optional(),

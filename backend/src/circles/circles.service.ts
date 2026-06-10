@@ -29,6 +29,10 @@ export class CirclesService {
     return this.circleModel.create({ ...dto, aliases, themeLabels });
   }
 
+  async findAll(): Promise<CircleDocument[]> {
+    return this.circleModel.find().sort({ popularity: -1, slug: 1 });
+  }
+
   async findAllPaginated(
     page: number,
     limit: number,
@@ -160,5 +164,12 @@ export class CirclesService {
 
   async remove(id: string): Promise<void> {
     await this.circleModel.findByIdAndDelete(id);
+  }
+
+  // Bulk delete used by the catalog reset. Uses deleteMany (not collection
+  // drop) so the Atlas Search index and schema indexes survive. Does NOT
+  // cascade memberships — the reset cleans those separately.
+  async removeAll(): Promise<void> {
+    await this.circleModel.deleteMany({});
   }
 }
