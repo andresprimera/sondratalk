@@ -119,12 +119,27 @@ describe('AuthService', () => {
       await expect(service.signup(dto)).rejects.toThrow(ConflictException);
     });
 
-    it('should reject signup when the email is not on the allowlist', async () => {
+    it('should reject signup when the email is not on the allowlist and users exist', async () => {
+      usersService.countUsers.mockResolvedValue(5);
+      usersService.findByEmail.mockResolvedValue(null);
       allowlistService.isEmailAllowed.mockResolvedValue(false);
 
       await expect(service.signup(dto)).rejects.toThrow(ForbiddenException);
       expect(allowlistService.isEmailAllowed).toHaveBeenCalledWith(dto.email);
       expect(usersService.create).not.toHaveBeenCalled();
+    });
+
+    it('should exempt the first user from the allowlist (bootstrap admin)', async () => {
+      usersService.countUsers.mockResolvedValue(0);
+      usersService.findByEmail.mockResolvedValue(null);
+      usersService.create.mockResolvedValue(mockUser);
+      allowlistService.isEmailAllowed.mockResolvedValue(false);
+
+      await expect(service.signup(dto)).resolves.toBeDefined();
+      expect(allowlistService.isEmailAllowed).not.toHaveBeenCalled();
+      expect(usersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ role: 'admin' }),
+      );
     });
 
     it('should proceed when the email is on the allowlist', async () => {

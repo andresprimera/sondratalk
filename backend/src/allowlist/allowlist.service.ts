@@ -53,14 +53,12 @@ export class AllowlistService {
     await this.allowlistModel.findByIdAndDelete(id);
   }
 
-  // Beta signup gate. While the collection is empty the gate is disabled and
-  // any email may register (this lets the bootstrap admin sign up). Once any
-  // entry exists, only matching emails — or emails under an allowed "@domain"
-  // entry — may register.
+  // Beta signup gate. An email may register only if it matches an allowlist
+  // entry exactly, or falls under an allowed "@domain" entry. An empty
+  // allowlist therefore admits no one — the first-user (bootstrap admin)
+  // exemption lives in AuthService.signup, keyed on there being no users yet,
+  // so the gate genuinely closes once the app has any users.
   async isEmailAllowed(email: string): Promise<boolean> {
-    const total = await this.allowlistModel.estimatedDocumentCount();
-    if (total === 0) return true;
-
     const normalized = email.trim().toLowerCase();
     const domain = normalized.slice(normalized.indexOf('@'));
     const match = await this.allowlistModel.exists({

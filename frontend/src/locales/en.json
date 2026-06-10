@@ -683,7 +683,7 @@
   "Must be a valid email or @domain": "Must be a valid email or @domain",
   "Note is too long": "Note is too long",
   "Entry already in early access list": "Entry already in early access list",
-  "This email is not authorized to sign up": "This email is not authorized to sign up",
+  "This email isn't on the early access list. Sondra is invite-only right now.": "This email isn't on the early access list. Sondra is invite-only right now.",
   "Early access entry not found": "Early access entry not found",
   "What are your circles?": "What are your circles?",
   "Choose everything that applies to you. Before each conversation, you decide which ones are active.": "Choose everything that applies to you. Before each conversation, you decide which ones are active.",

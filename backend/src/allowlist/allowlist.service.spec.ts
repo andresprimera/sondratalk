@@ -17,7 +17,6 @@ describe('AllowlistService', () => {
     model = {
       create: jest.fn(),
       countDocuments: jest.fn(),
-      estimatedDocumentCount: jest.fn(),
       find: jest.fn(),
       findById: jest.fn(),
       findByIdAndUpdate: jest.fn(),
@@ -86,17 +85,7 @@ describe('AllowlistService', () => {
   });
 
   describe('isEmailAllowed', () => {
-    it('should allow any email when the collection is empty', async () => {
-      model.estimatedDocumentCount.mockResolvedValue(0);
-
-      const result = await service.isEmailAllowed('anyone@example.com');
-
-      expect(result).toBe(true);
-      expect(model.exists).not.toHaveBeenCalled();
-    });
-
     it('should match an email by exact value or its domain', async () => {
-      model.estimatedDocumentCount.mockResolvedValue(3);
       model.exists.mockResolvedValue({ _id: 'entry-1' });
 
       const result = await service.isEmailAllowed('Bob@Example.com');
@@ -108,10 +97,17 @@ describe('AllowlistService', () => {
     });
 
     it('should reject an email that matches nothing', async () => {
-      model.estimatedDocumentCount.mockResolvedValue(3);
       model.exists.mockResolvedValue(null);
 
       const result = await service.isEmailAllowed('stranger@other.com');
+
+      expect(result).toBe(false);
+    });
+
+    it('should reject any email when the allowlist is empty', async () => {
+      model.exists.mockResolvedValue(null);
+
+      const result = await service.isEmailAllowed('anyone@example.com');
 
       expect(result).toBe(false);
     });

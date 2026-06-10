@@ -37,8 +37,19 @@ export class AuthService {
   ) {}
 
   async signup(dto: SignupInput): Promise<AuthResponse> {
-    if (!(await this.allowlistService.isEmailAllowed(dto.email))) {
-      throw new ForbiddenException('This email is not authorized to sign up');
+    // The very first user bootstraps the app as admin and is exempt from the
+    // allowlist (there is no one to maintain it yet). Every signup after that
+    // must be on the early-access allowlist — an empty allowlist blocks all.
+    const userCount = await this.usersService.countUsers();
+    const isFirstUser = userCount === 0;
+
+    if (
+      !isFirstUser &&
+      !(await this.allowlistService.isEmailAllowed(dto.email))
+    ) {
+      throw new ForbiddenException(
+        "This email isn't on the early access list. Sondra is invite-only right now.",
+      );
     }
 
     const existingUser = await this.usersService.findByEmail(dto.email);
@@ -46,8 +57,7 @@ export class AuthService {
       throw new ConflictException('Email already registered');
     }
 
-    const userCount = await this.usersService.countUsers();
-    const role = userCount === 0 ? 'admin' : 'user';
+    const role = isFirstUser ? 'admin' : 'user';
 
     const hashedPassword = await bcrypt.hash(dto.password, 12);
     const user = await this.usersService.create({

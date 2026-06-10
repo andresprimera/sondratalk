@@ -683,7 +683,7 @@
   "Must be a valid email or @domain": "Debe ser un correo válido o @dominio",
   "Note is too long": "La nota es demasiado larga",
   "Entry already in early access list": "La entrada ya está en la lista de acceso anticipado",
-  "This email is not authorized to sign up": "Este correo no está autorizado para registrarse",
+  "This email isn't on the early access list. Sondra is invite-only right now.": "Este correo no está en la lista de acceso anticipado. Sondra es solo por invitación en este momento.",
   "Early access entry not found": "Entrada de acceso anticipado no encontrada",
   "What are your circles?": "¿Cuáles son tus círculos?",
   "Choose everything that applies to you. Before each conversation, you decide which ones are active.": "Elige todo lo que te aplique. Antes de cada conversación, decides cuáles están activos.",
