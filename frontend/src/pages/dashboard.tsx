@@ -28,8 +28,6 @@ import { fetchConversationStatsApi } from "@/lib/meetings"
 import { fetchMyCirclesApi } from "@/lib/memberships"
 import { cn } from "@/lib/utils"
 
-const referralUrl = "sondratalk.com/join/raul-h23k"
-
 export default function DashboardPage() {
   const { t, i18n: i18nInstance } = useTranslation()
   const locale: "en" | "es" =
@@ -231,10 +229,7 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CopyableInput
-              value={referralUrl}
-              copyValue={`https://${referralUrl}`}
-            />
+            <CopyableInput value="https://www.sondratalk.com" />
           </CardContent>
         </Card>
       </section>
