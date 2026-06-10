@@ -93,8 +93,10 @@ export default function OnboardingPage() {
       setStep(4)
       window.scrollTo(0, 0)
     },
-    onError: () => {
-      toast.error(t("Failed to save your circles"))
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : t("Failed to save your circles"),
+      )
     },
   })
 
