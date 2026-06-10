@@ -4,3 +4,4 @@ dist/
 .claude/plans/
 .claude/scheduled_tasks.lock
 test-results/
+screenshots/
