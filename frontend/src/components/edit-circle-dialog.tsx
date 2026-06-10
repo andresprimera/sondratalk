@@ -26,6 +26,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { CommaSeparatedInput } from "@/components/comma-separated-input"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -187,18 +188,10 @@ export function EditCircleDialog({
                 name="aliases.en"
                 control={control}
                 render={({ field }) => (
-                  <Input
+                  <CommaSeparatedInput
                     id="edit-circle-aliases-en"
-                    type="text"
-                    value={(field.value ?? []).join(", ")}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value
-                          .split(",")
-                          .map((s) => s.trim())
-                          .filter(Boolean),
-                      )
-                    }
+                    value={field.value ?? []}
+                    onChange={field.onChange}
                   />
                 )}
               />
@@ -214,18 +207,10 @@ export function EditCircleDialog({
                 name="aliases.es"
                 control={control}
                 render={({ field }) => (
-                  <Input
+                  <CommaSeparatedInput
                     id="edit-circle-aliases-es"
-                    type="text"
-                    value={(field.value ?? []).join(", ")}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value
-                          .split(",")
-                          .map((s) => s.trim())
-                          .filter(Boolean),
-                      )
-                    }
+                    value={field.value ?? []}
+                    onChange={field.onChange}
                   />
                 )}
               />
