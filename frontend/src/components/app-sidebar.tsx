@@ -31,7 +31,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const isAdmin = user?.role === "admin"
 
   const adminNavMain = [
-    { title: t("Dashboard"), url: "/dashboard", icon: <LayoutDashboardIcon /> },
+    { title: t("Dashboard"), url: "/dashboard", icon: <LayoutDashboardIcon />, end: true },
     { title: t("Users"), url: "/dashboard/users", icon: <UsersIcon /> },
     { title: t("Themes"), url: "/dashboard/themes", icon: <LayersIcon /> },
     { title: t("Circles"), url: "/dashboard/circles", icon: <CircleDotIcon /> },
@@ -43,7 +43,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   ]
 
   const userNavMain = [
-    { title: t("Dashboard"), url: "/dashboard", icon: <LayoutDashboardIcon /> },
+    { title: t("Dashboard"), url: "/dashboard", icon: <LayoutDashboardIcon />, end: true },
   ]
 
   const navSecondary = [

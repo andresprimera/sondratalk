@@ -8,7 +8,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { CirclePlusIcon, MailIcon } from "lucide-react"
-import { Link } from "react-router"
+import { Link, useLocation } from "react-router"
+import { isNavActive } from "@/lib/utils"
 
 export function NavMain({
   items,
@@ -17,9 +18,11 @@ export function NavMain({
     title: string
     url: string
     icon?: React.ReactNode
+    end?: boolean
   }[]
 }) {
   const { t } = useTranslation()
+  const { pathname } = useLocation()
 
   return (
     <SidebarGroup>
@@ -46,7 +49,11 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title} render={<Link to={item.url} />}>
+              <SidebarMenuButton
+                tooltip={item.title}
+                isActive={isNavActive(pathname, item.url, { end: item.end })}
+                render={<Link to={item.url} />}
+              >
                 {item.icon}
                 <span>{item.title}</span>
               </SidebarMenuButton>

@@ -5,6 +5,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function isNavActive(
+  pathname: string,
+  url: string,
+  options?: { end?: boolean },
+): boolean {
+  if (options?.end) return pathname === url
+  return pathname === url || pathname.startsWith(`${url}/`)
+}
+
 export function getInitials(name: string): string {
   return name
     .split(" ")
