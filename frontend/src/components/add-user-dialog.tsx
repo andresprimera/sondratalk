@@ -168,6 +168,10 @@ export function AddUserDialog({
                 control={control}
                 render={({ field }) => (
                   <Select
+                    items={[
+                      { value: "user", label: t("User") },
+                      { value: "admin", label: t("Admin") },
+                    ]}
                     value={field.value}
                     onValueChange={(val) => {
                       if (val) field.onChange(val)

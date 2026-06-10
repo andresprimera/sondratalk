@@ -121,6 +121,10 @@ export function EditCircleDialog({
                 control={control}
                 render={({ field }) => (
                   <Select
+                    items={themes.map((theme) => ({
+                      value: theme.id,
+                      label: theme.labels[locale],
+                    }))}
                     value={field.value || ""}
                     onValueChange={(val) => {
                       if (val) field.onChange(val)

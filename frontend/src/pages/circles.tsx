@@ -157,6 +157,13 @@ export default function CirclesPage() {
         className="sm:max-w-sm"
       />
       <Select
+        items={[
+          { value: ALL_THEMES_VALUE, label: t("All themes") },
+          ...allThemes.map((theme) => ({
+            value: theme.id,
+            label: theme.labels[locale],
+          })),
+        ]}
         value={themeId ?? ALL_THEMES_VALUE}
         onValueChange={handleThemeFilterChange}
       >
