@@ -52,7 +52,7 @@
     --radius: 0.625rem;
 
     /* Global base font size — scales the entire UI (all rem-based sizing). */
-    --font-size-base: 19px;
+    --font-size-base: 21px;
 
     /* BASE — warm beige (NOT white) */
     --background: oklch(0.94 0.03 85);
