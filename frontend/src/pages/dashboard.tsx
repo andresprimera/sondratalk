@@ -65,7 +65,7 @@ export default function DashboardPage() {
         : t("Good evening")
 
   return (
-    <div className="mx-auto w-full max-w-2xl py-8">
+    <div className="mx-auto w-full max-w-3xl py-8">
       <section>
         <p className="text-sm text-muted-foreground">
           {greeting}, {user?.name}.

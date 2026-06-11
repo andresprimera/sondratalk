@@ -259,7 +259,7 @@ export default function FindConversationPage() {
 
   if (stage === "searching") {
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-col items-center justify-center py-24 text-center">
+      <div className="mx-auto flex w-full max-w-3xl flex-col items-center justify-center py-24 text-center">
         <p className="mb-2 text-base text-foreground">
           {t("Looking for someone to talk to…")}
         </p>
@@ -299,7 +299,7 @@ export default function FindConversationPage() {
         : t("Available to talk, right now or later.")
 
     return (
-      <div className="mx-auto w-full max-w-2xl py-8">
+      <div className="mx-auto w-full max-w-3xl py-8">
         <Button
           variant="ghost"
           size="sm"
@@ -397,7 +397,7 @@ export default function FindConversationPage() {
 
   // stage === "request"
   return (
-    <div className="mx-auto w-full max-w-2xl py-8">
+    <div className="mx-auto w-full max-w-3xl py-8">
       <Button
         variant="ghost"
         size="sm"

@@ -14,7 +14,7 @@ export default function SettingsPage() {
           {t("Manage your account settings and preferences.")}
         </p>
       </div>
-      <div className="flex flex-col gap-6 max-w-2xl">
+      <div className="flex flex-col gap-6 max-w-3xl">
         <ProfileForm />
         <TimezoneForm />
         <ChangePasswordForm />

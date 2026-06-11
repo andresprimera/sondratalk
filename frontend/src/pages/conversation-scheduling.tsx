@@ -131,7 +131,7 @@ export default function ConversationSchedulingPage() {
   const myId = user?.id
 
   return (
-    <div className="mx-auto w-full max-w-2xl py-8">
+    <div className="mx-auto w-full max-w-3xl py-8">
       <Button
         variant="ghost"
         size="sm"
