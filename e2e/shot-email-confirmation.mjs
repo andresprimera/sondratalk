@@ -9,17 +9,19 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUT = join(__dirname, "..", "screenshots")
 const require = createRequire(import.meta.url)
 // Render the REAL compiled email template (rebuild backend before running).
-const { EMAIL_COPY, formatDayLabel, formatTimeRange } = require(
-  join(__dirname, "..", "backend", "dist", "meetings", "meeting-email.js"),
-)
+const { EMAIL_COPY, formatDayLabel, formatTimeRange, formatTimeZoneLabel } =
+  require(join(__dirname, "..", "backend", "dist", "meetings", "meeting-email.js"))
 
-// Match the mockup: Thu 12 June, 11:00–12:00 UTC, peer "Pepe".
+// Match the mockup: Thu 12 June, 11:00–12:00, peer "Pepe". The recipient's
+// timezone (UTC here) drives the rendered time; see shot-email-localtime.mjs
+// for non-UTC recipients.
 const scheduledAt = new Date("2025-06-12T11:00:00Z")
+const timeZone = "UTC"
 const dataFor = (locale) => ({
   otherFirst: "Pepe",
-  dayLabel: formatDayLabel(scheduledAt, locale),
-  timeRange: formatTimeRange(scheduledAt, 60, locale),
-  tzLabel: "UTC",
+  dayLabel: formatDayLabel(scheduledAt, locale, timeZone),
+  timeRange: formatTimeRange(scheduledAt, 60, locale, timeZone),
+  tzLabel: formatTimeZoneLabel(scheduledAt, locale, timeZone),
   joinUrl: "https://www.sondratalk.com/call/demo",
 })
 

@@ -312,6 +312,49 @@ describe('MeetingsService', () => {
       expect(peerMail.attachments[0].content).toContain('BEGIN:VCALENDAR');
     });
 
+    it("renders the conversation time in each recipient's own timezone", async () => {
+      // June -> America/New_York is EDT (UTC-4), so 14:30 UTC is 10:30 local.
+      const scheduledAt = new Date('2099-06-01T14:30:00Z');
+      const peer = {
+        id: USER_B,
+        name: 'Beatriz Lopez',
+        email: 'bea@x.test',
+        locale: 'en',
+        timezone: 'America/New_York',
+      };
+      const initiator = {
+        id: USER_A,
+        name: 'Ana María',
+        email: 'ana@x.test',
+        locale: 'en',
+        timezone: 'UTC',
+      };
+      usersService.findById
+        .mockResolvedValueOnce(peer)
+        .mockResolvedValueOnce(initiator);
+      meetingModel.create.mockResolvedValue(
+        makeDoc({ scheduledAt, instant: false }),
+      );
+
+      await service.create(USER_A, {
+        peerUserId: USER_B,
+        scheduledAt: scheduledAt.toISOString(),
+      });
+      await flushMicrotasks();
+
+      const calls = mailService.sendMail.mock.calls.map((c) => c[0]);
+      const peerMail = calls.find((c) => c.to === 'bea@x.test');
+      const initiatorMail = calls.find((c) => c.to === 'ana@x.test');
+
+      // Peer is in New York: time shifts to 10:30 and shows their offset.
+      expect(peerMail.text).toContain('10:30 – 11:30');
+      expect(peerMail.text).not.toContain('14:30');
+      expect(peerMail.text).toMatch(/GMT-4|EDT/);
+      // Initiator is in UTC: time is unchanged.
+      expect(initiatorMail.text).toContain('14:30 – 15:30');
+      expect(initiatorMail.text).toContain('UTC');
+    });
+
     it('does not fail meeting creation when calendar invites fail to send', async () => {
       const future = new Date(Date.now() + 24 * 60 * 60 * 1000);
       usersService.findById

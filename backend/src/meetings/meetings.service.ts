@@ -12,7 +12,12 @@ import { UsersService } from '../users/users.service';
 import { MailService } from '../services/mail/mail.service';
 import { AvailabilityService } from '../availability/availability.service';
 import { buildMeetingIcs } from './ics';
-import { EMAIL_COPY, formatDayLabel, formatTimeRange } from './meeting-email';
+import {
+  EMAIL_COPY,
+  formatDayLabel,
+  formatTimeRange,
+  formatTimeZoneLabel,
+} from './meeting-email';
 import type { CreateMeetingInput, MeetingWithPeer } from './dto';
 import { extractFirstName, toMeetingWithPeer } from './meetings.mapper';
 import type { LocaleKey } from '@base-dashboard/shared';
@@ -137,15 +142,18 @@ export class MeetingsService {
         const locale: LocaleKey = recipient.locale === 'es' ? 'es' : 'en';
         const copy = EMAIL_COPY[locale];
         const otherFirst = extractFirstName(other.name);
+        // Render the time in the recipient's own timezone, not UTC.
+        const tz = recipient.timezone || 'UTC';
         const emailData = {
           otherFirst,
-          dayLabel: formatDayLabel(meeting.scheduledAt, locale),
+          dayLabel: formatDayLabel(meeting.scheduledAt, locale, tz),
           timeRange: formatTimeRange(
             meeting.scheduledAt,
             MEETING_DURATION_MINUTES,
             locale,
+            tz,
           ),
-          tzLabel: 'UTC',
+          tzLabel: formatTimeZoneLabel(meeting.scheduledAt, locale, tz),
           joinUrl,
         };
 

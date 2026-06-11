@@ -26,6 +26,7 @@ interface HtmlLabels {
   intro: string;
   joinCta: string;
   joinNote: string;
+  localTimeSuffix: string;
   footerNote(otherFirst: string): string;
 }
 
@@ -74,7 +75,7 @@ function renderHtml(labels: HtmlLabels, data: MeetingEmailData): string {
     '<tr><td style="padding:18px 22px;">' +
     `<div style="font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:#8a7d63;padding-bottom:4px;">${dayLabel}</div>` +
     `<div style="font-size:23px;color:#e8dcc4;">${timeRange}</div>` +
-    `<div style="font-size:12px;color:#8a7d63;font-style:italic;padding-top:3px;">${tzLabel}</div>` +
+    `<div style="font-size:12px;color:#8a7d63;font-style:italic;padding-top:3px;">${tzLabel} · ${labels.localTimeSuffix}</div>` +
     '</td></tr></table>' +
     `<p style="margin:0 0 26px;font-size:16px;color:#a89878;line-height:1.7;">${labels.intro}</p>` +
     // CTA button
@@ -106,6 +107,7 @@ const HTML_LABELS: Record<LocaleKey, HtmlLabels> = {
       "When it's time, join the conversation from the button below. We've attached a calendar invite so it lands on your schedule.",
     joinCta: 'Join Conversation',
     joinNote: 'You can also join from your Sondra dashboard.',
+    localTimeSuffix: 'your local time',
     footerNote: (otherFirst) =>
       `If you can't make it, please cancel in advance so ${otherFirst} isn't left waiting. You can manage this conversation from your Sondra dashboard.`,
   },
@@ -118,6 +120,7 @@ const HTML_LABELS: Record<LocaleKey, HtmlLabels> = {
       'Cuando llegue el momento, únete a la conversación desde el botón de abajo. Adjuntamos una invitación de calendario para que no se te olvide.',
     joinCta: 'Unirme a la conversación',
     joinNote: 'También puedes unirte desde tu panel de Sondra.',
+    localTimeSuffix: 'tu hora local',
     footerNote: (otherFirst) =>
       `Si no puedes asistir, cancela con antelación para que ${otherFirst} no se quede esperando. Puedes gestionar esta conversación desde tu panel de Sondra.`,
   },
@@ -128,7 +131,7 @@ export const EMAIL_COPY: Record<LocaleKey, EmailCopy> = {
     subject: (otherFirst) => `Your conversation with ${otherFirst} is confirmed`,
     bodyText: (data) =>
       `You have a conversation scheduled with ${data.otherFirst}.\n\n` +
-      `${data.dayLabel} · ${data.timeRange} ${data.tzLabel}\n\n` +
+      `${data.dayLabel} · ${data.timeRange} ${data.tzLabel} (${HTML_LABELS.en.localTimeSuffix})\n\n` +
       `Join here: ${data.joinUrl}\n\n` +
       `The calendar invite is attached. If you can't make it, please cancel in advance so ${data.otherFirst} isn't left waiting.`,
     bodyHtml: (data) => renderHtml(HTML_LABELS.en, data),
@@ -141,7 +144,7 @@ export const EMAIL_COPY: Record<LocaleKey, EmailCopy> = {
       `Tu conversación con ${otherFirst} está confirmada`,
     bodyText: (data) =>
       `Tienes una conversación con ${data.otherFirst}.\n\n` +
-      `${data.dayLabel} · ${data.timeRange} ${data.tzLabel}\n\n` +
+      `${data.dayLabel} · ${data.timeRange} ${data.tzLabel} (${HTML_LABELS.es.localTimeSuffix})\n\n` +
       `Únete aquí: ${data.joinUrl}\n\n` +
       `La invitación del calendario está adjunta. Si no puedes asistir, cancela con antelación para que ${data.otherFirst} no se quede esperando.`,
     bodyHtml: (data) => renderHtml(HTML_LABELS.es, data),
@@ -156,12 +159,16 @@ const LOCALE_TO_INTL: Record<LocaleKey, string> = {
   es: 'es-ES',
 };
 
-export function formatDayLabel(scheduledAt: Date, locale: LocaleKey): string {
+export function formatDayLabel(
+  scheduledAt: Date,
+  locale: LocaleKey,
+  timeZone: string,
+): string {
   return scheduledAt.toLocaleDateString(LOCALE_TO_INTL[locale], {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-    timeZone: 'UTC',
+    timeZone,
   });
 }
 
@@ -169,6 +176,7 @@ export function formatTimeRange(
   start: Date,
   durationMinutes: number,
   locale: LocaleKey,
+  timeZone: string,
 ): string {
   const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
   const formatTime = (date: Date): string =>
@@ -176,7 +184,21 @@ export function formatTimeRange(
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
-      timeZone: 'UTC',
+      timeZone,
     });
   return `${formatTime(start)} – ${formatTime(end)}`;
+}
+
+// Short label for the recipient's timezone (e.g. "GMT-4", "EDT", "UTC"),
+// taken from the conversation date so DST is reflected correctly.
+export function formatTimeZoneLabel(
+  date: Date,
+  locale: LocaleKey,
+  timeZone: string,
+): string {
+  const parts = new Intl.DateTimeFormat(LOCALE_TO_INTL[locale], {
+    timeZone,
+    timeZoneName: 'short',
+  }).formatToParts(date);
+  return parts.find((part) => part.type === 'timeZoneName')?.value ?? timeZone;
 }
