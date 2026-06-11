@@ -20,3 +20,9 @@
 - [x] the sidebar doesn't seams to correctly highlight current route selection. — root cause: the nav buttons never set `isActive`, so `SidebarMenuButton`'s `data-active:bg-sidebar-accent` highlight never applied; `nav-secondary` also used a raw `<a href>` (full page reload). Added an `isNavActive(pathname, url, { end })` helper, computed the active state from `useLocation()` in both `nav-main` and `nav-secondary`, switched `nav-secondary` to `<Link>`, and marked the `/dashboard` root item `end: true` so it exact-matches (the prefix guard also stops `/dashboard/circles-extra` lighting up `/dashboard/circles`). Unit tests for the helper + an e2e regression spec. Proof: `screenshots/sidebar-active-dashboard.png` (Dashboard lit on the index), `screenshots/sidebar-active-settings.png` (Settings lit, Dashboard de-highlighted on the child route).
 - [x] change the invite link to just "www.sondratalk.com" — replaced the user-specific slug constant with a single inline `"https://www.sondratalk.com"` on the `CopyableInput`; removed the now-redundant `referralUrl` module-level const and the `copyValue` split. Proof: `screenshots/invite-link.png`
 - [x] use the same favicon and browser tab title in beta.sondratalk.com as in sondratalk.com — fixed `<title>` from the Vite scaffold placeholder "frontend" to "Sondra" in `index.html`; favicon was already the correct Sondra purple bolt SVG. Proof: `screenshots/tab-title-favicon.png`
+- [ ] implement this mockup to confirmation email email-confirmation-mockup.html
+la propuesta de nuevo horario no está en producción, ni avisa ni manda mail
+- [ ] el default de beta.sondratalk.com es dark, bien, pero no cuando se cliquea desde sondratalk.com
+- [ ] ensanchar el area del contenido
+- [ ] agrandar font size
+- [ ] el mail envia la hora en UTC, debería de enviarla en la hora del usuario
