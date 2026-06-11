@@ -298,10 +298,12 @@ describe('MeetingsService', () => {
 
       // Initiator is English-locale.
       expect(initiatorMail.subject).toMatch(
-        /Sondra: Conversation with Beatriz/,
+        /Your conversation with Beatriz is confirmed/,
       );
       // Peer is Spanish-locale.
-      expect(peerMail.subject).toMatch(/Sondra: Conversación con Ana/);
+      expect(peerMail.subject).toMatch(
+        /Tu conversación con Ana está confirmada/,
+      );
 
       // ICS attachment present on both.
       expect(initiatorMail.attachments[0].filename).toBe('sondra-meeting.ics');

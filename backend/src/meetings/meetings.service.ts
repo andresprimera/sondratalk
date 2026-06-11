@@ -12,7 +12,7 @@ import { UsersService } from '../users/users.service';
 import { MailService } from '../services/mail/mail.service';
 import { AvailabilityService } from '../availability/availability.service';
 import { buildMeetingIcs } from './ics';
-import { EMAIL_COPY, formatDateLabel } from './meeting-email';
+import { EMAIL_COPY, formatDayLabel, formatTimeRange } from './meeting-email';
 import type { CreateMeetingInput, MeetingWithPeer } from './dto';
 import { extractFirstName, toMeetingWithPeer } from './meetings.mapper';
 import type { LocaleKey } from '@base-dashboard/shared';
@@ -137,7 +137,17 @@ export class MeetingsService {
         const locale: LocaleKey = recipient.locale === 'es' ? 'es' : 'en';
         const copy = EMAIL_COPY[locale];
         const otherFirst = extractFirstName(other.name);
-        const dateLabel = formatDateLabel(meeting.scheduledAt, locale);
+        const emailData = {
+          otherFirst,
+          dayLabel: formatDayLabel(meeting.scheduledAt, locale),
+          timeRange: formatTimeRange(
+            meeting.scheduledAt,
+            MEETING_DURATION_MINUTES,
+            locale,
+          ),
+          tzLabel: 'UTC',
+          joinUrl,
+        };
 
         const ics = buildMeetingIcs({
           meetingId: meeting.id,
@@ -153,9 +163,9 @@ export class MeetingsService {
 
         return this.mailService.sendMail({
           to: recipient.email,
-          subject: copy.subject(otherFirst, dateLabel),
-          text: copy.bodyText(otherFirst, dateLabel, joinUrl),
-          html: copy.bodyHtml(otherFirst, dateLabel, joinUrl),
+          subject: copy.subject(otherFirst),
+          text: copy.bodyText(emailData),
+          html: copy.bodyHtml(emailData),
           attachments: [
             {
               filename: ics.filename,
