@@ -4,4 +4,6 @@ export {
   conversationFeedbackSchema,
   type ConversationFeedback,
   type ConversationReport,
+  adminFeedbackSchema,
+  type AdminFeedback,
 } from '@base-dashboard/shared';

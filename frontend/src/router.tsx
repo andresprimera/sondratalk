@@ -2,6 +2,8 @@ import { createBrowserRouter } from "react-router"
 import LandingPage from "@/pages/landing"
 import DashboardPage from "@/pages/dashboard"
 import UsersPage from "@/pages/users"
+import ApplicationsPage from "@/pages/applications"
+import AdminFeedbackPage from "@/pages/admin-feedback"
 import ThemesPage from "@/pages/themes"
 import AllowlistPage from "@/pages/allowlist"
 import CirclesPage from "@/pages/circles"
@@ -107,6 +109,22 @@ export const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <CirclesPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "applications",
+        element: (
+          <AdminRoute>
+            <ApplicationsPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "survey-answers",
+        element: (
+          <AdminRoute>
+            <AdminFeedbackPage />
           </AdminRoute>
         ),
       },

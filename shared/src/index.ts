@@ -173,4 +173,6 @@ export {
   type SubmitConversationFeedbackInput,
   conversationFeedbackSchema,
   type ConversationFeedback,
+  adminFeedbackSchema,
+  type AdminFeedback,
 } from "./schemas/conversation-feedback";

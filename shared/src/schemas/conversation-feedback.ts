@@ -67,3 +67,20 @@ export const conversationFeedbackSchema = z.object({
   updatedAt: z.string(),
 });
 export type ConversationFeedback = z.infer<typeof conversationFeedbackSchema>;
+
+export const adminFeedbackSchema = z.object({
+  id: z.string(),
+  meetingId: z.string(),
+  userName: z.string(),
+  userEmail: z.string(),
+  userConversationIndex: z.number().int(),
+  talkAgain: talkAgainEnum.optional(),
+  feeling: z.string().optional(),
+  circlesRelevant: circlesRelevantEnum.optional(),
+  avQuality: avQualityEnum.optional(),
+  matchRating: z.number().int().optional(),
+  privateNotes: z.string().optional(),
+  report: conversationReportSchema.optional(),
+  createdAt: z.string(),
+});
+export type AdminFeedback = z.infer<typeof adminFeedbackSchema>;

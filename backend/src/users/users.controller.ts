@@ -15,14 +15,17 @@ import {
   UnauthorizedException,
   HttpCode,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 import { UsersService } from './users.service';
 import { MembershipsService } from '../memberships/memberships.service';
 import { AvailabilityService } from '../availability/availability.service';
 import { toAvailability } from '../availability/availability.mapper';
 import { toCircle } from '../circles/circle.mapper';
 import { toUser } from './users.mapper';
+import { MailService } from '../services';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -68,11 +71,19 @@ import {
 
 @Controller('users')
 export class UsersController {
+  private readonly logger = new Logger(UsersController.name);
+  private readonly adminNotificationEmail: string;
+
   constructor(
     private usersService: UsersService,
     private membershipsService: MembershipsService,
     private availabilityService: AvailabilityService,
-  ) {}
+    private mailService: MailService,
+    configService: ConfigService,
+  ) {
+    this.adminNotificationEmail =
+      configService.get<string>('ADMIN_NOTIFICATION_EMAIL') ?? '';
+  }
 
   // --- Public endpoints ---
 
@@ -152,6 +163,17 @@ export class UsersController {
     );
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+    if (this.adminNotificationEmail) {
+      this.mailService
+        .sendMail({
+          to: this.adminNotificationEmail,
+          subject: `New Sondra application from ${user.name}`,
+          text: `${user.name} <${user.email}> submitted an application:\n\n${dto.applicationText}`,
+        })
+        .catch((err: unknown) =>
+          this.logger.error(`Application notification failed: ${String(err)}`),
+        );
     }
     return toUser(user);
   }

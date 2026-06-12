@@ -6,7 +6,23 @@ import {
   ConversationFeedbackDocument,
 } from './schemas/conversation-feedback.schema';
 import { MeetingsService } from '../meetings/meetings.service';
-import type { SubmitConversationFeedbackInput } from './dto';
+import type { AdminFeedback, SubmitConversationFeedbackInput } from './dto';
+
+type AggRow = {
+  _id: Types.ObjectId;
+  meetingId: Types.ObjectId;
+  userConversationIndex: number;
+  userName: string;
+  userEmail: string;
+  talkAgain?: string;
+  feeling?: string;
+  circlesRelevant?: string;
+  avQuality?: string;
+  matchRating?: number;
+  privateNotes?: string;
+  report?: { reason: string; detail?: string };
+  createdAt: Date;
+};
 
 @Injectable()
 export class FeedbackService {
@@ -52,5 +68,79 @@ export class FeedbackService {
     );
 
     return doc;
+  }
+
+  async findAllForAdmin(
+    page: number,
+    limit: number,
+  ): Promise<{ data: AdminFeedback[]; total: number }> {
+    const skip = (page - 1) * limit;
+
+    const [rows, total] = await Promise.all([
+      this.feedbackModel.aggregate([
+        { $sort: { userId: 1, createdAt: 1 } },
+        {
+          $setWindowFields: {
+            partitionBy: '$userId',
+            sortBy: { createdAt: 1 },
+            output: { userConversationIndex: { $documentNumber: {} } },
+          },
+        },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'userDoc',
+          },
+        },
+        { $unwind: { path: '$userDoc', preserveNullAndEmptyArrays: false } },
+        {
+          $project: {
+            _id: 1,
+            meetingId: 1,
+            userConversationIndex: 1,
+            userName: '$userDoc.name',
+            userEmail: '$userDoc.email',
+            talkAgain: 1,
+            feeling: 1,
+            circlesRelevant: 1,
+            avQuality: 1,
+            matchRating: 1,
+            privateNotes: 1,
+            report: 1,
+            createdAt: 1,
+          },
+        },
+      ]),
+      this.feedbackModel.countDocuments(),
+    ]);
+
+    return {
+      // eslint-disable-next-line no-restricted-syntax
+      data: (rows as AggRow[]).map((r): AdminFeedback => ({
+        id: r._id.toString(),
+        meetingId: r.meetingId.toString(),
+        userConversationIndex: r.userConversationIndex,
+        userName: r.userName,
+        userEmail: r.userEmail,
+        // eslint-disable-next-line no-restricted-syntax
+        talkAgain: r.talkAgain as AdminFeedback['talkAgain'],
+        feeling: r.feeling,
+        // eslint-disable-next-line no-restricted-syntax
+        circlesRelevant: r.circlesRelevant as AdminFeedback['circlesRelevant'],
+        // eslint-disable-next-line no-restricted-syntax
+        avQuality: r.avQuality as AdminFeedback['avQuality'],
+        matchRating: r.matchRating,
+        privateNotes: r.privateNotes,
+        // eslint-disable-next-line no-restricted-syntax
+        report: r.report as AdminFeedback['report'],
+        createdAt: r.createdAt.toISOString(),
+      })),
+      total,
+    };
   }
 }

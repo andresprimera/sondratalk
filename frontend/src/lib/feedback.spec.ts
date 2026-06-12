@@ -1,4 +1,4 @@
-import { submitConversationFeedbackApi } from "@/lib/feedback"
+import { fetchAdminFeedbackApi, submitConversationFeedbackApi } from "@/lib/feedback"
 import { authFetch } from "@/lib/api"
 
 vi.mock("@/lib/api", () => ({
@@ -31,6 +31,18 @@ describe("feedback API", () => {
         body: JSON.stringify(input),
       })
       expect(result).toEqual(saved)
+    })
+  })
+
+  describe("fetchAdminFeedbackApi", () => {
+    it("should GET /api/feedback with page and limit query params", async () => {
+      const response = { data: [], meta: { page: 2, limit: 10, total: 0, totalPages: 0 } }
+      vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(response))
+
+      const result = await fetchAdminFeedbackApi(2, 10)
+
+      expect(authFetch).toHaveBeenCalledWith("/api/feedback?page=2&limit=10")
+      expect(result).toEqual(response)
     })
   })
 })

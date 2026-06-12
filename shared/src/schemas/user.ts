@@ -39,6 +39,7 @@ export const userSchema = z.object({
   city: z.string().default(""),
   languages: z.array(userLanguageSchema).default([]),
   locale: localeKeyEnum.default("en"),
+  applicationText: z.string().optional(),
   createdAt: z.string(),
 });
 

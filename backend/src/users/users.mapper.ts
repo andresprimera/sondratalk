@@ -22,6 +22,7 @@ export function toUser(doc: UserDocument): User {
     })) satisfies UserLanguage[],
     // eslint-disable-next-line no-restricted-syntax
     locale: (doc.locale ?? 'en') as User['locale'],
+    applicationText: doc.applicationText,
     createdAt: doc.createdAt.toISOString(),
   };
 }

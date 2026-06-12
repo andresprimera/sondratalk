@@ -21,6 +21,8 @@ import {
   LayersIcon,
   CircleDotIcon,
   ShieldCheckIcon,
+  ClipboardListIcon,
+  MessageSquareTextIcon,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { Link } from "react-router"
@@ -39,6 +41,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       title: t("Early Access"),
       url: "/dashboard/allowlist",
       icon: <ShieldCheckIcon />,
+    },
+    {
+      title: t("Applications"),
+      url: "/dashboard/applications",
+      icon: <ClipboardListIcon />,
+    },
+    {
+      title: t("Survey Answers"),
+      url: "/dashboard/survey-answers",
+      icon: <MessageSquareTextIcon />,
     },
   ]
 
