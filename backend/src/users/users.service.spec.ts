@@ -25,6 +25,7 @@ describe('UsersService', () => {
       findByIdAndDelete: jest.fn(),
       exists: jest.fn(),
       updateOne: jest.fn(),
+      aggregate: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -59,37 +60,38 @@ describe('UsersService', () => {
     });
   });
 
-  describe('findAll', () => {
-    it('should return all users', async () => {
-      model.find.mockResolvedValue([mockUser]);
+  describe('findAllPaginatedForAdmin', () => {
+    const aggRow = { ...mockUser, hostExp: 2, createdAt: new Date(), conversationCount: 3 };
 
-      const result = await service.findAll();
+    it('maps aggregate rows with conversationCount', async () => {
+      model.aggregate.mockResolvedValue([
+        { data: [aggRow], total: [{ n: 1 }] },
+      ]);
 
-      expect(result).toEqual([mockUser]);
-    });
-  });
+      const result = await service.findAllPaginatedForAdmin(1, 10);
 
-  describe('findAllPaginated', () => {
-    it('should return paginated data with total count', async () => {
-      const chainable = { skip: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([mockUser]) };
-      model.find.mockReturnValue(chainable);
-      model.countDocuments.mockResolvedValue(1);
-
-      const result = await service.findAllPaginated(1, 10);
-
-      expect(chainable.skip).toHaveBeenCalledWith(0);
-      expect(chainable.limit).toHaveBeenCalledWith(10);
-      expect(result).toEqual({ data: [mockUser], total: 1 });
+      expect(result.total).toBe(1);
+      expect(result.data[0]).toMatchObject({ conversationCount: 3 });
     });
 
-    it('should calculate correct skip for page 2', async () => {
-      const chainable = { skip: jest.fn().mockReturnThis(), limit: jest.fn().mockResolvedValue([]) };
-      model.find.mockReturnValue(chainable);
-      model.countDocuments.mockResolvedValue(0);
+    it('passes correct skip and limit via $facet', async () => {
+      model.aggregate.mockResolvedValue([{ data: [], total: [{ n: 0 }] }]);
 
-      await service.findAllPaginated(2, 10);
+      await service.findAllPaginatedForAdmin(3, 5);
 
-      expect(chainable.skip).toHaveBeenCalledWith(10);
+      const pipeline = model.aggregate.mock.calls[0][0];
+      const facet = pipeline.find((s: Record<string, unknown>) => '$facet' in s);
+      expect(facet.$facet.data[0].$skip).toBe(10);
+      expect(facet.$facet.data[1].$limit).toBe(5);
+    });
+
+    it('returns empty data and zero total when aggregate yields no result', async () => {
+      model.aggregate.mockResolvedValue([]);
+
+      const result = await service.findAllPaginatedForAdmin(1, 10);
+
+      expect(result.total).toBe(0);
+      expect(result.data).toEqual([]);
     });
   });
 

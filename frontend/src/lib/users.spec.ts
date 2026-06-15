@@ -24,6 +24,14 @@ describe("users API", () => {
       expect(authFetch).toHaveBeenCalledWith("/api/users?page=2&limit=10")
       expect(result).toEqual(responseData)
     })
+
+    it("appends sortBy and sortDir when provided", async () => {
+      vi.mocked(authFetch).mockResolvedValue(mockJsonResponse({ data: [], meta: {} }))
+
+      await fetchUsersApi(1, 10, "role", "desc")
+
+      expect(authFetch).toHaveBeenCalledWith("/api/users?page=1&limit=10&sortBy=role&sortDir=desc")
+    })
   })
 
   describe("updateUserRoleApi", () => {

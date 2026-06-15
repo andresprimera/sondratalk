@@ -4,6 +4,26 @@ import { Model, Types } from 'mongoose';
 import { User, UserDocument, UserSession } from './schemas/user.schema';
 import type { UserLanguage } from '@base-dashboard/shared';
 
+export type AdminUserAggRow = {
+  _id: Types.ObjectId;
+  name: string;
+  email: string;
+  role: string;
+  timezone: string;
+  city?: string;
+  languages?: { code: string; fluency: string }[];
+  locale?: string;
+  applicationText?: string;
+  hostExp: number;
+  createdAt: Date;
+  conversationCount: number;
+};
+
+type FacetResult = {
+  data: AdminUserAggRow[];
+  total: [{ n: number }];
+};
+
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<User>) {}
@@ -22,19 +42,56 @@ export class UsersService {
     return this.userModel.countDocuments();
   }
 
-  async findAll(): Promise<UserDocument[]> {
-    return this.userModel.find();
-  }
-
-  async findAllPaginated(
+  async findAllPaginatedForAdmin(
     page: number,
     limit: number,
-  ): Promise<{ data: UserDocument[]; total: number }> {
+    sortBy: 'name' | 'role' = 'name',
+    sortDir: 'asc' | 'desc' = 'asc',
+  ): Promise<{ data: AdminUserAggRow[]; total: number }> {
     const skip = (page - 1) * limit;
-    const [data, total] = await Promise.all([
-      this.userModel.find().skip(skip).limit(limit),
-      this.userModel.countDocuments(),
+    const sortOrder = sortDir === 'asc' ? 1 : -1;
+    const now = new Date();
+
+    const [result] = await this.userModel.aggregate<FacetResult>([
+      {
+        $lookup: {
+          from: 'meetings',
+          let: { uid: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $in: ['$$uid', '$participants'] },
+                    { $eq: ['$cancelled', false] },
+                    { $lt: ['$expiresAt', now] },
+                  ],
+                },
+              },
+            },
+            { $count: 'c' },
+          ],
+          as: 'convCount',
+        },
+      },
+      {
+        $addFields: {
+          conversationCount: {
+            $ifNull: [{ $arrayElemAt: ['$convCount.c', 0] }, 0],
+          },
+        },
+      },
+      { $sort: { [sortBy]: sortOrder } },
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: limit }],
+          total: [{ $count: 'n' }],
+        },
+      },
     ]);
+
+    const total = result?.total[0]?.n ?? 0;
+    const data = result?.data ?? [];
     return { data, total };
   }
 

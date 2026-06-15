@@ -171,6 +171,7 @@ export function AddUserDialog({
                     items={[
                       { value: "user", label: t("User") },
                       { value: "admin", label: t("Admin") },
+                      { value: "founding_member", label: t("Founding Member") },
                     ]}
                     value={field.value}
                     onValueChange={(val) => {
@@ -183,6 +184,7 @@ export function AddUserDialog({
                     <SelectContent>
                       <SelectItem value="user">{t("User")}</SelectItem>
                       <SelectItem value="admin">{t("Admin")}</SelectItem>
+                      <SelectItem value="founding_member">{t("Founding Member")}</SelectItem>
                     </SelectContent>
                   </Select>
                 )}

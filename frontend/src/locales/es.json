@@ -737,5 +737,14 @@
   "No-show": "No se presentó",
   "Solicitation": "Solicitud indebida",
   "Unsafe": "Inseguro",
-  "Other": "Otro"
+  "Other": "Otro",
+  "Founding Member": "Miembro fundador",
+  "Select all": "Seleccionar todos",
+  "Select {{name}}": "Seleccionar {{name}}",
+  "Delete {{count}} selected": "Eliminar {{count}} seleccionados",
+  "Delete selected users": "Eliminar usuarios seleccionados",
+  "This will permanently delete {{count}} user(s). This cannot be undone.": "Esto eliminará permanentemente {{count}} usuario(s). No se puede deshacer.",
+  "Selected users deleted": "Usuarios seleccionados eliminados",
+  "{{count}} deletion(s) failed": "{{count}} eliminación(es) fallida(s)",
+  "Failed to delete users": "No se pudieron eliminar los usuarios"
 }

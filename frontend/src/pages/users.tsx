@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-query"
 import { useAuth } from "@/hooks/use-auth"
 import { fetchUsersApi, updateUserRoleApi, removeUserApi } from "@/lib/users"
-import type { User } from "@base-dashboard/shared"
+import type { AdminUser, UsersQuery } from "@base-dashboard/shared"
 import {
   Table,
   TableBody,
@@ -39,6 +39,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   AlertCircleIcon,
   TrashIcon,
@@ -47,8 +48,28 @@ import {
   ChevronRightIcon,
   ChevronsRightIcon,
   PlusIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  ArrowUpDownIcon,
 } from "lucide-react"
 import { toast } from "sonner"
+import i18n from "@/lib/i18n"
+
+type SortBy = NonNullable<UsersQuery["sortBy"]>
+type SortDir = NonNullable<UsersQuery["sortDir"]>
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  user: "User",
+  founding_member: "Founding Member",
+}
+
+function SortIcon({ col, sortBy, sortDir }: { col: SortBy; sortBy: SortBy; sortDir: SortDir }) {
+  if (sortBy !== col) return <ArrowUpDownIcon className="ml-1 inline size-3 opacity-40" />
+  return sortDir === "asc"
+    ? <ArrowUpIcon className="ml-1 inline size-3" />
+    : <ArrowDownIcon className="ml-1 inline size-3" />
+}
 
 export default function UsersPage() {
   const { t } = useTranslation()
@@ -56,12 +77,16 @@ export default function UsersPage() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [sortBy, setSortBy] = useState<SortBy>("name")
+  const [sortDir, setSortDir] = useState<SortDir>("asc")
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null)
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["users", page, pageSize],
-    queryFn: () => fetchUsersApi(page, pageSize),
+    queryKey: ["users", page, pageSize, sortBy, sortDir],
+    queryFn: () => fetchUsersApi(page, pageSize, sortBy, sortDir),
     placeholderData: keepPreviousData,
   })
 
@@ -91,6 +116,19 @@ export default function UsersPage() {
     },
   })
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) => Promise.allSettled(ids.map((id) => removeUserApi(id))),
+    onSuccess: (results) => {
+      queryClient.invalidateQueries({ queryKey: ["users"] })
+      const failed = results.filter((r) => r.status === "rejected").length
+      if (failed > 0) {
+        toast.error(t("{{count}} deletion(s) failed", { count: failed }))
+      } else {
+        toast.success(t("Selected users deleted"))
+      }
+    },
+  })
+
   function handleRoleChange(userId: string, role: string) {
     updateRoleMutation.mutate({ userId, role })
   }
@@ -102,13 +140,60 @@ export default function UsersPage() {
     })
   }
 
+  function handleBulkDelete() {
+    const ids = [...selected].filter((id) => id !== currentUser?.id)
+    setBulkDeleteOpen(false)
+    setSelected(new Set())
+    bulkDeleteMutation.mutate(ids)
+  }
+
   function handlePageSizeChange(value: string | null) {
     if (!value) return
     setPageSize(Number(value))
     setPage(1)
   }
 
+  function handleSort(col: SortBy) {
+    if (sortBy === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortBy(col)
+      setSortDir("asc")
+    }
+    setPage(1)
+    setSelected(new Set())
+  }
+
+  function toggleRow(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
   const totalPages = meta?.totalPages ?? 1
+  const pageIds = users.map((u) => u.id)
+
+  function toggleAll() {
+    const allSelected = pageIds.every((id) => selected.has(id))
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (allSelected) {
+        pageIds.forEach((id) => next.delete(id))
+      } else {
+        pageIds.forEach((id) => next.add(id))
+      }
+      return next
+    })
+  }
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id))
+  const somePageSelected = pageIds.some((id) => selected.has(id))
+  const selectedCount = selected.size
+  const selectedNonSelf = [...selected].filter((id) => id !== currentUser?.id).length
+
+  const colCount = 8
 
   if (isLoading) {
     return (
@@ -129,31 +214,24 @@ export default function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10" />
                 <TableHead>{t("Name")}</TableHead>
                 <TableHead>{t("Email")}</TableHead>
                 <TableHead>{t("Role")}</TableHead>
-                <TableHead className="w-25">{t("Actions")}</TableHead>
+                <TableHead>{t("Conversations")}</TableHead>
+                <TableHead>{t("Host Exp")}</TableHead>
+                <TableHead>{t("Active since")}</TableHead>
+                <TableHead className="w-20">{t("Actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Array.from({ length: pageSize > 5 ? 5 : pageSize }).map(
-                (_, i) => (
-                  <TableRow key={i}>
-                    <TableCell>
-                      <Skeleton className="h-4 w-24" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-40" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-8 w-20" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="size-8" />
-                    </TableCell>
-                  </TableRow>
-                ),
-              )}
+              {Array.from({ length: pageSize > 5 ? 5 : pageSize }).map((_, i) => (
+                <TableRow key={i}>
+                  {Array.from({ length: colCount }).map((__, j) => (
+                    <TableCell key={j}><Skeleton className="h-4 w-16" /></TableCell>
+                  ))}
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>
@@ -198,54 +276,116 @@ export default function UsersPage() {
             {t("Manage user accounts and roles.")}
           </p>
         </div>
-        <Button onClick={() => setAddDialogOpen(true)}>
-          <PlusIcon className="size-4" />
-          {t("Add User")}
-        </Button>
+        <div className="flex items-center gap-2">
+          {selectedCount > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={selectedNonSelf === 0}
+              onClick={() => setBulkDeleteOpen(true)}
+            >
+              <TrashIcon className="size-4" />
+              {t("Delete {{count}} selected", { count: selectedNonSelf })}
+            </Button>
+          )}
+          <Button onClick={() => setAddDialogOpen(true)}>
+            <PlusIcon className="size-4" />
+            {t("Add User")}
+          </Button>
+        </div>
       </div>
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t("Name")}</TableHead>
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={allPageSelected}
+                  indeterminate={somePageSelected && !allPageSelected}
+                  onCheckedChange={toggleAll}
+                  aria-label={t("Select all")}
+                />
+              </TableHead>
+              <TableHead
+                className="cursor-pointer select-none"
+                onClick={() => handleSort("name")}
+              >
+                {t("Name")}
+                <SortIcon col="name" sortBy={sortBy} sortDir={sortDir} />
+              </TableHead>
               <TableHead>{t("Email")}</TableHead>
-              <TableHead>{t("Role")}</TableHead>
-              <TableHead className="w-25">{t("Actions")}</TableHead>
+              <TableHead
+                className="cursor-pointer select-none"
+                onClick={() => handleSort("role")}
+              >
+                {t("Role")}
+                <SortIcon col="role" sortBy={sortBy} sortDir={sortDir} />
+              </TableHead>
+              <TableHead>{t("Conversations")}</TableHead>
+              <TableHead>{t("Host Exp")}</TableHead>
+              <TableHead>{t("Active since")}</TableHead>
+              <TableHead className="w-20">{t("Actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
+                <TableCell colSpan={colCount} className="h-24 text-center">
                   {t("No users found.")}
                 </TableCell>
               </TableRow>
             ) : (
-              users.map((u: User) => {
+              users.map((u: AdminUser) => {
                 const isSelf = u.id === currentUser?.id
                 return (
-                  <TableRow key={u.id}>
-                    <TableCell className="font-medium">{u.name}</TableCell>
-                    <TableCell>{u.email}</TableCell>
+                  <TableRow
+                    key={u.id}
+                    data-state={selected.has(u.id) ? "selected" : undefined}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selected.has(u.id)}
+                        onCheckedChange={() => toggleRow(u.id)}
+                        aria-label={t("Select {{name}}", { name: u.name })}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium whitespace-nowrap">{u.name}</TableCell>
+                    <TableCell className="text-muted-foreground">{u.email}</TableCell>
                     <TableCell>
                       {isSelf ? (
-                        <Badge variant="secondary">{u.role}</Badge>
+                        <Badge variant="secondary">
+                          {t(ROLE_LABELS[u.role] ?? u.role)}
+                        </Badge>
                       ) : (
                         <Select
                           value={u.role}
-                          onValueChange={(val) =>
-                            val && handleRoleChange(u.id, val)
-                          }
+                          onValueChange={(val) => val && handleRoleChange(u.id, val)}
                         >
                           <SelectTrigger size="sm">
-                            <SelectValue />
+                            <SelectValue>
+                              {t(ROLE_LABELS[u.role] ?? u.role)}
+                            </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="admin">admin</SelectItem>
-                            <SelectItem value="user">user</SelectItem>
+                            <SelectItem value="admin">{t("Admin")}</SelectItem>
+                            <SelectItem value="user">{t("User")}</SelectItem>
+                            <SelectItem value="founding_member">{t("Founding Member")}</SelectItem>
                           </SelectContent>
                         </Select>
                       )}
+                    </TableCell>
+                    <TableCell className="text-center text-muted-foreground">
+                      {u.conversationCount}
+                    </TableCell>
+                    <TableCell className="text-center text-muted-foreground">
+                      {u.hostExpPoints}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-muted-foreground">
+                      {new Date(u.createdAt).toLocaleDateString(i18n.language, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
                     </TableCell>
                     <TableCell>
                       <Button
@@ -341,9 +481,7 @@ export default function UsersPage() {
       )}
       <AlertDialog
         open={deleteUserId !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeleteUserId(null)
-        }}
+        onOpenChange={(open) => { if (!open) setDeleteUserId(null) }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -360,6 +498,26 @@ export default function UsersPage() {
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending ? t("Deleting...") : t("Delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("Delete selected users")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("This will permanently delete {{count}} user(s). This cannot be undone.", { count: selectedNonSelf })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("Cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={bulkDeleteMutation.isPending}
+            >
+              {bulkDeleteMutation.isPending ? t("Deleting...") : t("Delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

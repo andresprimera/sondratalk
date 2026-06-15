@@ -37,7 +37,7 @@ export class User {
   @Prop({ required: true, unique: true, lowercase: true, trim: true })
   email: string;
 
-  @Prop({ required: true, enum: ['admin', 'user'], default: 'user' })
+  @Prop({ required: true, enum: ['admin', 'user', 'founding_member'], default: 'user' })
   role!: string;
 
   @Prop({ required: true, select: false })

@@ -195,6 +195,8 @@ describe('AuthService', () => {
           languages: [],
           locale: 'en',
           createdAt: '2024-03-01T00:00:00.000Z',
+          applicationText: undefined,
+          hostExpPoints: 0,
         },
       });
     });

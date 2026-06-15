@@ -1,7 +1,8 @@
 import { z } from "zod/v4";
 import { LOCALE_KEYS } from "./circle";
+import { paginationQuerySchema } from "./pagination";
 
-export const roleEnum = z.enum(["admin", "user"]);
+export const roleEnum = z.enum(["admin", "user", "founding_member"]);
 export type Role = z.infer<typeof roleEnum>;
 
 export const timezoneSchema = z
@@ -41,9 +42,21 @@ export const userSchema = z.object({
   locale: localeKeyEnum.default("en"),
   applicationText: z.string().optional(),
   createdAt: z.string(),
+  hostExpPoints: z.number().int().default(0),
 });
 
 export type User = z.infer<typeof userSchema>;
+
+export const adminUserSchema = userSchema.extend({
+  conversationCount: z.number().int().default(0),
+});
+export type AdminUser = z.infer<typeof adminUserSchema>;
+
+export const usersQuerySchema = paginationQuerySchema.extend({
+  sortBy: z.enum(["name", "role"]).optional(),
+  sortDir: z.enum(["asc", "desc"]).optional(),
+});
+export type UsersQuery = z.infer<typeof usersQuerySchema>;
 
 export const updateTimezoneSchema = z.object({
   timezone: timezoneSchema,

@@ -24,7 +24,7 @@ import { MembershipsService } from '../memberships/memberships.service';
 import { AvailabilityService } from '../availability/availability.service';
 import { toAvailability } from '../availability/availability.mapper';
 import { toCircle } from '../circles/circle.mapper';
-import { toUser } from './users.mapper';
+import { toUser, toUserFromAgg } from './users.mapper';
 import { MailService } from '../services';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -47,11 +47,10 @@ import {
   updateApplicationSchema,
   type UpdateApplicationInput,
   type FoundingMembersCount,
+  usersQuerySchema,
+  type UsersQuery,
+  type AdminUser,
 } from '@base-dashboard/shared';
-import {
-  paginationQuerySchema,
-  type PaginationQuery,
-} from '../common/dto/pagination-query.dto';
 import {
   updateProfileSchema,
   type UpdateProfileInput,
@@ -270,15 +269,17 @@ export class UsersController {
   @UseGuards(RolesGuard)
   @Roles('admin')
   async findAll(
-    @Query(new ZodValidationPipe(paginationQuerySchema))
-    query: PaginationQuery,
-  ): Promise<PaginatedResponse<User>> {
-    const { data, total } = await this.usersService.findAllPaginated(
+    @Query(new ZodValidationPipe(usersQuerySchema))
+    query: UsersQuery,
+  ): Promise<PaginatedResponse<AdminUser>> {
+    const { data, total } = await this.usersService.findAllPaginatedForAdmin(
       query.page,
       query.limit,
+      query.sortBy,
+      query.sortDir,
     );
     return {
-      data: data.map(toUser),
+      data: data.map(toUserFromAgg),
       meta: {
         page: query.page,
         limit: query.limit,

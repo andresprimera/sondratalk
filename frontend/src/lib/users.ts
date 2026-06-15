@@ -1,5 +1,6 @@
 import {
   type User,
+  type AdminUser,
   type PaginatedResponse,
   type CreateUserInput,
   type FoundingMembersCount,
@@ -15,11 +16,15 @@ export async function fetchFoundingMembersCountApi(): Promise<FoundingMembersCou
 export async function fetchUsersApi(
   page: number,
   limit: number,
-): Promise<PaginatedResponse<User>> {
+  sortBy?: "name" | "role",
+  sortDir?: "asc" | "desc",
+): Promise<PaginatedResponse<AdminUser>> {
   const params = new URLSearchParams({
     page: String(page),
     limit: String(limit),
   })
+  if (sortBy) params.set("sortBy", sortBy)
+  if (sortDir) params.set("sortDir", sortDir)
   const res = await authFetch(`/api/users?${params}`)
   return res.json()
 }

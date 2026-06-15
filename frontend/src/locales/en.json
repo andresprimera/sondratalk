@@ -737,5 +737,14 @@
   "No-show": "No-show",
   "Solicitation": "Solicitation",
   "Unsafe": "Unsafe",
-  "Other": "Other"
+  "Other": "Other",
+  "Founding Member": "Founding Member",
+  "Select all": "Select all",
+  "Select {{name}}": "Select {{name}}",
+  "Delete {{count}} selected": "Delete {{count}} selected",
+  "Delete selected users": "Delete selected users",
+  "This will permanently delete {{count}} user(s). This cannot be undone.": "This will permanently delete {{count}} user(s). This cannot be undone.",
+  "Selected users deleted": "Selected users deleted",
+  "{{count}} deletion(s) failed": "{{count}} deletion(s) failed",
+  "Failed to delete users": "Failed to delete users"
 }

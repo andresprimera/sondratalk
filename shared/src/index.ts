@@ -38,6 +38,10 @@ export {
   type UpdateApplicationInput,
   foundingMembersCountSchema,
   type FoundingMembersCount,
+  usersQuerySchema,
+  type UsersQuery,
+  adminUserSchema,
+  type AdminUser,
 } from "./schemas/user";
 
 export {
