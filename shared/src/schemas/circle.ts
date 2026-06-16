@@ -38,6 +38,11 @@ export const circleSchema = z.object({
 
 export type Circle = z.infer<typeof circleSchema>;
 
+export const adminCircleSchema = circleSchema.extend({
+  membershipCount: z.number().int().default(0),
+});
+export type AdminCircle = z.infer<typeof adminCircleSchema>;
+
 export const createCircleSchema = z.object({
   slug: slugSchema,
   themeId: z.string().min(1, "Theme is required"),
@@ -53,10 +58,22 @@ export const updateCircleSchema = createCircleSchema.partial();
 
 export type UpdateCircleInput = z.infer<typeof updateCircleSchema>;
 
+export const circleSortByEnum = z.enum([
+  "slug",
+  "labelEn",
+  "labelEs",
+  "theme",
+  "type",
+  "popularity",
+]);
+export type CircleSortBy = z.infer<typeof circleSortByEnum>;
+
 export const circleSearchQuerySchema = paginationQuerySchema.extend({
   q: z.string().trim().optional(),
   themeId: z.string().optional(),
   locale: z.enum(LOCALE_KEYS).optional(),
+  sortBy: circleSortByEnum.optional(),
+  sortDir: z.enum(["asc", "desc"]).optional(),
 });
 
 export type CircleSearchQuery = z.infer<typeof circleSearchQuerySchema>;

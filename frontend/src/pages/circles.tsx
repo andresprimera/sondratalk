@@ -2,16 +2,13 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   useQuery,
-  useMutation,
-  useQueryClient,
   keepPreviousData,
 } from "@tanstack/react-query"
-import { fetchCirclesApi, removeCircleApi } from "@/lib/circles"
+import { fetchAdminCirclesApi } from "@/lib/circles"
 import { circleTypeLabel } from "@/lib/circle-types"
 import { fetchAllThemesApi } from "@/lib/themes"
-import type { Circle } from "@base-dashboard/shared"
+import type { AdminCircle, CircleSortBy } from "@base-dashboard/shared"
 import { AddCircleDialog } from "@/components/add-circle-dialog"
-import { EditCircleDialog } from "@/components/edit-circle-dialog"
 import {
   Table,
   TableBody,
@@ -27,48 +24,61 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   AlertCircleIcon,
-  TrashIcon,
-  PencilIcon,
   ChevronsLeftIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronsRightIcon,
   PlusIcon,
   CircleDotIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  ArrowUpDownIcon,
 } from "lucide-react"
-import { toast } from "sonner"
 
 const ALL_THEMES_VALUE = "__all__"
+
+const COLUMNS: { col: CircleSortBy; label: string }[] = [
+  { col: "slug", label: "Slug" },
+  { col: "labelEn", label: "English label" },
+  { col: "labelEs", label: "Spanish label" },
+  { col: "theme", label: "Theme" },
+  { col: "type", label: "Circle Type" },
+  { col: "popularity", label: "Popularity" },
+]
+
+function SortIcon({
+  col,
+  sortBy,
+  sortDir,
+}: {
+  col: CircleSortBy
+  sortBy: CircleSortBy
+  sortDir: "asc" | "desc"
+}) {
+  if (sortBy !== col) return <ArrowUpDownIcon className="ml-1 inline size-3 opacity-40" />
+  return sortDir === "asc"
+    ? <ArrowUpIcon className="ml-1 inline size-3" />
+    : <ArrowDownIcon className="ml-1 inline size-3" />
+}
 
 export default function CirclesPage() {
   const { t, i18n } = useTranslation()
   const locale: "en" | "es" =
     i18n.language?.split("-")[0] === "es" ? "es" : "en"
-  const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [q, setQ] = useState("")
   const [debouncedQ, setDebouncedQ] = useState("")
   const [themeId, setThemeId] = useState<string | undefined>(undefined)
+  const [sortBy, setSortBy] = useState<CircleSortBy>("slug")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
   const [addOpen, setAddOpen] = useState(false)
-  const [editCircle, setEditCircle] = useState<Circle | null>(null)
-  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQ(q), 250)
@@ -87,15 +97,17 @@ export default function CirclesPage() {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
       "circles",
-      { q: debouncedQ, themeId, locale, page, pageSize },
+      { q: debouncedQ, themeId, locale, page, pageSize, sortBy, sortDir },
     ] as const,
     queryFn: () =>
-      fetchCirclesApi({
+      fetchAdminCirclesApi({
         q: debouncedQ || undefined,
         themeId,
         locale,
         page,
         limit: pageSize,
+        sortBy,
+        sortDir,
       }),
     placeholderData: keepPreviousData,
   })
@@ -103,24 +115,6 @@ export default function CirclesPage() {
   const circles = data?.data ?? []
   const meta = data?.meta
   const totalPages = meta?.totalPages ?? 1
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => removeCircleApi(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["circles"] })
-      toast.success(t("Circle deleted"))
-    },
-    onError: (error: Error) => {
-      toast.error(t(error.message) || t("Failed to delete circle"))
-    },
-  })
-
-  function handleDelete() {
-    if (!deleteId) return
-    deleteMutation.mutate(deleteId, {
-      onSettled: () => setDeleteId(null),
-    })
-  }
 
   function handlePageSizeChange(value: string | null) {
     if (!value) return
@@ -131,6 +125,16 @@ export default function CirclesPage() {
   function handleThemeFilterChange(value: string | null) {
     if (!value) return
     setThemeId(value === ALL_THEMES_VALUE ? undefined : value)
+  }
+
+  function handleSort(col: CircleSortBy) {
+    if (sortBy === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortBy(col)
+      setSortDir("asc")
+    }
+    setPage(1)
   }
 
   const Header = (
@@ -196,9 +200,8 @@ export default function CirclesPage() {
                 <TableHead>{t("English label")}</TableHead>
                 <TableHead>{t("Spanish label")}</TableHead>
                 <TableHead>{t("Theme")}</TableHead>
-                <TableHead>{t("Type")}</TableHead>
+                <TableHead>{t("Circle Type")}</TableHead>
                 <TableHead>{t("Popularity")}</TableHead>
-                <TableHead className="w-25">{t("Actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -222,9 +225,6 @@ export default function CirclesPage() {
                     </TableCell>
                     <TableCell>
                       <Skeleton className="h-4 w-8" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="size-8" />
                     </TableCell>
                   </TableRow>
                 ),
@@ -264,18 +264,22 @@ export default function CirclesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t("Slug")}</TableHead>
-              <TableHead>{t("English label")}</TableHead>
-              <TableHead>{t("Spanish label")}</TableHead>
-              <TableHead>{t("Theme")}</TableHead>
-              <TableHead>{t("Popularity")}</TableHead>
-              <TableHead className="w-25">{t("Actions")}</TableHead>
+              {COLUMNS.map(({ col, label }) => (
+                <TableHead
+                  key={col}
+                  className="cursor-pointer select-none"
+                  onClick={() => handleSort(col)}
+                >
+                  {t(label)}
+                  <SortIcon col={col} sortBy={sortBy} sortDir={sortDir} />
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
           <TableBody>
             {circles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center">
+                <TableCell colSpan={COLUMNS.length} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                     <CircleDotIcon className="size-8" />
                     <p>
@@ -287,7 +291,7 @@ export default function CirclesPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              circles.map((c: Circle) => (
+              circles.map((c: AdminCircle) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-mono text-sm">{c.slug}</TableCell>
                   <TableCell className="font-medium">{c.labels.en}</TableCell>
@@ -299,27 +303,7 @@ export default function CirclesPage() {
                       c.themeId}
                   </TableCell>
                   <TableCell>{t(circleTypeLabel(c.type))}</TableCell>
-                  <TableCell>{c.popularity}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setEditCircle(c)}
-                      >
-                        <PencilIcon className="size-4" />
-                        <span className="sr-only">{t("Edit")}</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteId(c.id)}
-                      >
-                        <TrashIcon className="size-4" />
-                        <span className="sr-only">{t("Delete")}</span>
-                      </Button>
-                    </div>
-                  </TableCell>
+                  <TableCell>{c.membershipCount}</TableCell>
                 </TableRow>
               ))
             )}
@@ -400,38 +384,7 @@ export default function CirclesPage() {
           </div>
         </div>
       )}
-      <AlertDialog
-        open={deleteId !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeleteId(null)
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("Delete circle")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("This action cannot be undone.")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("Cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? t("Deleting...") : t("Delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
       <AddCircleDialog open={addOpen} onOpenChange={setAddOpen} />
-      <EditCircleDialog
-        circle={editCircle}
-        onOpenChange={(open) => {
-          if (!open) setEditCircle(null)
-        }}
-      />
     </div>
   )
 }

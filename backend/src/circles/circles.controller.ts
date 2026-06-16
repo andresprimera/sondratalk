@@ -16,12 +16,13 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { CirclesService } from './circles.service';
-import { toCircle } from './circle.mapper';
+import { toCircle, toCircleFromAgg } from './circle.mapper';
 import { ThemesService } from '../themes/themes.service';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import {
+  type AdminCircle,
   type Circle,
   type PaginatedResponse,
   LOCALE_KEYS,
@@ -104,6 +105,30 @@ export class CirclesController {
       : await this.circlesService.findAllPaginated(page, limit, themeId);
     return {
       data: data.map(toCircle),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  @Get('admin')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async findAllForAdmin(
+    @Query(new ZodValidationPipe(circleSearchQuerySchema))
+    query: CircleSearchQuery,
+    @Headers('accept-language') acceptLanguage: string | undefined,
+  ): Promise<PaginatedResponse<AdminCircle>> {
+    const { q, themeId, page, limit, locale: queryLocale, sortBy, sortDir } = query;
+    const locale = resolveLocale(queryLocale, acceptLanguage);
+    const { data, total } = q
+      ? await this.circlesService.searchPaginatedForAdmin(q, page, limit, locale, themeId, sortBy, sortDir)
+      : await this.circlesService.findAllPaginatedForAdmin(page, limit, themeId, sortBy, sortDir);
+    return {
+      data: data.map(toCircleFromAgg),
       meta: {
         page,
         limit,

@@ -1,10 +1,9 @@
 import {
   fetchCirclesApi,
+  fetchAdminCirclesApi,
   fetchAllCirclesApi,
   fetchCircleByIdApi,
   createCircleApi,
-  updateCircleApi,
-  removeCircleApi,
 } from "@/lib/circles"
 import { authFetch } from "@/lib/api"
 
@@ -168,29 +167,46 @@ describe("circles API", () => {
     })
   })
 
-  describe("updateCircleApi", () => {
-    it("PATCHes /api/circles/:id with the body", async () => {
-      vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(sampleCircle))
+  describe("fetchAdminCirclesApi", () => {
+    it("includes only page and limit when no filters", async () => {
+      const data = {
+        data: [],
+        meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
+      }
+      vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(data))
 
-      const result = await updateCircleApi("c1", { popularity: 5 })
+      await fetchAdminCirclesApi({ page: 1, limit: 10 })
 
-      expect(authFetch).toHaveBeenCalledWith("/api/circles/c1", {
-        method: "PATCH",
-        body: JSON.stringify({ popularity: 5 }),
-      })
-      expect(result).toEqual(sampleCircle)
+      expect(authFetch).toHaveBeenCalledWith("/api/circles/admin?page=1&limit=10")
     })
-  })
 
-  describe("removeCircleApi", () => {
-    it("DELETEs /api/circles/:id", async () => {
-      vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(undefined))
+    it("includes sortBy and sortDir when provided", async () => {
+      vi.mocked(authFetch).mockResolvedValue(
+        mockJsonResponse({ data: [], meta: {} }),
+      )
 
-      await removeCircleApi("c1")
-
-      expect(authFetch).toHaveBeenCalledWith("/api/circles/c1", {
-        method: "DELETE",
+      await fetchAdminCirclesApi({
+        sortBy: "popularity",
+        sortDir: "desc",
+        page: 1,
+        limit: 10,
       })
+
+      expect(authFetch).toHaveBeenCalledWith(
+        "/api/circles/admin?sortBy=popularity&sortDir=desc&page=1&limit=10",
+      )
+    })
+
+    it("includes q and themeId when provided", async () => {
+      vi.mocked(authFetch).mockResolvedValue(
+        mockJsonResponse({ data: [], meta: {} }),
+      )
+
+      await fetchAdminCirclesApi({ q: "ger", themeId: "t1", page: 1, limit: 10 })
+
+      expect(authFetch).toHaveBeenCalledWith(
+        "/api/circles/admin?q=ger&themeId=t1&page=1&limit=10",
+      )
     })
   })
 })

@@ -281,6 +281,113 @@ describe('CirclesService', () => {
     });
   });
 
+  describe('findAllPaginatedForAdmin', () => {
+    const aggRow = {
+      _id: { toString: () => 'circle-1' },
+      slug: 'german-shepherd',
+      themeId: { toString: () => 'theme-1' },
+      type: 'what-you-love',
+      labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
+      aliases: { en: ['GSD'], es: [] },
+      popularity: 0,
+      membershipCount: 4,
+    };
+
+    it('maps aggregate rows with membershipCount', async () => {
+      model.aggregate.mockResolvedValue([
+        { data: [aggRow], total: [{ n: 1 }] },
+      ]);
+
+      const result = await service.findAllPaginatedForAdmin(1, 10);
+
+      expect(result.total).toBe(1);
+      expect(result.data[0]).toMatchObject({ membershipCount: 4 });
+    });
+
+    it('sorts by the requested field and direction', async () => {
+      model.aggregate.mockResolvedValue([{ data: [], total: [{ n: 0 }] }]);
+
+      await service.findAllPaginatedForAdmin(1, 10, undefined, 'popularity', 'desc');
+
+      const pipeline = model.aggregate.mock.calls[0][0];
+      const sortStage = pipeline.find((s: Record<string, unknown>) => '$sort' in s);
+      expect(sortStage.$sort).toEqual({ membershipCount: -1 });
+    });
+
+    it('filters by themeId when provided', async () => {
+      model.aggregate.mockResolvedValue([{ data: [], total: [{ n: 0 }] }]);
+
+      await service.findAllPaginatedForAdmin(1, 10, '507f1f77bcf86cd799439011');
+
+      const pipeline = model.aggregate.mock.calls[0][0];
+      const matchStage = pipeline.find((s: Record<string, unknown>) => '$match' in s);
+      expect(matchStage).toBeDefined();
+    });
+
+    it('returns empty data and zero total when aggregate yields no result', async () => {
+      model.aggregate.mockResolvedValue([]);
+
+      const result = await service.findAllPaginatedForAdmin(1, 10);
+
+      expect(result.total).toBe(0);
+      expect(result.data).toEqual([]);
+    });
+  });
+
+  describe('searchPaginatedForAdmin', () => {
+    const aggRow = {
+      _id: { toString: () => 'circle-1' },
+      slug: 'german-shepherd',
+      themeId: { toString: () => 'theme-1' },
+      type: 'what-you-love',
+      labels: { en: 'German Shepherd', es: 'Pastor Alemán' },
+      aliases: { en: ['GSD'], es: [] },
+      popularity: 0,
+      membershipCount: 2,
+    };
+
+    it('runs Atlas $search with a membership count lookup', async () => {
+      model.aggregate
+        .mockReturnValueOnce({ exec: jest.fn().mockResolvedValue([aggRow]) })
+        .mockReturnValueOnce({
+          exec: jest.fn().mockResolvedValue([{ count: { total: 1 } }]),
+        });
+
+      const result = await service.searchPaginatedForAdmin('ger', 1, 10, 'en');
+
+      const searchPipeline = model.aggregate.mock.calls[0][0];
+      const lookupStage = searchPipeline.find(
+        (s: Record<string, unknown>) => '$lookup' in s,
+      );
+      expect(lookupStage.$lookup.from).toBe('circle_memberships');
+      expect(result).toEqual({ data: [aggRow], total: 1 });
+    });
+
+    it('honors the requested column sort over the default relevance order', async () => {
+      model.aggregate
+        .mockReturnValueOnce({ exec: jest.fn().mockResolvedValue([]) })
+        .mockReturnValueOnce({
+          exec: jest.fn().mockResolvedValue([{ count: { total: 0 } }]),
+        });
+
+      await service.searchPaginatedForAdmin(
+        'ger',
+        1,
+        10,
+        'en',
+        undefined,
+        'popularity',
+        'desc',
+      );
+
+      const searchPipeline = model.aggregate.mock.calls[0][0];
+      const sortStage = searchPipeline.find(
+        (s: Record<string, unknown>) => '$sort' in s,
+      );
+      expect(sortStage.$sort.membershipCount).toBe(-1);
+    });
+  });
+
   describe('findById', () => {
     it('returns the circle when found', async () => {
       model.findById.mockResolvedValue(mockCircle);
