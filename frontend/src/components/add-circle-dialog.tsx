@@ -261,22 +261,6 @@ export function AddCircleDialog({
                 {t("Comma-separated alternative names.")}
               </FieldDescription>
             </Field>
-            <Field>
-              <FieldLabel htmlFor="add-circle-popularity">
-                {t("Popularity")}
-              </FieldLabel>
-              <Input
-                id="add-circle-popularity"
-                type="number"
-                min={0}
-                {...register("popularity", { valueAsNumber: true })}
-              />
-              {errors.popularity && (
-                <FieldDescription className="text-destructive">
-                  {t(errors.popularity.message ?? "")}
-                </FieldDescription>
-              )}
-            </Field>
           </FieldGroup>
           <DialogFooter className="mt-4">
             <Button
