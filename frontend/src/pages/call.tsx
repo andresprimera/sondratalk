@@ -201,12 +201,13 @@ export default function CallPage() {
 
 function CallMain({ children }: { children: ReactNode }) {
   return (
-    <main className="flex min-h-0 flex-1 items-center justify-center px-6 pb-6">
+    <main className="flex min-h-0 flex-1 flex-col px-4 pb-4 sm:flex-row sm:items-center sm:justify-center sm:px-6 sm:pb-6">
       <div
         className={cn(
-          "relative aspect-video overflow-hidden rounded-3xl",
-          "bg-linear-to-br from-secondary/90 via-secondary to-secondary/70",
-          "shadow-2xl shadow-primary/15 ring-1 ring-border/60"
+          "relative flex min-h-0 w-full flex-1 flex-col gap-3",
+          "sm:block sm:aspect-video sm:flex-none sm:gap-0 sm:overflow-hidden sm:rounded-3xl",
+          "sm:bg-linear-to-br sm:from-secondary/90 sm:via-secondary sm:to-secondary/70",
+          "sm:shadow-2xl sm:shadow-primary/15 sm:ring-1 sm:ring-border/60"
         )}
         style={{
           width: "min(100%, 1024px, calc((100svh - 12rem) * 16 / 9))",
@@ -265,30 +266,26 @@ function VideoStage({
 
   return (
     <>
-      {remoteTrack ? (
-        <VideoTrack
-          trackRef={remoteTrack}
-          className="absolute inset-0 size-full object-cover"
-        />
-      ) : (
-        <RemotePlaceholder
-          peerName={peerName}
-          peerInitials={peerInitials}
-          waiting
-        />
-      )}
-
-      <div
-        className={cn(
-          "absolute right-4 bottom-4 aspect-video w-1/4 max-w-55 min-w-35",
-          "overflow-hidden rounded-xl bg-secondary",
-          "shadow-lg shadow-primary/20 ring-2 ring-background/80"
+      <div className={remoteTileClass}>
+        {remoteTrack ? (
+          <VideoTrack
+            trackRef={remoteTrack}
+            className="absolute inset-0 size-full object-cover"
+          />
+        ) : (
+          <RemotePlaceholder
+            peerName={peerName}
+            peerInitials={peerInitials}
+            waiting
+          />
         )}
-      >
+      </div>
+
+      <div className={localTileClass}>
         {localTrack && isCameraEnabled ? (
           <VideoTrack
             trackRef={localTrack}
-            className="size-full -scale-x-100 object-cover"
+            className="absolute inset-0 size-full -scale-x-100 object-cover"
           />
         ) : (
           <CornerPlaceholder initials={localInitials} />
@@ -360,28 +357,24 @@ function ConnectingPlaceholder({
   const { t } = useTranslation()
   return (
     <>
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 text-center text-secondary-foreground">
-        <Avatar className="size-28 ring-4 ring-background/40">
-          <AvatarFallback className="bg-background/20 text-3xl text-secondary-foreground">
-            {peerInitials}
-          </AvatarFallback>
-        </Avatar>
-        <div className="space-y-2">
-          <p className="text-lg font-medium">{peerName}</p>
-          <p className="flex items-center justify-center gap-2 text-sm text-secondary-foreground/70">
-            <Loader2Icon className="size-4 animate-spin" aria-hidden />
-            {t("Connecting to {{name}}…", { name: peerName })}
-          </p>
+      <div className={remoteTileClass}>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 text-center text-secondary-foreground">
+          <Avatar className="size-28 ring-4 ring-background/40">
+            <AvatarFallback className="bg-background/20 text-3xl text-secondary-foreground">
+              {peerInitials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="space-y-2">
+            <p className="text-lg font-medium">{peerName}</p>
+            <p className="flex items-center justify-center gap-2 text-sm text-secondary-foreground/70">
+              <Loader2Icon className="size-4 animate-spin" aria-hidden />
+              {t("Connecting to {{name}}…", { name: peerName })}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div
-        className={cn(
-          "absolute right-4 bottom-4 aspect-video w-1/4 max-w-55 min-w-35",
-          "overflow-hidden rounded-xl bg-secondary",
-          "shadow-lg shadow-primary/20 ring-2 ring-background/80"
-        )}
-      >
+      <div className={localTileClass}>
         <CornerPlaceholder initials={localInitials} />
       </div>
     </>
@@ -473,6 +466,22 @@ function CallFooter({ live, onEndCall }: CallFooterProps) {
     </footer>
   )
 }
+
+// The two video feeds adapt to the viewport. On phones/portrait they stack as
+// equal tiles that fill the available vertical space (no overlap). On sm+ the
+// remote feed fills the immersive 16:9 stage and the local feed becomes the
+// small picture-in-picture in the bottom-right corner.
+const remoteTileClass = cn(
+  "relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-secondary",
+  "sm:absolute sm:inset-0 sm:flex-none sm:rounded-none sm:bg-transparent"
+)
+
+const localTileClass = cn(
+  "relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-secondary",
+  "shadow-lg shadow-primary/20",
+  "sm:absolute sm:right-4 sm:bottom-4 sm:aspect-video sm:w-1/4 sm:max-w-55 sm:min-w-35",
+  "sm:flex-none sm:rounded-xl sm:ring-2 sm:ring-background/80"
+)
 
 const controlButtonClass = cn(
   "inline-flex size-12 items-center justify-center rounded-full",
