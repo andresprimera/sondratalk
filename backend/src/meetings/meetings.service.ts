@@ -11,6 +11,7 @@ import { Meeting, MeetingDocument } from './schemas/meeting.schema';
 import { UsersService } from '../users/users.service';
 import { MailService } from '../services/mail/mail.service';
 import { AvailabilityService } from '../availability/availability.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { buildMeetingIcs } from './ics';
 import {
   EMAIL_COPY,
@@ -28,6 +29,9 @@ const SCHEDULED_TTL_MS = 60 * 60 * 1000;
 const UPCOMING_GRACE_MS = 15 * 60 * 1000;
 const UPCOMING_LIMIT = 50;
 export const MEETING_DURATION_MINUTES = 60;
+// How long the callee's ring stays live on their screen. Kept under the
+// caller's 60s PEER_JOIN_TIMEOUT_MS so the caller's timeout is the backstop.
+const RING_TTL_MS = 45 * 1000;
 
 @Injectable()
 export class MeetingsService {
@@ -40,6 +44,7 @@ export class MeetingsService {
     private mailService: MailService,
     private configService: ConfigService,
     private availabilityService: AvailabilityService,
+    private realtimeGateway: RealtimeGateway,
   ) {}
 
   async create(
@@ -112,6 +117,26 @@ export class MeetingsService {
       } catch (err) {
         this.logger.warn(
           `Failed to mark initiator ${initiatorId} available after instant meeting ${doc.id}`,
+          err,
+        );
+      }
+
+      // Ring the peer in real time. Best-effort: a socket hiccup must never
+      // block the caller from entering the room (the caller's 60s join timeout
+      // is the backstop if the ring never lands).
+      try {
+        const initiator = await this.usersService.findById(initiatorId);
+        this.realtimeGateway.emitIncomingCall(dto.peerUserId, {
+          meetingId: doc.id,
+          caller: {
+            id: initiatorId,
+            firstName: extractFirstName(initiator?.name ?? ''),
+          },
+          ringExpiresAt: new Date(Date.now() + RING_TTL_MS).toISOString(),
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Failed to ring peer ${dto.peerUserId} for instant meeting ${doc.id}`,
           err,
         );
       }
@@ -323,5 +348,27 @@ export class MeetingsService {
     doc.cancelled = true;
     await doc.save();
     this.logger.log(`Cancelled meeting ${meetingId} by user=${userId}`);
+  }
+
+  // The callee declines an instant call's ring. Only the non-initiator can
+  // decline, and only instant meetings ring. Idempotent: re-declining is a
+  // no-op so we don't double-notify the caller. Returns the doc so the caller
+  // (CallsService) can notify the initiator over the socket.
+  async markDeclined(
+    userId: string,
+    meetingId: string,
+  ): Promise<MeetingDocument> {
+    const doc = await this.findByIdForParticipant(userId, meetingId);
+    if (!doc.instant) {
+      throw new BadRequestException('Only instant calls can be declined');
+    }
+    if (doc.initiatorId.toString() === userId) {
+      throw new BadRequestException('Cannot decline your own call');
+    }
+    if (doc.declinedAt) return doc;
+    doc.declinedAt = new Date();
+    await doc.save();
+    this.logger.log(`Declined meeting ${meetingId} by user=${userId}`);
+    return doc;
   }
 }

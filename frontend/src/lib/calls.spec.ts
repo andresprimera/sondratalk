@@ -1,4 +1,4 @@
-import { fetchCallTokenApi } from "@/lib/calls"
+import { declineCallApi, fetchCallTokenApi } from "@/lib/calls"
 import { authFetch } from "@/lib/api"
 
 vi.mock("@/lib/api", () => ({
@@ -30,6 +30,18 @@ describe("calls API", () => {
         body: JSON.stringify({ meetingId: "m1" }),
       })
       expect(result).toEqual(response)
+    })
+  })
+
+  describe("declineCallApi", () => {
+    it("POSTs to the decline endpoint for the given meeting", async () => {
+      vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(undefined))
+
+      await declineCallApi("m1")
+
+      expect(authFetch).toHaveBeenCalledWith("/api/calls/m1/decline", {
+        method: "POST",
+      })
     })
   })
 })

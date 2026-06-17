@@ -34,6 +34,11 @@ export class Meeting {
   @Prop({ default: false })
   instant!: boolean;
 
+  // Set when the callee declines an instant call's ring, so the caller can be
+  // told "they declined" instead of waiting out the join timeout.
+  @Prop({ type: Date, default: null })
+  declinedAt!: Date | null;
+
   createdAt!: Date;
   updatedAt!: Date;
 }

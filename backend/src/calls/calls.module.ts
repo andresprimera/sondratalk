@@ -4,9 +4,10 @@ import { CallsService } from './calls.service';
 import { LivekitModule } from '../services/livekit/livekit.module';
 import { MeetingsModule } from '../meetings/meetings.module';
 import { UsersModule } from '../users/users.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
-  imports: [LivekitModule, MeetingsModule, UsersModule],
+  imports: [LivekitModule, MeetingsModule, UsersModule, RealtimeModule],
   controllers: [CallsController],
   providers: [CallsService],
 })

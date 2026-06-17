@@ -13,3 +13,9 @@ export async function fetchCallTokenApi(
   })
   return res.json()
 }
+
+// Decline an incoming instant-call ring. Returns 204 (no body); the backend
+// notifies the caller over the socket.
+export async function declineCallApi(meetingId: string): Promise<void> {
+  await authFetch(`/api/calls/${meetingId}/decline`, { method: "POST" })
+}

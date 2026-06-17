@@ -8,6 +8,7 @@ import { Meeting } from './schemas/meeting.schema';
 import { UsersService } from '../users/users.service';
 import { MailService } from '../services/mail/mail.service';
 import { AvailabilityService } from '../availability/availability.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 const USER_A = '507f1f77bcf86cd799439011';
 const USER_B = '507f1f77bcf86cd799439022';
@@ -25,6 +26,7 @@ function makeDoc(overrides: Record<string, unknown> = {}) {
     expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     cancelled: false,
     instant: false,
+    declinedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     save: jest.fn().mockResolvedValue(undefined),
@@ -39,6 +41,7 @@ describe('MeetingsService', () => {
   let mailService: Record<string, jest.Mock>;
   let configService: Record<string, jest.Mock>;
   let availabilityService: Record<string, jest.Mock>;
+  let realtimeGateway: Record<string, jest.Mock>;
 
   beforeEach(async () => {
     meetingModel = {
@@ -67,6 +70,10 @@ describe('MeetingsService', () => {
     availabilityService = {
       upsertByUserId: jest.fn().mockResolvedValue(undefined),
     };
+    realtimeGateway = {
+      emitIncomingCall: jest.fn(),
+      emitCallDeclined: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -76,6 +83,7 @@ describe('MeetingsService', () => {
         { provide: MailService, useValue: mailService },
         { provide: ConfigService, useValue: configService },
         { provide: AvailabilityService, useValue: availabilityService },
+        { provide: RealtimeGateway, useValue: realtimeGateway },
       ],
     }).compile();
 
@@ -382,6 +390,62 @@ describe('MeetingsService', () => {
 
       expect(result).toBe(created);
     });
+
+    it('rings the peer over the socket when starting an instant call', async () => {
+      // First findById: peer lookup. Second: initiator lookup for the caller name.
+      usersService.findById
+        .mockResolvedValueOnce({ id: USER_B, name: 'Beatriz' })
+        .mockResolvedValueOnce({ id: USER_A, name: 'Ana María' });
+      const created = makeDoc({ instant: true });
+      meetingModel.create.mockResolvedValue(created);
+
+      await service.create(USER_A, { peerUserId: USER_B, instant: true });
+
+      expect(realtimeGateway.emitIncomingCall).toHaveBeenCalledTimes(1);
+      const [calleeId, payload] =
+        realtimeGateway.emitIncomingCall.mock.calls[0];
+      expect(calleeId).toBe(USER_B);
+      expect(payload.meetingId).toBe(created.id);
+      expect(payload.caller).toEqual({ id: USER_A, firstName: 'Ana' });
+      expect(typeof payload.ringExpiresAt).toBe('string');
+    });
+
+    it('does not ring the peer for scheduled meetings', async () => {
+      const future = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      usersService.findById.mockResolvedValue({
+        id: USER_B,
+        name: 'Beatriz',
+        email: 'b@x.test',
+        locale: 'en',
+      });
+      meetingModel.create.mockResolvedValue(
+        makeDoc({ scheduledAt: future, instant: false }),
+      );
+
+      await service.create(USER_A, {
+        peerUserId: USER_B,
+        scheduledAt: future.toISOString(),
+      });
+      await flushMicrotasks();
+
+      expect(realtimeGateway.emitIncomingCall).not.toHaveBeenCalled();
+    });
+
+    it('still returns the meeting if ringing the peer fails', async () => {
+      usersService.findById.mockResolvedValue({ id: USER_B, name: 'Beatriz' });
+      const created = makeDoc({ instant: true });
+      meetingModel.create.mockResolvedValue(created);
+      realtimeGateway.emitIncomingCall.mockImplementationOnce(() => {
+        throw new Error('socket blip');
+      });
+
+      const result = await service.create(USER_A, {
+        peerUserId: USER_B,
+        instant: true,
+      });
+
+      expect(result).toBe(created);
+    });
   });
 
   describe('findUpcomingForUser', () => {
@@ -511,6 +575,61 @@ describe('MeetingsService', () => {
       const doc = makeDoc();
       meetingModel.findById.mockResolvedValue(doc);
       await expect(service.cancel(USER_C, validId)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(doc.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('markDeclined', () => {
+    const validId = '507f1f77bcf86cd799439aaa';
+
+    it('sets declinedAt and saves when the non-initiator declines an instant call', async () => {
+      const doc = makeDoc({ instant: true });
+      meetingModel.findById.mockResolvedValue(doc);
+
+      const result = await service.markDeclined(USER_B, validId);
+
+      expect(doc.declinedAt).toBeInstanceOf(Date);
+      expect(doc.save).toHaveBeenCalledTimes(1);
+      expect(result).toBe(doc);
+    });
+
+    it('rejects declining a non-instant meeting', async () => {
+      const doc = makeDoc({ instant: false });
+      meetingModel.findById.mockResolvedValue(doc);
+
+      await expect(service.markDeclined(USER_B, validId)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(doc.save).not.toHaveBeenCalled();
+    });
+
+    it('rejects the initiator declining their own call', async () => {
+      const doc = makeDoc({ instant: true });
+      meetingModel.findById.mockResolvedValue(doc);
+
+      await expect(service.markDeclined(USER_A, validId)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(doc.save).not.toHaveBeenCalled();
+    });
+
+    it('is idempotent — re-declining does not save again', async () => {
+      const doc = makeDoc({ instant: true, declinedAt: new Date() });
+      meetingModel.findById.mockResolvedValue(doc);
+
+      const result = await service.markDeclined(USER_B, validId);
+
+      expect(doc.save).not.toHaveBeenCalled();
+      expect(result).toBe(doc);
+    });
+
+    it('refuses non-participants via the shared auth check', async () => {
+      const doc = makeDoc({ instant: true });
+      meetingModel.findById.mockResolvedValue(doc);
+
+      await expect(service.markDeclined(USER_C, validId)).rejects.toThrow(
         NotFoundException,
       );
       expect(doc.save).not.toHaveBeenCalled();

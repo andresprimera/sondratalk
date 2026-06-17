@@ -1,4 +1,11 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+} from '@nestjs/common';
 import { CallsService } from './calls.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
@@ -19,5 +26,14 @@ export class CallsController {
     dto: CallTokenRequest,
   ): Promise<CallTokenResponse> {
     return this.callsService.generateToken(userId, dto.meetingId);
+  }
+
+  @Post(':id/decline')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async decline(
+    @CurrentUser('userId') userId: string,
+    @Param('id') id: string,
+  ): Promise<void> {
+    return this.callsService.declineCall(userId, id);
   }
 }

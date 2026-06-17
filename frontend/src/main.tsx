@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/hooks/use-auth"
+import { CallSocketProvider } from "@/hooks/use-call-socket"
 import { queryClient } from "@/lib/query-client"
 import { router } from "@/router"
 import "@/lib/i18n"
@@ -16,10 +17,12 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
         <AuthProvider>
-          <TooltipProvider>
-            <RouterProvider router={router} />
-            <Toaster />
-          </TooltipProvider>
+          <CallSocketProvider>
+            <TooltipProvider>
+              <RouterProvider router={router} />
+              <Toaster />
+            </TooltipProvider>
+          </CallSocketProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

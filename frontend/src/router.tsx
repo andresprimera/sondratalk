@@ -22,12 +22,16 @@ import SettingsPage from "@/pages/settings"
 import { ProtectedRoute } from "@/components/protected-route"
 import { AdminRoute } from "@/components/admin-route"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { RootLayout } from "@/components/root-layout"
 
 export const router = createBrowserRouter([
   {
-    path: "/",
-    element: <LandingPage />,
-  },
+    element: <RootLayout />,
+    children: [
+      {
+        path: "/",
+        element: <LandingPage />,
+      },
   {
     path: "/login",
     element: <LoginPage />,
@@ -147,6 +151,8 @@ export const router = createBrowserRouter([
       {
         path: "settings",
         element: <SettingsPage />,
+      },
+        ],
       },
     ],
   },

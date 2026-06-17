@@ -26,9 +26,14 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
+import { useCallSocket } from "@/hooks/use-call-socket"
 import { fetchCallTokenApi } from "@/lib/calls"
 import { fetchMeetingByIdApi } from "@/lib/meetings"
 import i18n from "@/lib/i18n"
+import {
+  CALL_SOCKET_EVENTS,
+  callDeclinedPayloadSchema,
+} from "@base-dashboard/shared"
 
 function getInitials(name: string | null | undefined): string {
   if (!name) return "?"
@@ -50,6 +55,25 @@ export default function CallPage() {
   const params = useParams<{ meetingId: string }>()
   const meetingId = params.meetingId ?? ""
   const [peerTimedOut, setPeerTimedOut] = useState(false)
+  const [peerDeclined, setPeerDeclined] = useState(false)
+  const { socket } = useCallSocket()
+
+  // The callee can decline the ring. When they do, the backend pushes
+  // call-declined so we can bail out immediately instead of waiting out the
+  // 60s join timeout.
+  useEffect(() => {
+    if (!socket || !meetingId) return
+    const handleDeclined = (raw: unknown) => {
+      const parsed = callDeclinedPayloadSchema.safeParse(raw)
+      if (parsed.success && parsed.data.meetingId === meetingId) {
+        setPeerDeclined(true)
+      }
+    }
+    socket.on(CALL_SOCKET_EVENTS.callDeclined, handleDeclined)
+    return () => {
+      socket.off(CALL_SOCKET_EVENTS.callDeclined, handleDeclined)
+    }
+  }, [socket, meetingId])
 
   const meetingQuery = useQuery({
     queryKey: ["meetings", meetingId] as const,
@@ -107,7 +131,8 @@ export default function CallPage() {
         ? t("Couldn't connect")
         : t("Connected")
 
-  const inRoom = Boolean(meetingId && tokenQuery.data) && !peerTimedOut
+  const inRoom =
+    Boolean(meetingId && tokenQuery.data) && !peerTimedOut && !peerDeclined
 
   return (
     <div className="flex min-h-svh flex-col bg-background">
@@ -141,6 +166,7 @@ export default function CallPage() {
               peerName={peerName}
               peerInitials={peerInitials}
               localInitials={localInitials}
+              ringing={meetingQuery.data?.instant ?? false}
               onPeerTimeout={() => setPeerTimedOut(true)}
             />
           </CallMain>
@@ -154,6 +180,20 @@ export default function CallPage() {
                 tone="error"
                 title={t("No meeting specified")}
                 description={t("This call link is missing a meeting id.")}
+              />
+            ) : peerDeclined ? (
+              <StageMessage
+                tone="info"
+                title={t("They declined")}
+                description={t(
+                  "{{name}} can't talk right now. Try another match.",
+                  { name: peerName },
+                )}
+                action={
+                  <Button onClick={() => navigate("/find-conversation")}>
+                    {t("Find another match")}
+                  </Button>
+                }
               />
             ) : peerTimedOut ? (
               <StageMessage
@@ -223,6 +263,7 @@ interface VideoStageProps {
   peerName: string
   peerInitials: string
   localInitials: string
+  ringing: boolean
   onPeerTimeout: () => void
 }
 
@@ -230,6 +271,7 @@ function VideoStage({
   peerName,
   peerInitials,
   localInitials,
+  ringing,
   onPeerTimeout,
 }: VideoStageProps) {
   const tracks = useTracks([Track.Source.Camera], { onlySubscribed: false })
@@ -277,6 +319,7 @@ function VideoStage({
             peerName={peerName}
             peerInitials={peerInitials}
             waiting
+            ringing={ringing}
           />
         )}
       </div>
@@ -299,12 +342,14 @@ interface RemotePlaceholderProps {
   peerName: string
   peerInitials: string
   waiting?: boolean
+  ringing?: boolean
 }
 
 function RemotePlaceholder({
   peerName,
   peerInitials,
   waiting,
+  ringing,
 }: RemotePlaceholderProps) {
   const { t } = useTranslation()
   return (
@@ -319,7 +364,9 @@ function RemotePlaceholder({
         {waiting && (
           <p className="flex items-center justify-center gap-2 text-sm text-secondary-foreground/70">
             <Loader2Icon className="size-4 animate-spin" aria-hidden />
-            {t("Waiting for {{name}} to join…", { name: peerName })}
+            {ringing
+              ? t("Ringing {{name}}…", { name: peerName })
+              : t("Waiting for {{name}} to join…", { name: peerName })}
           </p>
         )}
       </div>

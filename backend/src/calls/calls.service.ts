@@ -7,6 +7,7 @@ import {
 import { LivekitService } from '../services/livekit/livekit.service';
 import { MeetingsService } from '../meetings/meetings.service';
 import { UsersService } from '../users/users.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import type { CallTokenResponse } from './dto';
 
 const JOIN_WINDOW_BEFORE_MS = 5 * 60 * 1000;
@@ -20,7 +21,18 @@ export class CallsService {
     private livekitService: LivekitService,
     private meetingsService: MeetingsService,
     private usersService: UsersService,
+    private realtimeGateway: RealtimeGateway,
   ) {}
+
+  async declineCall(userId: string, meetingId: string): Promise<void> {
+    const meeting = await this.meetingsService.markDeclined(userId, meetingId);
+    this.realtimeGateway.emitCallDeclined(meeting.initiatorId.toString(), {
+      meetingId: meeting.id,
+    });
+    this.logger.log(
+      `Call declined meeting=${meeting.id} by user=${userId}, notified caller=${meeting.initiatorId.toString()}`,
+    );
+  }
 
   async generateToken(
     callerId: string,

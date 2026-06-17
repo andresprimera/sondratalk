@@ -12,6 +12,7 @@ import { SchedulingService } from './scheduling.service';
 import { UsersModule } from '../users/users.module';
 import { MailModule } from '../services/mail/mail.module';
 import { AvailabilityModule } from '../availability/availability.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AvailabilityModule } from '../availability/availability.module';
     UsersModule,
     MailModule,
     AvailabilityModule,
+    RealtimeModule,
   ],
   controllers: [MeetingsController, SchedulingController],
   providers: [MeetingsService, SchedulingService],

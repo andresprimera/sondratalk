@@ -4,6 +4,7 @@ import { CallsService } from './calls.service';
 import { LivekitService } from '../services/livekit/livekit.service';
 import { MeetingsService } from '../meetings/meetings.service';
 import { UsersService } from '../users/users.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 const CALLER_ID = '507f1f77bcf86cd799439011';
 const PEER_ID = '507f1f77bcf86cd799439022';
@@ -26,6 +27,7 @@ describe('CallsService', () => {
   let livekitService: Record<string, jest.Mock>;
   let meetingsService: Record<string, jest.Mock>;
   let usersService: Record<string, jest.Mock>;
+  let realtimeGateway: Record<string, jest.Mock>;
 
   beforeEach(async () => {
     livekitService = {
@@ -37,9 +39,14 @@ describe('CallsService', () => {
     };
     meetingsService = {
       findByIdForParticipant: jest.fn(),
+      markDeclined: jest.fn(),
     };
     usersService = {
       findById: jest.fn(),
+    };
+    realtimeGateway = {
+      emitIncomingCall: jest.fn(),
+      emitCallDeclined: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -48,6 +55,7 @@ describe('CallsService', () => {
         { provide: LivekitService, useValue: livekitService },
         { provide: MeetingsService, useValue: meetingsService },
         { provide: UsersService, useValue: usersService },
+        { provide: RealtimeGateway, useValue: realtimeGateway },
       ],
     }).compile();
 
@@ -152,6 +160,37 @@ describe('CallsService', () => {
 
       const result = await service.generateToken(CALLER_ID, MEETING_ID);
       expect(result.token).toBe('signed.jwt.value');
+    });
+  });
+
+  describe('declineCall', () => {
+    it('marks the meeting declined and notifies the caller over the socket', async () => {
+      meetingsService.markDeclined.mockResolvedValue({
+        id: MEETING_ID,
+        initiatorId: { toString: () => CALLER_ID },
+      });
+
+      await service.declineCall(PEER_ID, MEETING_ID);
+
+      expect(meetingsService.markDeclined).toHaveBeenCalledWith(
+        PEER_ID,
+        MEETING_ID,
+      );
+      expect(realtimeGateway.emitCallDeclined).toHaveBeenCalledWith(CALLER_ID, {
+        meetingId: MEETING_ID,
+      });
+    });
+
+    it('propagates errors from markDeclined without emitting', async () => {
+      meetingsService.markDeclined.mockRejectedValue(
+        new BadRequestException('Cannot decline your own call'),
+      );
+
+      await expect(
+        service.declineCall(CALLER_ID, MEETING_ID),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(realtimeGateway.emitCallDeclined).not.toHaveBeenCalled();
     });
   });
 });

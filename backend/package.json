@@ -31,7 +31,9 @@
     "@nestjs/mongoose": "^11.0.0",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/platform-socket.io": "^11.1.27",
     "@nestjs/serve-static": "^5.0.5",
+    "@nestjs/websockets": "^11.1.27",
     "ai": "^6.0.168",
     "bcrypt": "^6.0.0",
     "firebase-admin": "^13.8.0",
@@ -43,6 +45,7 @@
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0",
+    "socket.io": "^4.8.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {

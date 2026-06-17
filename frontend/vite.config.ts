@@ -19,6 +19,13 @@ export default defineConfig({
         target: "http://localhost:3030",
         changeOrigin: true,
       },
+      // socket.io (real-time call ring) — forward the WS handshake + upgrade
+      // to the backend so the client can connect to the dev server origin.
+      "/socket.io": {
+        target: "http://localhost:3030",
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
 })

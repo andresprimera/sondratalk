@@ -740,5 +740,14 @@
   "This will permanently delete {{count}} user(s). This cannot be undone.": "This will permanently delete {{count}} user(s). This cannot be undone.",
   "Selected users deleted": "Selected users deleted",
   "{{count}} deletion(s) failed": "{{count}} deletion(s) failed",
-  "Failed to delete users": "Failed to delete users"
+  "Failed to delete users": "Failed to delete users",
+  "{{name}} is calling…": "{{name}} is calling…",
+  "They'd like to talk right now.": "They'd like to talk right now.",
+  "Accept": "Accept",
+  "Decline": "Decline",
+  "Couldn't decline the call.": "Couldn't decline the call.",
+  "Someone": "Someone",
+  "They declined": "They declined",
+  "{{name}} can't talk right now. Try another match.": "{{name}} can't talk right now. Try another match.",
+  "Ringing {{name}}…": "Ringing {{name}}…"
 }

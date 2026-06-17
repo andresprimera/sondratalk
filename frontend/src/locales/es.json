@@ -740,5 +740,14 @@
   "This will permanently delete {{count}} user(s). This cannot be undone.": "Esto eliminará permanentemente {{count}} usuario(s). No se puede deshacer.",
   "Selected users deleted": "Usuarios seleccionados eliminados",
   "{{count}} deletion(s) failed": "{{count}} eliminación(es) fallida(s)",
-  "Failed to delete users": "No se pudieron eliminar los usuarios"
+  "Failed to delete users": "No se pudieron eliminar los usuarios",
+  "{{name}} is calling…": "{{name}} te está llamando…",
+  "They'd like to talk right now.": "Quiere hablar ahora mismo.",
+  "Accept": "Aceptar",
+  "Decline": "Rechazar",
+  "Couldn't decline the call.": "No se pudo rechazar la llamada.",
+  "Someone": "Alguien",
+  "They declined": "Rechazaron la llamada",
+  "{{name}} can't talk right now. Try another match.": "{{name}} no puede hablar ahora. Prueba con otra coincidencia.",
+  "Ringing {{name}}…": "Llamando a {{name}}…"
 }
