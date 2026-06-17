@@ -18,7 +18,7 @@ export interface EmailCopy {
 
 // Per-locale strings used to render the confirmation email card. The HTML
 // structure itself is shared (see renderHtml) so the design stays in one place.
-interface HtmlLabels {
+export interface HtmlLabels {
   lang: string;
   headerLabel: string;
   greeting: string;
@@ -41,7 +41,9 @@ function escapeHtml(value: string): string {
 // Email-client-safe rendering: table-based layout, inline styles, no <style>
 // block, no flexbox/grid, no web fonts assumed (Cormorant Garamond is offered
 // first but degrades to Georgia). Mirrors email-confirmation-mockup.html.
-function renderHtml(labels: HtmlLabels, data: MeetingEmailData): string {
+// Exported so other meeting-related notifications (e.g. scheduling proposals)
+// can reuse the same card design with their own copy.
+export function renderHtml(labels: HtmlLabels, data: MeetingEmailData): string {
   const name = escapeHtml(data.otherFirst);
   const dayLabel = escapeHtml(data.dayLabel);
   const timeRange = escapeHtml(data.timeRange);

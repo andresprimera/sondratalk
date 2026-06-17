@@ -27,7 +27,7 @@ const INSTANT_TTL_MS = 10 * 60 * 1000;
 const SCHEDULED_TTL_MS = 60 * 60 * 1000;
 const UPCOMING_GRACE_MS = 15 * 60 * 1000;
 const UPCOMING_LIMIT = 50;
-const MEETING_DURATION_MINUTES = 60;
+export const MEETING_DURATION_MINUTES = 60;
 
 @Injectable()
 export class MeetingsService {
