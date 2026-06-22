@@ -12,6 +12,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -35,6 +36,8 @@ import {
   type UpdateCircleInput,
   circleSearchQuerySchema,
   type CircleSearchQuery,
+  verifyCirclePasswordSchema,
+  type VerifyCirclePasswordInput,
 } from './dto';
 
 function isLocaleKey(s: string): s is LocaleKey {
@@ -151,6 +154,28 @@ export class CirclesController {
       throw new NotFoundException('Circle not found');
     }
     return toCircle(doc);
+  }
+
+  @Post(':id/verify-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async verifyPassword(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(verifyCirclePasswordSchema))
+    dto: VerifyCirclePasswordInput,
+  ): Promise<void> {
+    const doc = await this.circlesService.findByIdWithPassword(id);
+    if (!doc) {
+      throw new NotFoundException('Circle not found');
+    }
+    if (!doc.isPrivate) {
+      throw new BadRequestException('Circle is not private');
+    }
+    const valid = await this.circlesService.verifyPassword(doc, dto.password);
+    if (!valid) {
+      // 403, not 401 — a wrong circle password isn't an auth-token problem,
+      // and authFetch treats every 401 as session expiry (silent refresh + retry).
+      throw new ForbiddenException('Incorrect password');
+    }
   }
 
   @Patch(':id')

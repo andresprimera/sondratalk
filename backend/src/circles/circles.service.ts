@@ -1,9 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model, PipelineStage, Types } from 'mongoose';
+import * as bcrypt from 'bcrypt';
 import { LOCALE_KEYS, type CircleSortBy, type LocaleKey } from '@base-dashboard/shared';
 import { Circle, CircleDocument } from './schemas/circle.schema';
 import { CreateCircleInput, UpdateCircleInput } from './dto';
+
+const PASSWORD_SALT_ROUNDS = 12;
 
 // Name of the Atlas Search index defined on the `circles` collection.
 // Must match the index name shown in Atlas → Search tab. The index
@@ -29,6 +32,7 @@ export type AdminCircleAggRow = {
   labels: { en: string; es: string };
   aliases: { en: string[]; es: string[] };
   popularity: number;
+  isPrivate: boolean;
   membershipCount: number;
 };
 
@@ -63,7 +67,15 @@ export class CirclesService {
     themeLabels: ThemeLabelsSnapshot,
   ): Promise<CircleDocument> {
     const aliases = dto.aliases ?? { en: [], es: [] };
-    return this.circleModel.create({ ...dto, aliases, themeLabels });
+    const password = dto.password
+      ? await bcrypt.hash(dto.password, PASSWORD_SALT_ROUNDS)
+      : undefined;
+    return this.circleModel.create({
+      ...dto,
+      aliases,
+      themeLabels,
+      password,
+    });
   }
 
   async findAll(): Promise<CircleDocument[]> {
@@ -188,7 +200,7 @@ export class CirclesService {
         },
       },
       { $addFields: { membershipCount: { $size: '$memberships' } } },
-      { $project: { memberships: 0 } },
+      { $project: { memberships: 0, password: 0 } },
       { $sort: { [sortField]: sortOrder } },
       {
         $facet: {
@@ -233,7 +245,7 @@ export class CirclesService {
         },
       },
       { $addFields: { membershipCount: { $size: '$memberships' } } },
-      { $project: { memberships: 0 } },
+      { $project: { memberships: 0, password: 0 } },
       { $sort: { [sortField]: sortOrder, score: { $meta: 'searchScore' } } },
       { $skip: skip },
       { $limit: limit },
@@ -266,6 +278,18 @@ export class CirclesService {
     return this.circleModel.findById(id);
   }
 
+  async findByIdWithPassword(id: string): Promise<CircleDocument | null> {
+    return this.circleModel.findById(id).select('+password');
+  }
+
+  async verifyPassword(
+    circle: CircleDocument,
+    password: string,
+  ): Promise<boolean> {
+    if (!circle.password) return false;
+    return bcrypt.compare(password, circle.password);
+  }
+
   async findByIds(ids: string[]): Promise<CircleDocument[]> {
     if (ids.length === 0) return [];
     const objectIds = ids.map((id) => new Types.ObjectId(id));
@@ -281,8 +305,38 @@ export class CirclesService {
     dto: UpdateCircleInput,
     themeLabels?: ThemeLabelsSnapshot,
   ): Promise<CircleDocument | null> {
-    const update = themeLabels ? { ...dto, themeLabels } : dto;
-    return this.circleModel.findByIdAndUpdate(id, update, { new: true });
+    // A partial dto alone can't tell us whether a circle already has a
+    // password (e.g. renaming an already-private circle without resending
+    // it), so check against the existing document instead of the payload.
+    const current = await this.circleModel.findById(id).select('+password');
+    if (!current) return null;
+
+    const willBePrivate = dto.isPrivate ?? current.isPrivate;
+    const willHavePassword = dto.password ? true : Boolean(current.password);
+    if (willBePrivate && !willHavePassword) {
+      throw new BadRequestException('Password is required for private circles');
+    }
+
+    const { password, ...rest } = dto;
+    const set: Record<string, unknown> = themeLabels
+      ? { ...rest, themeLabels }
+      : { ...rest };
+    if (password) {
+      set.password = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
+    }
+
+    // Un-privating clears the old hash so it can't be silently revived later
+    // by re-privating without supplying a new password. A password can't be
+    // in both $set and $unset in the same update, so drop it from $set here.
+    if (dto.isPrivate === false) {
+      delete set.password;
+      return this.circleModel.findByIdAndUpdate(
+        id,
+        { $set: set, $unset: { password: '' } },
+        { new: true },
+      );
+    }
+    return this.circleModel.findByIdAndUpdate(id, set, { new: true });
   }
 
   async upsertById(
@@ -291,9 +345,12 @@ export class CirclesService {
     themeLabels: ThemeLabelsSnapshot,
   ): Promise<CircleDocument | null> {
     const aliases = data.aliases ?? { en: [], es: [] };
+    const password = data.password
+      ? await bcrypt.hash(data.password, PASSWORD_SALT_ROUNDS)
+      : undefined;
     return this.circleModel.findByIdAndUpdate(
       id,
-      { ...data, aliases, themeLabels },
+      { ...data, aliases, themeLabels, password },
       {
         upsert: true,
         setDefaultsOnInsert: true,

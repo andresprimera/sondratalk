@@ -27,6 +27,7 @@ import {
   fetchMyCirclesApi,
   updateMyCirclesApi,
 } from "@/lib/memberships"
+import { CirclePasswordDialog } from "@/components/circle-password-dialog"
 import { cn } from "@/lib/utils"
 
 const PAGE_SIZE = 24
@@ -48,6 +49,8 @@ export default function MyCirclesPage() {
   const [seeded, setSeeded] = useState(false)
   const [searchValue, setSearchValue] = useState("")
   const [debouncedQ, setDebouncedQ] = useState("")
+  const [pendingPrivateCircle, setPendingPrivateCircle] =
+    useState<Circle | null>(null)
 
   useEffect(() => {
     if (!seeded && myCirclesQuery.data) {
@@ -245,7 +248,15 @@ export default function MyCirclesPage() {
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => (used ? remove(c.id) : add(c))}
+                  onClick={() => {
+                    if (used) {
+                      remove(c.id)
+                    } else if (c.isPrivate) {
+                      setPendingPrivateCircle(c)
+                    } else {
+                      add(c)
+                    }
+                  }}
                   aria-pressed={used}
                   className={cn(
                     "rounded-full border px-3 py-1 text-sm transition-colors",
@@ -297,6 +308,24 @@ export default function MyCirclesPage() {
           )
         )}
       </div>
+
+      <CirclePasswordDialog
+        circle={
+          pendingPrivateCircle
+            ? {
+                id: pendingPrivateCircle.id,
+                label: pendingPrivateCircle.labels[locale],
+              }
+            : null
+        }
+        onOpenChange={(open) => {
+          if (!open) setPendingPrivateCircle(null)
+        }}
+        onVerified={() => {
+          if (pendingPrivateCircle) add(pendingPrivateCircle)
+          setPendingPrivateCircle(null)
+        }}
+      />
     </div>
   )
 }

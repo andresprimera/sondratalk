@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchAllCirclesApi } from "@/lib/circles"
+import { CirclePasswordDialog } from "@/components/circle-password-dialog"
 import type { Circle, CircleType } from "@base-dashboard/shared"
 
 export interface OnboardingCircle {
@@ -34,7 +35,7 @@ function CircleGroup({
   circles: Circle[]
   selected: OnboardingCircle[]
   locale: "en" | "es"
-  onAdd: (c: OnboardingCircle) => void
+  onAdd: (c: Circle) => void
 }) {
   const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
@@ -59,7 +60,7 @@ function CircleGroup({
               type="button"
               className="onboarding-chip"
               data-used={used}
-              onClick={() => onAdd({ id: c.id, label: displayLabel })}
+              onClick={() => onAdd(c)}
               aria-pressed={used}
             >
               {displayLabel}
@@ -116,6 +117,8 @@ export function OnboardingCirclesStep({
   const locale: "en" | "es" =
     i18n.language?.split("-")[0] === "es" ? "es" : "en"
   const [customInput, setCustomInput] = useState("")
+  const [pendingPrivateCircle, setPendingPrivateCircle] =
+    useState<Circle | null>(null)
 
   const circlesQuery = useQuery({
     queryKey: ["circles", "all"] as const,
@@ -133,6 +136,15 @@ export function OnboardingCirclesStep({
   function add(circle: OnboardingCircle) {
     if (circles.some((c) => c.id === circle.id)) return
     onCirclesChange([...circles, circle])
+  }
+
+  function attemptAdd(circle: Circle) {
+    if (circles.some((c) => c.id === circle.id)) return
+    if (circle.isPrivate) {
+      setPendingPrivateCircle(circle)
+      return
+    }
+    add({ id: circle.id, label: circle.labels[locale] })
   }
 
   function remove(id: string) {
@@ -236,7 +248,7 @@ export function OnboardingCirclesStep({
               circles={g.circles}
               selected={circles}
               locale={locale}
-              onAdd={add}
+              onAdd={attemptAdd}
             />
           ))}
         </div>
@@ -275,6 +287,29 @@ export function OnboardingCirclesStep({
           {isSubmitting ? t("Saving...") : t("Enter Sondra →")}
         </Button>
       </div>
+
+      <CirclePasswordDialog
+        circle={
+          pendingPrivateCircle
+            ? {
+                id: pendingPrivateCircle.id,
+                label: pendingPrivateCircle.labels[locale],
+              }
+            : null
+        }
+        onOpenChange={(open) => {
+          if (!open) setPendingPrivateCircle(null)
+        }}
+        onVerified={() => {
+          if (pendingPrivateCircle) {
+            add({
+              id: pendingPrivateCircle.id,
+              label: pendingPrivateCircle.labels[locale],
+            })
+          }
+          setPendingPrivateCircle(null)
+        }}
+      />
     </section>
   )
 }

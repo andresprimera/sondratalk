@@ -93,6 +93,8 @@ export {
   type CircleSortBy,
   circleSearchQuerySchema,
   type CircleSearchQuery,
+  verifyCirclePasswordSchema,
+  type VerifyCirclePasswordInput,
 } from "./schemas/circle";
 
 export {

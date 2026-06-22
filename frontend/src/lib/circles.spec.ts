@@ -4,6 +4,7 @@ import {
   fetchAllCirclesApi,
   fetchCircleByIdApi,
   createCircleApi,
+  verifyCirclePasswordApi,
 } from "@/lib/circles"
 import { authFetch } from "@/lib/api"
 
@@ -22,6 +23,7 @@ const sampleCircle = {
   labels: { en: "German Shepherd", es: "Pastor Alemán" },
   aliases: { en: ["GSD"], es: [] },
   popularity: 0,
+  isPrivate: false,
 }
 
 describe("circles API", () => {
@@ -206,6 +208,22 @@ describe("circles API", () => {
 
       expect(authFetch).toHaveBeenCalledWith(
         "/api/circles/admin?q=ger&themeId=t1&page=1&limit=10",
+      )
+    })
+  })
+
+  describe("verifyCirclePasswordApi", () => {
+    it("POSTs /api/circles/:id/verify-password with the password", async () => {
+      vi.mocked(authFetch).mockResolvedValue({} as Response)
+
+      await verifyCirclePasswordApi("c1", "secret123")
+
+      expect(authFetch).toHaveBeenCalledWith(
+        "/api/circles/c1/verify-password",
+        {
+          method: "POST",
+          body: JSON.stringify({ password: "secret123" }),
+        },
       )
     })
   })

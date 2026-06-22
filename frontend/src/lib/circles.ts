@@ -54,3 +54,13 @@ export async function createCircleApi(
   })
   return res.json()
 }
+
+export async function verifyCirclePasswordApi(
+  id: string,
+  password: string,
+): Promise<void> {
+  await authFetch(`/api/circles/${id}/verify-password`, {
+    method: "POST",
+    body: JSON.stringify({ password }),
+  })
+}

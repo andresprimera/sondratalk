@@ -1,7 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
+import { BadRequestException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { CirclesService } from './circles.service';
 import { Circle, CircleDocument } from './schemas/circle.schema';
+
+jest.mock('bcrypt');
+const mockedBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
 
 describe('CirclesService', () => {
   let service: CirclesService;
@@ -39,6 +44,8 @@ describe('CirclesService', () => {
 
     service = module.get<CirclesService>(CirclesService);
   });
+
+  afterEach(() => jest.clearAllMocks());
 
   describe('create', () => {
     const themeLabels = { en: 'Dogs', es: 'Perros' };
@@ -89,6 +96,46 @@ describe('CirclesService', () => {
           aliases: { en: ['GSD'], es: [] },
         }),
       );
+    });
+
+    it('hashes the password for a private circle and never persists it in plaintext', async () => {
+      model.create.mockResolvedValue(mockCircle);
+      mockedBcrypt.hash.mockResolvedValue('hashed-secret' as never);
+
+      await service.create(
+        {
+          slug: 'private-circle',
+          themeId: 'theme-1',
+          type: 'what-you-love',
+          labels: { en: 'Private', es: 'Privado' },
+          isPrivate: true,
+          password: 'plaintext-secret',
+        },
+        themeLabels,
+      );
+
+      expect(mockedBcrypt.hash).toHaveBeenCalledWith('plaintext-secret', 12);
+      expect(model.create).toHaveBeenCalledWith(
+        expect.objectContaining({ password: 'hashed-secret', isPrivate: true }),
+      );
+    });
+
+    it('does not set a password for a non-private circle', async () => {
+      model.create.mockResolvedValue(mockCircle);
+
+      await service.create(
+        {
+          slug: 'public-circle',
+          themeId: 'theme-1',
+          type: 'what-you-love',
+          labels: { en: 'Public', es: 'Público' },
+        },
+        themeLabels,
+      );
+
+      expect(mockedBcrypt.hash).not.toHaveBeenCalled();
+      const callArgs = model.create.mock.calls[0][0];
+      expect(callArgs.password).toBeUndefined();
     });
   });
 
@@ -405,6 +452,50 @@ describe('CirclesService', () => {
     });
   });
 
+  describe('findByIdWithPassword', () => {
+    it('selects the password field explicitly', async () => {
+      const chainable = { select: jest.fn().mockResolvedValue(mockCircle) };
+      model.findById.mockReturnValue(chainable);
+
+      const result = await service.findByIdWithPassword('circle-1');
+
+      expect(model.findById).toHaveBeenCalledWith('circle-1');
+      expect(chainable.select).toHaveBeenCalledWith('+password');
+      expect(result).toEqual(mockCircle);
+    });
+  });
+
+  describe('verifyPassword', () => {
+    it('returns true when the password matches the stored hash', async () => {
+      mockedBcrypt.compare.mockResolvedValue(true as never);
+      const circle = { ...mockCircle, password: 'hashed-secret' } as unknown as CircleDocument;
+
+      const result = await service.verifyPassword(circle, 'plaintext-secret');
+
+      expect(mockedBcrypt.compare).toHaveBeenCalledWith(
+        'plaintext-secret',
+        'hashed-secret',
+      );
+      expect(result).toBe(true);
+    });
+
+    it('returns false when the password does not match', async () => {
+      mockedBcrypt.compare.mockResolvedValue(false as never);
+      const circle = { ...mockCircle, password: 'hashed-secret' } as unknown as CircleDocument;
+
+      expect(await service.verifyPassword(circle, 'wrong')).toBe(false);
+    });
+
+    it('returns false without comparing when the circle has no password set', async () => {
+      const circle = { ...mockCircle, password: undefined } as unknown as CircleDocument;
+
+      const result = await service.verifyPassword(circle, 'anything');
+
+      expect(mockedBcrypt.compare).not.toHaveBeenCalled();
+      expect(result).toBe(false);
+    });
+  });
+
   describe('findBySlugExists', () => {
     it('returns true when exists() resolves to a doc', async () => {
       model.exists.mockReturnValue(Promise.resolve({ _id: 'circle-1' }));
@@ -418,7 +509,14 @@ describe('CirclesService', () => {
   });
 
   describe('update', () => {
+    function mockCurrent(overrides: Record<string, unknown> = {}) {
+      model.findById.mockReturnValue({
+        select: jest.fn().mockResolvedValue({ ...mockCircle, ...overrides }),
+      });
+    }
+
     it('passes the dto through to findByIdAndUpdate', async () => {
+      mockCurrent();
       const updated = { ...mockCircle, popularity: 5 };
       model.findByIdAndUpdate.mockResolvedValue(updated);
 
@@ -433,13 +531,86 @@ describe('CirclesService', () => {
     });
 
     it('returns null when the doc is missing', async () => {
-      model.findByIdAndUpdate.mockResolvedValue(null);
+      model.findById.mockReturnValue({
+        select: jest.fn().mockResolvedValue(null),
+      });
 
       const result = await service.update('missing', {
         labels: { en: 'A', es: 'B' },
       });
 
       expect(result).toBeNull();
+      expect(model.findByIdAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('hashes a newly supplied password instead of storing it in plaintext', async () => {
+      mockCurrent();
+      model.findByIdAndUpdate.mockResolvedValue(mockCircle);
+      mockedBcrypt.hash.mockResolvedValue('hashed-secret' as never);
+
+      await service.update('circle-1', {
+        isPrivate: true,
+        password: 'plaintext-secret',
+      });
+
+      expect(mockedBcrypt.hash).toHaveBeenCalledWith('plaintext-secret', 12);
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
+        'circle-1',
+        { isPrivate: true, password: 'hashed-secret' },
+        { new: true },
+      );
+    });
+
+    it('throws BadRequestException when marking private with no password and none stored', async () => {
+      mockCurrent({ isPrivate: false, password: undefined });
+
+      await expect(
+        service.update('circle-1', { isPrivate: true }),
+      ).rejects.toThrow(BadRequestException);
+      expect(model.findByIdAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('allows re-confirming isPrivate: true without a new password when one already exists', async () => {
+      mockCurrent({ isPrivate: true, password: 'existing-hash' });
+      model.findByIdAndUpdate.mockResolvedValue(mockCircle);
+
+      await service.update('circle-1', { isPrivate: true, slug: 'renamed' });
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
+        'circle-1',
+        { isPrivate: true, slug: 'renamed' },
+        { new: true },
+      );
+    });
+
+    it('clears the stored password hash when explicitly un-privating', async () => {
+      mockCurrent({ isPrivate: true, password: 'existing-hash' });
+      model.findByIdAndUpdate.mockResolvedValue(mockCircle);
+
+      await service.update('circle-1', { isPrivate: false });
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
+        'circle-1',
+        { $set: { isPrivate: false }, $unset: { password: '' } },
+        { new: true },
+      );
+    });
+
+    it('drops a simultaneously-supplied password when un-privating, instead of conflicting $set/$unset', async () => {
+      mockCurrent({ isPrivate: true, password: 'existing-hash' });
+      model.findByIdAndUpdate.mockResolvedValue(mockCircle);
+      mockedBcrypt.hash.mockResolvedValue('hashed-secret' as never);
+
+      await service.update('circle-1', {
+        isPrivate: false,
+        password: 'new-plaintext',
+      });
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
+        'circle-1',
+        { $set: { isPrivate: false }, $unset: { password: '' } },
+        { new: true },
+      );
     });
   });
 
@@ -482,6 +653,28 @@ describe('CirclesService', () => {
       expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
         'circle-1',
         { ...seed, themeLabels },
+        { upsert: true, setDefaultsOnInsert: true, new: true },
+      );
+    });
+
+    it('hashes the password when seeding a private circle', async () => {
+      const seed = {
+        slug: 'private-circle',
+        themeId: 'theme-1',
+        type: 'what-you-love' as const,
+        labels: { en: 'Private', es: 'Privado' },
+        isPrivate: true,
+        password: 'plaintext-secret',
+      };
+      model.findByIdAndUpdate.mockResolvedValue({ id: 'circle-1', ...seed });
+      mockedBcrypt.hash.mockResolvedValue('hashed-secret' as never);
+
+      await service.upsertById('circle-1', seed, themeLabels);
+
+      expect(mockedBcrypt.hash).toHaveBeenCalledWith('plaintext-secret', 12);
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
+        'circle-1',
+        expect.objectContaining({ password: 'hashed-secret' }),
         { upsert: true, setDefaultsOnInsert: true, new: true },
       );
     });
