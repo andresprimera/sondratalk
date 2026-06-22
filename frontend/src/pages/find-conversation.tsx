@@ -43,6 +43,8 @@ interface CardMatch {
   available: boolean
   circles?: string[]
   name?: string
+  anonymousLabel: string
+  intentLabel: string
   slots?: SlotDay[]
 }
 
@@ -95,14 +97,31 @@ function groupSlotsByDate(
   return out
 }
 
+function intentLabelFor(intent: Intent): string {
+  switch (intent) {
+    case "specific":
+      return i18n.t("Has something specific in mind")
+    case "heard":
+      return i18n.t("Just needs to be heard")
+    default:
+      return i18n.t("Just wants to talk")
+  }
+}
+
 function realTalkToCardMatch(
   candidate: MatchCandidate,
   locale: "en" | "es",
+  index: number,
+  intent: Intent,
 ): CardMatch {
   return {
     id: candidate.id,
     available: candidate.availableNow,
     name: candidate.firstName,
+    anonymousLabel: i18n.t("Match {{letter}}", {
+      letter: String.fromCharCode(65 + index),
+    }),
+    intentLabel: intentLabelFor(intent),
     circles: candidate.sharedCircles.map((c) => c.labels[locale]),
     slots: candidate.availableNow ? undefined : groupSlotsByDate(candidate.slots),
   }
@@ -232,7 +251,7 @@ export default function FindConversationPage() {
   function confirmSelectedSlot() {
     if (!selectedSlot) return
     const match = cardMatches.find((m) => m.id === selectedSlot.matchId)
-    const name = match?.name ?? t("them")
+    const name = match?.name || match?.anonymousLabel || t("them")
     if (!isRealObjectId(selectedSlot.matchId)) {
       toast.success(
         t("We'll let {{name}} know — you'll see it in your dashboard.", {
@@ -277,8 +296,8 @@ export default function FindConversationPage() {
 
   const cardMatches: CardMatch[] =
     stage === "matches"
-      ? (talkMatch.data?.candidates ?? []).map((c) =>
-          realTalkToCardMatch(c, locale),
+      ? (talkMatch.data?.candidates ?? []).map((c, index) =>
+          realTalkToCardMatch(c, locale, index, intent ?? "talk"),
         )
       : []
 
@@ -376,7 +395,10 @@ export default function FindConversationPage() {
                       return t(
                         "Scheduling with {{name}} — {{day}} at {{time}}",
                         {
-                          name: match?.name ?? `#${selectedSlot.matchId}`,
+                          name:
+                            match?.name ||
+                            match?.anonymousLabel ||
+                            `#${selectedSlot.matchId}`,
                           day,
                           time: selectedSlot.time,
                         },
@@ -626,9 +648,10 @@ function MatchCard({
   talkNowDisabled,
 }: MatchCardProps) {
   const { t } = useTranslation()
+  const displayName = match.name || match.anonymousLabel
   const idLabel = match.name
     ? match.name.charAt(0).toUpperCase()
-    : String(match.id)
+    : match.anonymousLabel.slice(-1)
 
   return (
     <Card>
@@ -646,7 +669,7 @@ function MatchCard({
             {idLabel}
           </div>
           <div className="flex-1">
-            {match.name && <h6 className="mb-1">{match.name}</h6>}
+            <h6 className="mb-1">{displayName}</h6>
             {(match.circles ?? []).length > 0 && (
               <>
                 <div className="mb-1 text-[0.6875rem] tracking-widest text-muted-foreground/60 uppercase">
@@ -661,6 +684,9 @@ function MatchCard({
                 </div>
               </>
             )}
+            <p className="mt-1.5 text-xs italic text-muted-foreground">
+              {match.intentLabel}
+            </p>
           </div>
         </div>
 

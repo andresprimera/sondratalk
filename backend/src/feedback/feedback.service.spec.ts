@@ -4,9 +4,11 @@ import { NotFoundException } from '@nestjs/common';
 import { FeedbackService } from './feedback.service';
 import { ConversationFeedback } from './schemas/conversation-feedback.schema';
 import { MeetingsService } from '../meetings/meetings.service';
+import { MatchExclusionsService } from '../match-exclusions/match-exclusions.service';
 
 const MEETING_ID = '507f1f77bcf86cd799439011';
 const USER_ID = '507f1f77bcf86cd799439012';
+const PEER_ID = '507f1f77bcf86cd799439099';
 
 describe('FeedbackService', () => {
   let service: FeedbackService;
@@ -17,6 +19,9 @@ describe('FeedbackService', () => {
   };
   const meetingsService = {
     findByIdForParticipant: jest.fn(),
+  };
+  const matchExclusionsService = {
+    create: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -29,6 +34,10 @@ describe('FeedbackService', () => {
           useValue: feedbackModel,
         },
         { provide: MeetingsService, useValue: meetingsService },
+        {
+          provide: MatchExclusionsService,
+          useValue: matchExclusionsService,
+        },
       ],
     }).compile();
     service = module.get<FeedbackService>(FeedbackService);
@@ -85,6 +94,52 @@ describe('FeedbackService', () => {
         service.upsert(USER_ID, { meetingId: MEETING_ID, talkAgain: 'no' }),
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(feedbackModel.findOneAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('creates a one-directional match exclusion when dontMatchAgain is true', async () => {
+      meetingsService.findByIdForParticipant.mockResolvedValue({
+        participants: [USER_ID, PEER_ID],
+      });
+      feedbackModel.findOneAndUpdate.mockResolvedValue({ id: 'fb-3' });
+
+      await service.upsert(USER_ID, {
+        meetingId: MEETING_ID,
+        dontMatchAgain: true,
+      });
+
+      expect(matchExclusionsService.create).toHaveBeenCalledWith(
+        USER_ID,
+        PEER_ID,
+      );
+    });
+
+    it('keeps dontMatchAgain out of the feedback document — it lives in its own table', async () => {
+      meetingsService.findByIdForParticipant.mockResolvedValue({
+        participants: [USER_ID, PEER_ID],
+      });
+      feedbackModel.findOneAndUpdate.mockResolvedValue({ id: 'fb-4' });
+
+      await service.upsert(USER_ID, {
+        meetingId: MEETING_ID,
+        dontMatchAgain: true,
+      });
+
+      const [, update] = feedbackModel.findOneAndUpdate.mock.calls[0];
+      expect(update.$set).not.toHaveProperty('dontMatchAgain');
+    });
+
+    it('does not create an exclusion when dontMatchAgain is omitted', async () => {
+      meetingsService.findByIdForParticipant.mockResolvedValue({
+        participants: [USER_ID, PEER_ID],
+      });
+      feedbackModel.findOneAndUpdate.mockResolvedValue({ id: 'fb-5' });
+
+      await service.upsert(USER_ID, {
+        meetingId: MEETING_ID,
+        talkAgain: 'yes',
+      });
+
+      expect(matchExclusionsService.create).not.toHaveBeenCalled();
     });
   });
 

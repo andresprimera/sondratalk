@@ -37,6 +37,7 @@ export const submitConversationFeedbackSchema = z.object({
   talkAgain: talkAgainEnum.optional(),
   doorOpen: z.boolean().optional(),
   doorNote: z.string().max(1000).optional(),
+  dontMatchAgain: z.boolean().optional(),
   feeling: z.string().max(4000).optional(),
   circlesRelevant: circlesRelevantEnum.optional(),
   exchangedContact: exchangedContactEnum.optional(),

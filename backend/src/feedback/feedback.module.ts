@@ -7,6 +7,7 @@ import {
 import { FeedbackController } from './feedback.controller';
 import { FeedbackService } from './feedback.service';
 import { MeetingsModule } from '../meetings/meetings.module';
+import { MatchExclusionsModule } from '../match-exclusions/match-exclusions.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { MeetingsModule } from '../meetings/meetings.module';
       { name: ConversationFeedback.name, schema: ConversationFeedbackSchema },
     ]),
     MeetingsModule,
+    MatchExclusionsModule,
   ],
   controllers: [FeedbackController],
   providers: [FeedbackService],
