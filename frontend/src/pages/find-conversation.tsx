@@ -43,6 +43,8 @@ interface CardMatch {
   available: boolean
   circles?: string[]
   name?: string
+  anonymousLabel: string
+  intentLabel: string
   slots?: SlotDay[]
 }
 
@@ -95,14 +97,31 @@ function groupSlotsByDate(
   return out
 }
 
+function intentLabelFor(intent: Intent): string {
+  switch (intent) {
+    case "specific":
+      return i18n.t("Has something specific in mind")
+    case "heard":
+      return i18n.t("Just needs to be heard")
+    default:
+      return i18n.t("Just wants to talk")
+  }
+}
+
 function realTalkToCardMatch(
   candidate: MatchCandidate,
   locale: "en" | "es",
+  index: number,
+  intent: Intent,
 ): CardMatch {
   return {
     id: candidate.id,
     available: candidate.availableNow,
     name: candidate.firstName,
+    anonymousLabel: i18n.t("Match {{letter}}", {
+      letter: String.fromCharCode(65 + index),
+    }),
+    intentLabel: intentLabelFor(intent),
     circles: candidate.sharedCircles.map((c) => c.labels[locale]),
     slots: candidate.availableNow ? undefined : groupSlotsByDate(candidate.slots),
   }
@@ -236,7 +255,7 @@ export default function FindConversationPage() {
   function confirmSelectedSlot() {
     if (!selectedSlot) return
     const match = cardMatches.find((m) => m.id === selectedSlot.matchId)
-    const name = match?.name ?? t("them")
+    const name = match?.name || match?.anonymousLabel || t("them")
     if (!isRealObjectId(selectedSlot.matchId)) {
       toast.success(
         t("We'll let {{name}} know — you'll see it in your dashboard.", {
@@ -281,8 +300,8 @@ export default function FindConversationPage() {
 
   const cardMatches: CardMatch[] =
     stage === "matches"
-      ? (talkMatch.data?.candidates ?? []).map((c) =>
-          realTalkToCardMatch(c, locale),
+      ? (talkMatch.data?.candidates ?? []).map((c, index) =>
+          realTalkToCardMatch(c, locale, index, intent ?? "talk"),
         )
       : []
 
@@ -332,12 +351,11 @@ export default function FindConversationPage() {
             </p>
 
             <div className="flex flex-col gap-4">
-              {liveMatches.map((m, i) => (
+              {liveMatches.map((m) => (
                 <MatchCard
                   key={m.id}
                   match={m}
                   locale={locale}
-                  ordinal={i + 1}
                   selectedSlot={null}
                   onSelectSlot={setSelectedSlot}
                   onTalkNow={() => {
@@ -731,7 +749,8 @@ function SelectedSlotBar({
       <CardContent className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           {t("Scheduling with {{name}} — {{day}} at {{time}}", {
-            name: match?.name ?? `#${selectedSlot.matchId}`,
+            name:
+              match?.name || match?.anonymousLabel || `#${selectedSlot.matchId}`,
             day,
             time: selectedSlot.time,
           })}
@@ -751,9 +770,6 @@ interface MatchCardProps {
   onSelectSlot: (slot: SelectedSlot) => void
   onTalkNow?: () => void
   talkNowDisabled?: boolean
-  // When set, the card is shown anonymized as "Match N" (no name) — used by
-  // the Talk Now live picker.
-  ordinal?: number
 }
 
 function MatchCard({
@@ -763,16 +779,12 @@ function MatchCard({
   onSelectSlot,
   onTalkNow,
   talkNowDisabled,
-  ordinal,
 }: MatchCardProps) {
   const { t } = useTranslation()
-  const isAnon = ordinal !== undefined
-  const heading = isAnon ? t("Match {{n}}", { n: ordinal }) : match.name
-  const idLabel = isAnon
-    ? String(ordinal)
-    : match.name
-      ? match.name.charAt(0).toUpperCase()
-      : String(match.id)
+  const displayName = match.name || match.anonymousLabel
+  const idLabel = match.name
+    ? match.name.charAt(0).toUpperCase()
+    : match.anonymousLabel.slice(-1)
 
   return (
     <Card>
@@ -781,7 +793,7 @@ function MatchCard({
           <div
             className={cn(
               "flex size-8 shrink-0 items-center justify-center rounded-full border text-sm",
-              isAnon || match.name
+              match.name || match.anonymousLabel
                 ? "border-primary/30 bg-primary/10 text-primary"
                 : "border-border bg-muted text-muted-foreground",
             )}
@@ -790,7 +802,7 @@ function MatchCard({
             {idLabel}
           </div>
           <div className="flex-1">
-            {heading && <h6 className="mb-1">{heading}</h6>}
+            <h6 className="mb-1">{displayName}</h6>
             {(match.circles ?? []).length > 0 && (
               <>
                 <div className="mb-1 text-[0.6875rem] tracking-widest text-muted-foreground/60 uppercase">
@@ -805,6 +817,9 @@ function MatchCard({
                 </div>
               </>
             )}
+            <p className="mt-1.5 text-xs italic text-muted-foreground">
+              {match.intentLabel}
+            </p>
           </div>
         </div>
 

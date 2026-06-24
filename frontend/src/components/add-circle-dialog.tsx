@@ -25,6 +25,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { CommaSeparatedInput } from "@/components/comma-separated-input"
 import { Button } from "@/components/ui/button"
 import {
@@ -41,6 +42,8 @@ const EMPTY_DEFAULTS: CreateCircleInput = {
   type: "who-you-are",
   labels: { en: "", es: "" },
   aliases: { en: [], es: [] },
+  isPrivate: false,
+  password: "",
 }
 
 export function AddCircleDialog({
@@ -64,12 +67,15 @@ export function AddCircleDialog({
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors },
     reset,
   } = useForm<CreateCircleInput>({
     resolver: standardSchemaResolver(createCircleSchema),
     defaultValues: EMPTY_DEFAULTS,
   })
+
+  const isPrivate = watch("isPrivate")
 
   const mutation = useMutation({
     mutationFn: createCircleApi,
@@ -85,7 +91,10 @@ export function AddCircleDialog({
   })
 
   function onSubmit(values: CreateCircleInput) {
-    mutation.mutate(values)
+    mutation.mutate({
+      ...values,
+      password: values.isPrivate ? values.password : undefined,
+    })
   }
 
   function handleOpenChange(open: boolean) {
@@ -193,6 +202,52 @@ export function AddCircleDialog({
                 </FieldDescription>
               )}
             </Field>
+            <Field>
+              <FieldLabel>{t("Private")}</FieldLabel>
+              <Controller
+                name="isPrivate"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    items={[
+                      { value: "no", label: t("No") },
+                      { value: "yes", label: t("Yes") },
+                    ]}
+                    value={field.value ? "yes" : "no"}
+                    onValueChange={(val) => {
+                      if (val) field.onChange(val === "yes")
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no">{t("No")}</SelectItem>
+                      <SelectItem value="yes">{t("Yes")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </Field>
+            {isPrivate && (
+              <Field>
+                <FieldLabel htmlFor="add-circle-password">
+                  {t("Password")}
+                </FieldLabel>
+                <PasswordInput
+                  id="add-circle-password"
+                  {...register("password")}
+                />
+                <FieldDescription>
+                  {t("Members will need this password to join the circle.")}
+                </FieldDescription>
+                {errors.password && (
+                  <FieldDescription className="text-destructive">
+                    {t(errors.password.message ?? "")}
+                  </FieldDescription>
+                )}
+              </Field>
+            )}
             <Field>
               <FieldLabel htmlFor="add-circle-label-en">
                 {t("English label")}

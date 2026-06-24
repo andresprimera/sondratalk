@@ -34,6 +34,7 @@ export const circleSchema = z.object({
   labels: labelsSchema,
   aliases: aliasesSchemaRequired,
   popularity: z.number(),
+  isPrivate: z.boolean(),
 });
 
 export type Circle = z.infer<typeof circleSchema>;
@@ -43,20 +44,39 @@ export const adminCircleSchema = circleSchema.extend({
 });
 export type AdminCircle = z.infer<typeof adminCircleSchema>;
 
-export const createCircleSchema = z.object({
+const createCircleBaseSchema = z.object({
   slug: slugSchema,
   themeId: z.string().min(1, "Theme is required"),
   type: circleTypeEnum,
   labels: labelsSchema,
   aliases: aliasesSchemaRequired.optional(),
   popularity: z.number().int().min(0).optional(),
+  isPrivate: z.boolean().optional(),
+  password: z.string().min(1, "Password is required").optional(),
 });
+
+export const createCircleSchema = createCircleBaseSchema.refine(
+  (data) => !data.isPrivate || Boolean(data.password),
+  { message: "Password is required for private circles", path: ["password"] },
+);
 
 export type CreateCircleInput = z.infer<typeof createCircleSchema>;
 
-export const updateCircleSchema = createCircleSchema.partial();
+// Not refined like createCircleSchema: a partial update can't know from the
+// payload alone whether the circle already has a password set (e.g.
+// renaming an already-private circle without resending the password). The
+// backend checks isPrivate/password consistency against the existing
+// document instead — see CirclesService.update().
+export const updateCircleSchema = createCircleBaseSchema.partial();
 
 export type UpdateCircleInput = z.infer<typeof updateCircleSchema>;
+
+export const verifyCirclePasswordSchema = z.object({
+  password: z.string().min(1, "Password is required"),
+});
+export type VerifyCirclePasswordInput = z.infer<
+  typeof verifyCirclePasswordSchema
+>;
 
 export const circleSortByEnum = z.enum([
   "slug",

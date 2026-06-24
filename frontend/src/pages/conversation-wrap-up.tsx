@@ -83,6 +83,7 @@ export default function ConversationWrapUpPage() {
   const [talkAgain, setTalkAgain] = useState<TalkAgain | null>(null)
   const [doorOpen, setDoorOpen] = useState(false)
   const [doorNote, setDoorNote] = useState("")
+  const [dontMatchAgain, setDontMatchAgain] = useState(false)
   const [feeling, setFeeling] = useState("")
   const [circlesRelevant, setCirclesRelevant] =
     useState<CirclesRelevant | null>(null)
@@ -124,6 +125,7 @@ export default function ConversationWrapUpPage() {
     const payload: SubmitConversationFeedbackInput = { meetingId, doorOpen }
     if (talkAgain) payload.talkAgain = talkAgain
     if (doorOpen && doorNote.trim()) payload.doorNote = doorNote.trim()
+    if (dontMatchAgain) payload.dontMatchAgain = true
     if (feeling.trim()) payload.feeling = feeling.trim()
     if (circlesRelevant) payload.circlesRelevant = circlesRelevant
     if (exchangedContact) payload.exchangedContact = exchangedContact
@@ -285,6 +287,31 @@ export default function ConversationWrapUpPage() {
                     </p>
                   </CardContent>
                 )}
+              </Card>
+            </section>
+
+            <Separator />
+
+            <section className="py-8">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <CardTitle>{t("Don't match me with them again.")}</CardTitle>
+                      <CardDescription className="mt-1">
+                        {t("We won't suggest this person as a match again. They won't be notified.")}
+                      </CardDescription>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={dontMatchAgain ? "secondary" : "outline"}
+                      onClick={() => setDontMatchAgain((v) => !v)}
+                    >
+                      {dontMatchAgain ? t("Excluded") : t("Exclude")}
+                    </Button>
+                  </div>
+                </CardHeader>
               </Card>
             </section>
 

@@ -14,6 +14,8 @@ import { MembershipsService } from '../memberships/memberships.service';
 import { AvailabilityService } from '../availability/availability.service';
 import { UsersService } from '../users/users.service';
 import { CirclesService } from '../circles/circles.service';
+import { MeetingsService } from '../meetings/meetings.service';
+import { MatchExclusionsService } from '../match-exclusions/match-exclusions.service';
 import { CircleDocument } from '../circles/schemas/circle.schema';
 import { toCircle } from '../circles/circle.mapper';
 import type {
@@ -46,6 +48,8 @@ export class MatchingService {
     private availabilityService: AvailabilityService,
     private usersService: UsersService,
     private circlesService: CirclesService,
+    private meetingsService: MeetingsService,
+    private matchExclusionsService: MatchExclusionsService,
   ) {}
 
   async findTalkMatch(
@@ -77,11 +81,16 @@ export class MatchingService {
     const requester = await this.usersService.findById(userId);
     if (!requester) throw new NotFoundException('User not found');
 
-    const candidateUserIds =
+    const rawCandidateUserIds =
       await this.membershipsService.findOtherUserIdsInCircles(
         requestedCircleIds,
         userId,
       );
+    // One-directional: people the requester chose not to be matched with
+    // again never resurface in their own searches.
+    const excludedUserIds =
+      await this.matchExclusionsService.findExcludedUserIds(userId);
+    const candidateUserIds = subtract(rawCandidateUserIds, excludedUserIds);
 
     const freshSince = new Date(Date.now() - PRESENCE_FRESH_MS);
     let nowEligible = await this.availabilityService.findAvailableNowUserIds(
@@ -125,14 +134,16 @@ export class MatchingService {
       throw new NotFoundException('No one available right now');
     }
 
-    const [users, availabilities, scheduledSharedCircles] = await Promise.all([
-      this.usersService.findByIds(allPickedIds),
-      this.availabilityService.findByUserIds(scheduledPicked),
-      this.membershipsService.findCircleMembershipsForUsers(
-        scheduledPicked,
-        requestedCircleIds,
-      ),
-    ]);
+    const [users, availabilities, scheduledSharedCircles, revealedIds] =
+      await Promise.all([
+        this.usersService.findByIds(allPickedIds),
+        this.availabilityService.findByUserIds(scheduledPicked),
+        this.membershipsService.findCircleMembershipsForUsers(
+          scheduledPicked,
+          requestedCircleIds,
+        ),
+        this.findRevealedCandidateIds(userId, allPickedIds),
+      ]);
     // The now-bucket memberships were already fetched for ranking; merge them
     // with the scheduled-bucket memberships. The two id sets are disjoint.
     const sharedCirclesByUser = new Map<string, Types.ObjectId[]>([
@@ -164,7 +175,9 @@ export class MatchingService {
       if (!user) continue;
       candidates.push({
         id: user.id,
-        firstName: extractFirstName(user.name),
+        firstName: revealedIds.has(id.toString())
+          ? extractFirstName(user.name)
+          : '',
         sharedCircles: this.shapeSharedCircles(
           sharedCirclesByUser.get(id.toString()) ?? [],
           circleById,
@@ -191,7 +204,9 @@ export class MatchingService {
       if (slots.length === 0) continue;
       candidates.push({
         id: user.id,
-        firstName: extractFirstName(user.name),
+        firstName: revealedIds.has(id.toString())
+          ? extractFirstName(user.name)
+          : '',
         sharedCircles: this.shapeSharedCircles(
           sharedCirclesByUser.get(id.toString()) ?? [],
           circleById,
@@ -243,6 +258,24 @@ export class MatchingService {
       throw new BadRequestException('Invalid circle selection');
     }
     return requestedCircleIds;
+  }
+
+  // Matches show no name by default — even on a rematch. The exception is a
+  // past mutual door-open (see MeetingsService.hasMutualDoorOpen).
+  private async findRevealedCandidateIds(
+    userId: string,
+    candidateIds: Types.ObjectId[],
+  ): Promise<Set<string>> {
+    const results = await Promise.all(
+      candidateIds.map(async (id) => ({
+        id: id.toString(),
+        revealed: await this.meetingsService.hasMutualDoorOpen(
+          userId,
+          id.toString(),
+        ),
+      })),
+    );
+    return new Set(results.filter((r) => r.revealed).map((r) => r.id));
   }
 
   private shapeSharedCircles(

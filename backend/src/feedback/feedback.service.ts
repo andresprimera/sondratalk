@@ -6,6 +6,7 @@ import {
   ConversationFeedbackDocument,
 } from './schemas/conversation-feedback.schema';
 import { MeetingsService } from '../meetings/meetings.service';
+import { MatchExclusionsService } from '../match-exclusions/match-exclusions.service';
 import type { AdminFeedback, SubmitConversationFeedbackInput } from './dto';
 
 type AggRow = {
@@ -32,6 +33,7 @@ export class FeedbackService {
     @InjectModel(ConversationFeedback.name)
     private feedbackModel: Model<ConversationFeedback>,
     private meetingsService: MeetingsService,
+    private matchExclusionsService: MatchExclusionsService,
   ) {}
 
   // Upserts the (meeting, user) feedback document, merging only the fields
@@ -42,11 +44,14 @@ export class FeedbackService {
     userId: string,
     dto: SubmitConversationFeedbackInput,
   ): Promise<ConversationFeedbackDocument> {
-    const { meetingId, ...rest } = dto;
+    const { meetingId, dontMatchAgain, ...rest } = dto;
 
     // Throws NotFound if the meeting doesn't exist or the user wasn't part of
     // it — keeps feedback tied to real conversations the user attended.
-    await this.meetingsService.findByIdForParticipant(userId, meetingId);
+    const meeting = await this.meetingsService.findByIdForParticipant(
+      userId,
+      meetingId,
+    );
 
     const set: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(rest)) {
@@ -66,6 +71,17 @@ export class FeedbackService {
       `Saved conversation feedback meeting=${meetingId} user=${userId}` +
         (rest.report ? ' (with report)' : ''),
     );
+
+    // Kept in its own standalone collection (not a field on this document) so
+    // it isn't tied to door-open's per-meeting lifecycle.
+    if (dontMatchAgain) {
+      const peerId = meeting.participants.find(
+        (p) => p.toString() !== userId,
+      );
+      if (peerId) {
+        await this.matchExclusionsService.create(userId, peerId.toString());
+      }
+    }
 
     return doc;
   }

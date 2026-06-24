@@ -5,4 +5,6 @@ export {
   type UpdateCircleInput,
   circleSearchQuerySchema,
   type CircleSearchQuery,
+  verifyCirclePasswordSchema,
+  type VerifyCirclePasswordInput,
 } from '@base-dashboard/shared';

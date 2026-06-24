@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types, isValidObjectId } from 'mongoose';
 import { Meeting, MeetingDocument } from './schemas/meeting.schema';
+import { ConversationFeedback } from '../feedback/schemas/conversation-feedback.schema';
 import { UsersService } from '../users/users.service';
 import { MailService } from '../services/mail/mail.service';
 import { AvailabilityService } from '../availability/availability.service';
@@ -40,6 +41,8 @@ export class MeetingsService {
   constructor(
     @InjectModel(Meeting.name)
     private meetingModel: Model<Meeting>,
+    @InjectModel(ConversationFeedback.name)
+    private feedbackModel: Model<ConversationFeedback>,
     private usersService: UsersService,
     private mailService: MailService,
     private configService: ConfigService,
@@ -247,11 +250,64 @@ export class MeetingsService {
       peers.map((p) => [p.id.toString(), extractFirstName(p.name)]),
     );
 
+    const uniquePeerIds = [...new Set(peerIds.map((id) => id.toString()))];
+    const revealedPeerIds = new Set(
+      (
+        await Promise.all(
+          uniquePeerIds.map(async (peerId) => ({
+            peerId,
+            revealed: await this.hasMutualDoorOpen(userId, peerId),
+          })),
+        )
+      )
+        .filter((r) => r.revealed)
+        .map((r) => r.peerId),
+    );
+
     return docs.map((doc, idx) => {
       const peerId = peerIds[idx].toString();
-      const firstName = peerById.get(peerId) ?? '';
+      const firstName = revealedPeerIds.has(peerId)
+        ? peerById.get(peerId) ?? ''
+        : '';
       return toMeetingWithPeer(doc, { id: peerId, firstName });
     });
+  }
+
+  // Matches show no name by default — even on a rematch. The only exception
+  // is when both participants have, on some past meeting together, left the
+  // door open (see ConversationFeedback.doorOpen). That reveal is mutual and
+  // permanent; it is not affected by future meetings between the same pair.
+  async hasMutualDoorOpen(userIdA: string, userIdB: string): Promise<boolean> {
+    const sharedMeetings = await this.meetingModel
+      .find({
+        participants: {
+          $all: [new Types.ObjectId(userIdA), new Types.ObjectId(userIdB)],
+        },
+      })
+      .select('_id');
+    if (sharedMeetings.length === 0) return false;
+
+    const openDocs = await this.feedbackModel
+      .find({
+        meetingId: { $in: sharedMeetings.map((m) => m._id) },
+        userId: {
+          $in: [new Types.ObjectId(userIdA), new Types.ObjectId(userIdB)],
+        },
+        doorOpen: true,
+      })
+      .select('meetingId userId');
+
+    const openUsersByMeeting = new Map<string, Set<string>>();
+    for (const doc of openDocs) {
+      const key = doc.meetingId.toString();
+      const set = openUsersByMeeting.get(key) ?? new Set<string>();
+      set.add(doc.userId.toString());
+      openUsersByMeeting.set(key, set);
+    }
+    for (const set of openUsersByMeeting.values()) {
+      if (set.has(userIdA) && set.has(userIdB)) return true;
+    }
+    return false;
   }
 
   // A "conversation" for the dashboard counter is a non-cancelled meeting the
@@ -299,9 +355,10 @@ export class MeetingsService {
         firstName: '',
       });
     }
+    const revealed = await this.hasMutualDoorOpen(userId, peer.id.toString());
     return toMeetingWithPeer(doc, {
       id: peer.id.toString(),
-      firstName: extractFirstName(peer.name),
+      firstName: revealed ? extractFirstName(peer.name) : '',
     });
   }
 

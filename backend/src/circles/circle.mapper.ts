@@ -12,6 +12,7 @@ export function toCircle(doc: CircleDocument): Circle {
     labels: { en: doc.labels.en, es: doc.labels.es },
     aliases: { en: doc.aliases.en, es: doc.aliases.es },
     popularity: doc.popularity,
+    isPrivate: doc.isPrivate,
   };
 }
 
@@ -25,6 +26,7 @@ export function toCircleFromAgg(row: AdminCircleAggRow): AdminCircle {
     labels: { en: row.labels.en, es: row.labels.es },
     aliases: { en: row.aliases.en, es: row.aliases.es },
     popularity: row.popularity,
+    isPrivate: row.isPrivate,
     membershipCount: row.membershipCount,
   };
 }

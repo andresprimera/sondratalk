@@ -77,6 +77,14 @@ export class Circle {
 
   @Prop({ required: true, default: 0, min: 0 })
   popularity: number;
+
+  @Prop({ default: false })
+  isPrivate: boolean;
+
+  // Hashed (bcrypt), never plaintext. select: false like other sensitive
+  // fields — fetch explicitly via .select('+password') to verify a join attempt.
+  @Prop({ select: false })
+  password?: string;
 }
 
 export const CircleSchema = SchemaFactory.createForClass(Circle);

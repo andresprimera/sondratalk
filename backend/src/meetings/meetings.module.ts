@@ -5,6 +5,10 @@ import {
   SchedulingMessage,
   SchedulingMessageSchema,
 } from './schemas/scheduling-message.schema';
+import {
+  ConversationFeedback,
+  ConversationFeedbackSchema,
+} from '../feedback/schemas/conversation-feedback.schema';
 import { MeetingsController } from './meetings.controller';
 import { MeetingsService } from './meetings.service';
 import { SchedulingController } from './scheduling.controller';
@@ -19,6 +23,10 @@ import { RealtimeModule } from '../realtime/realtime.module';
     MongooseModule.forFeature([
       { name: Meeting.name, schema: MeetingSchema },
       { name: SchedulingMessage.name, schema: SchedulingMessageSchema },
+      // Registered here (read-only) so MeetingsService can check mutual
+      // door-open status without a circular dependency on FeedbackModule,
+      // which already depends on MeetingsModule.
+      { name: ConversationFeedback.name, schema: ConversationFeedbackSchema },
     ]),
     UsersModule,
     MailModule,

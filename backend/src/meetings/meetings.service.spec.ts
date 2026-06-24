@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { Types } from 'mongoose';
 import { MeetingsService } from './meetings.service';
 import { Meeting } from './schemas/meeting.schema';
+import { ConversationFeedback } from '../feedback/schemas/conversation-feedback.schema';
 import { UsersService } from '../users/users.service';
 import { MailService } from '../services/mail/mail.service';
 import { AvailabilityService } from '../availability/availability.service';
@@ -37,6 +38,7 @@ function makeDoc(overrides: Record<string, unknown> = {}) {
 describe('MeetingsService', () => {
   let service: MeetingsService;
   let meetingModel: Record<string, jest.Mock>;
+  let feedbackModel: Record<string, jest.Mock>;
   let usersService: Record<string, jest.Mock>;
   let mailService: Record<string, jest.Mock>;
   let configService: Record<string, jest.Mock>;
@@ -48,6 +50,9 @@ describe('MeetingsService', () => {
       create: jest.fn(),
       find: jest.fn(),
       findById: jest.fn(),
+    };
+    feedbackModel = {
+      find: jest.fn(),
     };
     usersService = {
       findById: jest.fn(),
@@ -79,6 +84,10 @@ describe('MeetingsService', () => {
       providers: [
         MeetingsService,
         { provide: getModelToken(Meeting.name), useValue: meetingModel },
+        {
+          provide: getModelToken(ConversationFeedback.name),
+          useValue: feedbackModel,
+        },
         { provide: UsersService, useValue: usersService },
         { provide: MailService, useValue: mailService },
         { provide: ConfigService, useValue: configService },
@@ -449,6 +458,10 @@ describe('MeetingsService', () => {
   });
 
   describe('findUpcomingForUser', () => {
+    beforeEach(() => {
+      jest.spyOn(service, 'hasMutualDoorOpen').mockResolvedValue(false);
+    });
+
     it('returns an empty array when no meetings match', async () => {
       meetingModel.find.mockReturnValue({
         sort: jest.fn().mockReturnValue({
@@ -462,7 +475,7 @@ describe('MeetingsService', () => {
       expect(usersService.findByIds).not.toHaveBeenCalled();
     });
 
-    it('returns meetings with peer first names, sorted by the model chain', async () => {
+    it('returns meetings with peer ids but anonymous names by default', async () => {
       const future1 = new Date(Date.now() + 60 * 60 * 1000);
       const future2 = new Date(Date.now() + 2 * 60 * 60 * 1000);
       const doc1 = makeDoc({ scheduledAt: future1 });
@@ -488,15 +501,33 @@ describe('MeetingsService', () => {
 
       expect(result).toHaveLength(2);
       expect(result[0].peer.id).toBe(USER_B);
-      expect(result[0].peer.firstName).toBe('Beatriz');
+      expect(result[0].peer.firstName).toBe('');
       expect(result[1].peer.id).toBe(USER_C);
-      expect(result[1].peer.firstName).toBe('Carla');
+      expect(result[1].peer.firstName).toBe('');
 
       const findArgs = meetingModel.find.mock.calls[0][0];
       expect(findArgs.cancelled).toBe(false);
       expect(findArgs.participants.toString()).toBe(USER_A);
       expect(findArgs.expiresAt).toEqual({ $gt: expect.any(Date) });
       expect(findArgs.scheduledAt).toEqual({ $gt: expect.any(Date) });
+    });
+
+    it('reveals the peer first name when that peer has a mutual door-open', async () => {
+      const doc = makeDoc();
+      meetingModel.find.mockReturnValue({
+        sort: jest.fn().mockReturnValue({
+          limit: jest.fn().mockResolvedValue([doc]),
+        }),
+      });
+      usersService.findByIds.mockResolvedValue([
+        { id: USER_B, name: 'Beatriz Lopez' },
+      ]);
+      jest.spyOn(service, 'hasMutualDoorOpen').mockResolvedValue(true);
+
+      const result = await service.findUpcomingForUser(USER_A);
+
+      expect(result[0].peer.firstName).toBe('Beatriz');
+      expect(service.hasMutualDoorOpen).toHaveBeenCalledWith(USER_A, USER_B);
     });
 
     it('falls back to empty firstName when the peer user is gone', async () => {
@@ -555,6 +586,127 @@ describe('MeetingsService', () => {
       await expect(
         service.findByIdForParticipant(USER_A, validId),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('findByIdWithPeerForParticipant', () => {
+    const validId = '507f1f77bcf86cd799439aaa';
+
+    beforeEach(() => {
+      jest.spyOn(service, 'hasMutualDoorOpen').mockResolvedValue(false);
+    });
+
+    it('returns an anonymous peer name by default', async () => {
+      const doc = makeDoc();
+      meetingModel.findById.mockResolvedValue(doc);
+      usersService.findById.mockResolvedValue({ id: USER_B, name: 'Beatriz' });
+
+      const result = await service.findByIdWithPeerForParticipant(
+        USER_A,
+        validId,
+      );
+
+      expect(result.peer.id).toBe(USER_B);
+      expect(result.peer.firstName).toBe('');
+    });
+
+    it('reveals the real first name when the pair has a mutual door-open', async () => {
+      const doc = makeDoc();
+      meetingModel.findById.mockResolvedValue(doc);
+      usersService.findById.mockResolvedValue({ id: USER_B, name: 'Beatriz' });
+      jest.spyOn(service, 'hasMutualDoorOpen').mockResolvedValue(true);
+
+      const result = await service.findByIdWithPeerForParticipant(
+        USER_A,
+        validId,
+      );
+
+      expect(result.peer.firstName).toBe('Beatriz');
+      expect(service.hasMutualDoorOpen).toHaveBeenCalledWith(USER_A, USER_B);
+    });
+
+    it('returns an empty firstName when the peer user is gone', async () => {
+      const doc = makeDoc();
+      meetingModel.findById.mockResolvedValue(doc);
+      usersService.findById.mockResolvedValue(null);
+
+      const result = await service.findByIdWithPeerForParticipant(
+        USER_A,
+        validId,
+      );
+
+      expect(result.peer.firstName).toBe('');
+      expect(service.hasMutualDoorOpen).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('hasMutualDoorOpen', () => {
+    it('returns false when the pair has no shared meetings', async () => {
+      meetingModel.find.mockReturnValue({
+        select: jest.fn().mockResolvedValue([]),
+      });
+
+      const result = await service.hasMutualDoorOpen(USER_A, USER_B);
+
+      expect(result).toBe(false);
+      expect(feedbackModel.find).not.toHaveBeenCalled();
+    });
+
+    it('returns false when only one side of a shared meeting left the door open', async () => {
+      const meetingOid = new Types.ObjectId();
+      meetingModel.find.mockReturnValue({
+        select: jest.fn().mockResolvedValue([{ _id: meetingOid }]),
+      });
+      feedbackModel.find.mockReturnValue({
+        select: jest.fn().mockResolvedValue([
+          { meetingId: meetingOid, userId: new Types.ObjectId(USER_A) },
+        ]),
+      });
+
+      const result = await service.hasMutualDoorOpen(USER_A, USER_B);
+
+      expect(result).toBe(false);
+    });
+
+    it('returns true when both sides left the door open on a shared meeting', async () => {
+      const meetingOid = new Types.ObjectId();
+      meetingModel.find.mockReturnValue({
+        select: jest.fn().mockResolvedValue([{ _id: meetingOid }]),
+      });
+      feedbackModel.find.mockReturnValue({
+        select: jest.fn().mockResolvedValue([
+          { meetingId: meetingOid, userId: new Types.ObjectId(USER_A) },
+          { meetingId: meetingOid, userId: new Types.ObjectId(USER_B) },
+        ]),
+      });
+
+      const result = await service.hasMutualDoorOpen(USER_A, USER_B);
+
+      expect(result).toBe(true);
+    });
+
+    it('returns true when the mutual door-open happened on an older meeting, not just the latest', async () => {
+      const olderMeetingOid = new Types.ObjectId();
+      const newerMeetingOid = new Types.ObjectId();
+      meetingModel.find.mockReturnValue({
+        select: jest
+          .fn()
+          .mockResolvedValue([
+            { _id: olderMeetingOid },
+            { _id: newerMeetingOid },
+          ]),
+      });
+      feedbackModel.find.mockReturnValue({
+        select: jest.fn().mockResolvedValue([
+          { meetingId: olderMeetingOid, userId: new Types.ObjectId(USER_A) },
+          { meetingId: olderMeetingOid, userId: new Types.ObjectId(USER_B) },
+          { meetingId: newerMeetingOid, userId: new Types.ObjectId(USER_A) },
+        ]),
+      });
+
+      const result = await service.hasMutualDoorOpen(USER_A, USER_B);
+
+      expect(result).toBe(true);
     });
   });
 

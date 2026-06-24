@@ -8,6 +8,8 @@ import { MembershipsService } from '../memberships/memberships.service';
 import { AvailabilityService } from '../availability/availability.service';
 import { UsersService } from '../users/users.service';
 import { CirclesService } from '../circles/circles.service';
+import { MeetingsService } from '../meetings/meetings.service';
+import { MatchExclusionsService } from '../match-exclusions/match-exclusions.service';
 
 describe('MatchingService', () => {
   let service: MatchingService;
@@ -16,6 +18,8 @@ describe('MatchingService', () => {
   let availabilityService: Record<string, jest.Mock>;
   let usersService: Record<string, jest.Mock>;
   let circlesService: Record<string, jest.Mock>;
+  let meetingsService: Record<string, jest.Mock>;
+  let matchExclusionsService: Record<string, jest.Mock>;
 
   const requesterId = '507f1f77bcf86cd799439011';
   const requesterDoc = {
@@ -45,6 +49,12 @@ describe('MatchingService', () => {
       filterByHasHostExp: jest.fn(),
     };
     circlesService = { findByIds: jest.fn().mockResolvedValue([]) };
+    meetingsService = {
+      hasMutualDoorOpen: jest.fn().mockResolvedValue(false),
+    };
+    matchExclusionsService = {
+      findExcludedUserIds: jest.fn().mockResolvedValue([]),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -57,6 +67,8 @@ describe('MatchingService', () => {
         { provide: AvailabilityService, useValue: availabilityService },
         { provide: UsersService, useValue: usersService },
         { provide: CirclesService, useValue: circlesService },
+        { provide: MeetingsService, useValue: meetingsService },
+        { provide: MatchExclusionsService, useValue: matchExclusionsService },
       ],
     }).compile();
 
@@ -95,7 +107,8 @@ describe('MatchingService', () => {
       expect(result.candidates).toHaveLength(1);
       const [first] = result.candidates;
       expect(first.id).toBe(liveUserId);
-      expect(first.firstName).toBe('Ana');
+      // Anonymous by default — no mutual door-open on record for this pair.
+      expect(first.firstName).toBe('');
       expect(first.availableNow).toBe(true);
       expect(first.slots).toEqual([]);
       expect(first.sharedCircles).toHaveLength(1);
@@ -310,6 +323,55 @@ describe('MatchingService', () => {
       ]);
 
       expect(result.candidates[0].id).toBe(liveUserId);
+    });
+
+    it('reveals the real first name when the pair has a mutual door-open', async () => {
+      const liveOid = new Types.ObjectId(liveUserId);
+      membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
+      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([liveOid]);
+      availabilityService.findAvailableNowUserIds.mockResolvedValue([liveOid]);
+      usersService.findByIds.mockResolvedValue([
+        { id: liveUserId, name: 'Ana María', timezone: 'Europe/Madrid' },
+      ]);
+      meetingsService.hasMutualDoorOpen.mockResolvedValue(true);
+
+      const result = await service.findTalkMatch(requesterId, [
+        circleA.toString(),
+      ]);
+
+      expect(meetingsService.hasMutualDoorOpen).toHaveBeenCalledWith(
+        requesterId,
+        liveUserId,
+      );
+      expect(result.candidates[0].firstName).toBe('Ana');
+    });
+
+    it('excludes users the requester has marked "don\'t match again"', async () => {
+      const liveOid = new Types.ObjectId(liveUserId);
+      const excludedOid = new Types.ObjectId(scheduledUserId);
+      membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
+      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([
+        liveOid,
+        excludedOid,
+      ]);
+      matchExclusionsService.findExcludedUserIds.mockResolvedValue([
+        excludedOid,
+      ]);
+      availabilityService.findAvailableNowUserIds.mockResolvedValue([liveOid]);
+      usersService.findByIds.mockResolvedValue([
+        { id: liveUserId, name: 'Ana', timezone: 'Europe/Madrid' },
+      ]);
+
+      const result = await service.findTalkMatch(requesterId, [
+        circleA.toString(),
+      ]);
+
+      expect(result.candidates).toHaveLength(1);
+      expect(result.candidates[0].id).toBe(liveUserId);
+      // Only the non-excluded id should ever reach availability lookup.
+      expect(
+        availabilityService.findAvailableNowUserIds,
+      ).toHaveBeenCalledWith([liveOid], expect.any(Date));
     });
   });
 

@@ -10,6 +10,8 @@ import { MembershipsModule } from '../memberships/memberships.module';
 import { AvailabilityModule } from '../availability/availability.module';
 import { UsersModule } from '../users/users.module';
 import { CirclesModule } from '../circles/circles.module';
+import { MeetingsModule } from '../meetings/meetings.module';
+import { MatchExclusionsModule } from '../match-exclusions/match-exclusions.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { CirclesModule } from '../circles/circles.module';
     AvailabilityModule,
     UsersModule,
     CirclesModule,
+    MeetingsModule,
+    MatchExclusionsModule,
   ],
   controllers: [MatchingController],
   providers: [MatchingService],
