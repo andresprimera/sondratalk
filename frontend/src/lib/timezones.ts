@@ -170,8 +170,14 @@ export function getTimezoneEntry(iana: string, city: string): TimezoneEntry | un
 }
 
 export function detectTimezone(): TimezoneEntry | undefined {
-  const iana = Intl.DateTimeFormat().resolvedOptions().timeZone
-  return getTimezoneByIana(iana)
+  return getTimezoneByIana(getBrowserTimezone())
+}
+
+// Raw IANA zone reported by the browser (e.g. "America/Caracas"), regardless of
+// whether it's in the curated TIMEZONES list. Kept as its own export so the
+// timezone-backfill hook can read it and tests can mock it.
+export function getBrowserTimezone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone
 }
 
 export function getCountryDisplayName(countryCode: string, locale: string): string {
