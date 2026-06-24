@@ -1,19 +1,10 @@
 import { useNavigate, useParams } from "react-router"
 import { useTranslation } from "react-i18next"
 import { useQuery } from "@tanstack/react-query"
-import {
-  AlertCircleIcon,
-  Loader2Icon,
-  MicIcon,
-  MicOffIcon,
-  PhoneOffIcon,
-  VideoIcon,
-  VideoOffIcon,
-} from "lucide-react"
+import { AlertCircleIcon, Loader2Icon, PhoneOffIcon } from "lucide-react"
 import {
   LiveKitRoom,
   RoomAudioRenderer,
-  TrackToggle,
   VideoTrack,
   useLocalParticipant,
   useRemoteParticipants,
@@ -24,6 +15,7 @@ import { Track } from "livekit-client"
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { CallControls, DisabledCallControls } from "@/components/call-controls"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { useCallSocket } from "@/hooks/use-call-socket"
@@ -470,37 +462,7 @@ function CallFooter({ live, onEndCall }: CallFooterProps) {
   const { t } = useTranslation()
   return (
     <footer className="flex items-center justify-center gap-3 px-6 pb-6">
-      {live ? (
-        <>
-          <TrackToggle
-            source={Track.Source.Microphone}
-            showIcon={false}
-            className={controlButtonClass}
-            aria-label={t("Microphone")}
-          >
-            <MicIcon className="size-5 data-[lk-enabled=false]:hidden" />
-            <MicOffIcon className="hidden size-5 data-[lk-enabled=false]:block" />
-          </TrackToggle>
-          <TrackToggle
-            source={Track.Source.Camera}
-            showIcon={false}
-            className={controlButtonClass}
-            aria-label={t("Camera")}
-          >
-            <VideoIcon className="size-5 data-[lk-enabled=false]:hidden" />
-            <VideoOffIcon className="hidden size-5 data-[lk-enabled=false]:block" />
-          </TrackToggle>
-        </>
-      ) : (
-        <>
-          <DisabledControl ariaLabel={t("Microphone")}>
-            <MicIcon className="size-5" />
-          </DisabledControl>
-          <DisabledControl ariaLabel={t("Camera")}>
-            <VideoIcon className="size-5" />
-          </DisabledControl>
-        </>
-      )}
+      {live ? <CallControls /> : <DisabledCallControls />}
       <Button
         variant="destructive"
         size="lg"
@@ -529,29 +491,3 @@ const localTileClass = cn(
   "sm:absolute sm:right-4 sm:bottom-4 sm:aspect-video sm:w-1/4 sm:max-w-55 sm:min-w-35",
   "sm:flex-none sm:rounded-xl sm:ring-2 sm:ring-background/80"
 )
-
-const controlButtonClass = cn(
-  "inline-flex size-12 items-center justify-center rounded-full",
-  "bg-secondary text-secondary-foreground transition-colors",
-  "ring-1 ring-border/60 hover:bg-secondary/80",
-  "data-[lk-enabled=false]:bg-destructive data-[lk-enabled=false]:text-destructive-foreground",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-)
-
-interface DisabledControlProps {
-  ariaLabel: string
-  children: ReactNode
-}
-
-function DisabledControl({ ariaLabel, children }: DisabledControlProps) {
-  return (
-    <button
-      type="button"
-      disabled
-      aria-label={ariaLabel}
-      className={cn(controlButtonClass, "cursor-not-allowed opacity-50")}
-    >
-      {children}
-    </button>
-  )
-}
