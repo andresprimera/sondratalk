@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router"
+import { Link, useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
 import {
   keepPreviousData,
@@ -37,6 +37,7 @@ const myCirclesKey = ["users", "me", "circles"] as const
 export default function MyCirclesPage() {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const locale: "en" | "es" =
     i18n.language?.split("-")[0] === "es" ? "es" : "en"
 
@@ -92,6 +93,9 @@ export default function MyCirclesPage() {
       queryClient.setQueryData<Circle[]>(myCirclesKey, data)
       setDraft(data)
       toast.success(t("Saved"))
+      // Saving is the end of the circles flow — drop the user back on the
+      // dashboard instead of making them click the "Dashboard" link.
+      navigate("/dashboard")
     },
     onError: () => {
       toast.error(t("Failed to save your circles"))
