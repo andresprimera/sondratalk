@@ -1,10 +1,12 @@
 ---
-description: Work through every remaining (unchecked) task in TODO.md — implement, commit, check the box, and attach UI proof
+description: Work through every remaining (unchecked) task in TODO.md — implement, commit, move it to todo-history.md under today's date, and attach UI proof
 ---
 
 ## Goal
 
-Drive the project's root `TODO.md` to completion. Pick up every remaining (unchecked) task, implement it for real, commit it on its own, check its box, and attach UI proof when the change is visible in the app. Repeat until no unchecked tasks remain.
+Drive the project's root `TODO.md` to completion. Pick up every remaining (unchecked) task, implement it for real, commit it on its own, move it out of `TODO.md` into `todo-history.md` (grouped under today's date), and attach UI proof when the change is visible in the app. Repeat until no unchecked tasks remain in `TODO.md`.
+
+Completed tasks never stay in `TODO.md` as `- [x]`; the finished log lives in `todo-history.md`, one dated block per day.
 
 If `$ARGUMENTS` is non-empty, scope the run to only the task(s) it describes (by number, by quoted text, or "just the next one"). Otherwise, work the whole remaining list top to bottom.
 
@@ -29,11 +31,15 @@ For **each** unchecked task, in order, do the following completely before moving
 5. **Capture UI proof when it applies.** If the change is visible in the running app (a page, form, layout, redirect, badge, etc.), capture a screenshot:
    - Use the `feature-checker` agent (it drives the running app at `http://localhost:5174` with Playwright) to exercise the changed feature and save screenshots under `screenshots/` in the repo root.
    - Name the file after the task, e.g. `screenshots/<short-task-slug>.png`. Capture before/after or multiple states when the task implies them (light/dark, en/es, empty/filled), mirroring the existing TODO entries.
-   - If the task is **not** user-visible (pure backend, config, types, refactor), skip the screenshot — note "no UI proof (backend/internal change)" in the checklist line instead.
+   - If the task is **not** user-visible (pure backend, config, types, refactor), skip the screenshot — note "no UI proof (backend/internal change)" in the history entry (step 6) instead.
 
-6. **Check the box and annotate the line.** Edit `TODO.md`: flip `- [ ]` to `- [x]` for this task and append, on the same line, a concise summary of what you did following the existing house style — a short `—` dash clause describing the change, then `Proof: \`screenshots/<file>.png\`` (with parenthetical state labels) when a screenshot exists. Keep it one line, matching the surrounding entries.
+6. **Move the task into the dated history log.** Do **not** mark it done in place — instead move it out of `TODO.md` and into `todo-history.md`:
+   - **Remove** the task's line from `TODO.md`, including any indented continuation lines that belong to the same task block.
+   - Get today's date with `date +%F` (format `YYYY-MM-DD`).
+   - In root `todo-history.md`, ensure there's a `## <today's date>` heading for the current day. If the file's last date heading isn't today's, add a new `## <today's date>` heading at the **end** of the file; otherwise reuse the existing one. All tasks finished on the same day live under that single date heading.
+   - **Append** the task under today's heading as a `- [x]` entry with a concise summary in the existing house style — a short `—` dash clause describing the change, then `Proof: \`screenshots/<file>.png\`` (with parenthetical state labels) when a screenshot exists. One entry per task, matching the one-line style of the surrounding `todo-history.md` entries.
 
-7. **Commit just this task.** Stage everything for this task — the code, the tests, the updated `TODO.md`, and the screenshots — and make a single commit. Write a clear message summarizing the task (in English), and end it with the required trailer:
+7. **Commit just this task.** Stage everything for this task — the code, the tests, the updated `TODO.md` (task line removed), the updated `todo-history.md` (task appended under today's date), and the screenshots — and make a single commit. Write a clear message summarizing the task (in English), and end it with the required trailer:
 
    ```
    Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
@@ -45,11 +51,11 @@ For **each** unchecked task, in order, do the following completely before moving
 
 ## Finishing
 
-When no unchecked tasks remain, stop and give the user a summary: the tasks completed, one commit per task (list the hashes), and the screenshots produced. Do not push unless the user asks.
+When `TODO.md` has no remaining open tasks, stop and give the user a summary: the tasks completed (now logged in `todo-history.md` under today's date), one commit per task (list the hashes), and the screenshots produced. Do not push unless the user asks.
 
 ## Rules
 
-- **One task, one commit** — always in this order: implement → checks pass → review loop clean → proof → check the box → commit.
-- **Never check a box for work you didn't actually do** or couldn't verify. If a task is blocked or ambiguous, stop and ask the user rather than guessing or faking proof.
+- **One task, one commit** — always in this order: implement → checks pass → review loop clean → proof → move task to `todo-history.md` (under today's date) → commit.
+- **Never move a task to `todo-history.md` for work you didn't actually do** or couldn't verify. If a task is blocked or ambiguous, leave it in `TODO.md` and stop and ask the user rather than guessing or faking proof.
 - **Never commit with failing lint, types, or tests.**
 - Follow every convention in the project `CLAUDE.md` — it overrides default behavior.
