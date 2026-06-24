@@ -7,7 +7,11 @@ vi.mock("react-i18next", () => ({
 }))
 
 const livekitState = vi.hoisted(() => ({
-  participant: { isMicrophoneEnabled: true, isCameraEnabled: true },
+  participant: {
+    isMicrophoneEnabled: true,
+    isCameraEnabled: true,
+    localParticipant: { getTrackPublication: () => undefined },
+  },
 }))
 
 vi.mock("@livekit/components-react", () => ({
@@ -29,14 +33,29 @@ vi.mock("@livekit/components-react", () => ({
 
 vi.mock("livekit-client", () => ({
   Track: { Source: { Microphone: "microphone", Camera: "camera" } },
+  LocalParticipant: class {},
+  LocalVideoTrack: class {},
 }))
+
+vi.mock("@livekit/track-processors", () => ({
+  BackgroundBlur: vi.fn(() => ({})),
+}))
+
+vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
+
+function setParticipant(state: {
+  isMicrophoneEnabled: boolean
+  isCameraEnabled: boolean
+}) {
+  livekitState.participant = {
+    ...state,
+    localParticipant: { getTrackPublication: () => undefined },
+  }
+}
 
 describe("CallControls", () => {
   it("shows on-state labels and neutral styling when mic and camera are enabled", () => {
-    livekitState.participant = {
-      isMicrophoneEnabled: true,
-      isCameraEnabled: true,
-    }
+    setParticipant({ isMicrophoneEnabled: true, isCameraEnabled: true })
 
     render(<CallControls />)
 
@@ -48,10 +67,7 @@ describe("CallControls", () => {
   })
 
   it("shows off-state labels and destructive styling when disabled", () => {
-    livekitState.participant = {
-      isMicrophoneEnabled: false,
-      isCameraEnabled: false,
-    }
+    setParticipant({ isMicrophoneEnabled: false, isCameraEnabled: false })
 
     render(<CallControls />)
 
@@ -64,10 +80,7 @@ describe("CallControls", () => {
   })
 
   it("reflects a mixed state (mic on, camera off) independently", () => {
-    livekitState.participant = {
-      isMicrophoneEnabled: true,
-      isCameraEnabled: false,
-    }
+    setParticipant({ isMicrophoneEnabled: true, isCameraEnabled: false })
 
     render(<CallControls />)
 
@@ -77,6 +90,25 @@ describe("CallControls", () => {
       "bg-destructive",
     )
     expect(screen.getByLabelText("Camera").className).toContain("bg-destructive")
+  })
+
+  it("renders a background-blur toggle, off by default", () => {
+    setParticipant({ isMicrophoneEnabled: true, isCameraEnabled: true })
+
+    render(<CallControls />)
+
+    expect(screen.getByLabelText("Background blur")).toBeTruthy()
+    expect(screen.getByText("Blur off")).toBeTruthy()
+  })
+
+  it("disables the background-blur toggle when the camera is off", () => {
+    setParticipant({ isMicrophoneEnabled: true, isCameraEnabled: false })
+
+    render(<CallControls />)
+
+    expect(
+      screen.getByLabelText("Background blur").hasAttribute("disabled"),
+    ).toBe(true)
   })
 })
 

@@ -16,6 +16,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { CallControls, DisabledCallControls } from "@/components/call-controls"
+import { CallTimer } from "@/components/call-timer"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { useCallSocket } from "@/hooks/use-call-socket"
@@ -48,6 +49,7 @@ export default function CallPage() {
   const meetingId = params.meetingId ?? ""
   const [peerTimedOut, setPeerTimedOut] = useState(false)
   const [peerDeclined, setPeerDeclined] = useState(false)
+  const [startedAt, setStartedAt] = useState<number | null>(null)
   const { socket } = useCallSocket()
 
   // The callee can decline the ring. When they do, the backend pushes
@@ -140,6 +142,7 @@ export default function CallPage() {
             </p>
           )}
         </div>
+        {startedAt !== null && <CallTimer startedAt={startedAt} />}
       </header>
 
       {inRoom && tokenQuery.data ? (
@@ -149,6 +152,7 @@ export default function CallPage() {
           connect
           video
           audio
+          onConnected={() => setStartedAt((prev) => prev ?? Date.now())}
           onDisconnected={endCall}
           className="contents"
         >
