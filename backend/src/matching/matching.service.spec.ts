@@ -51,6 +51,7 @@ describe('MatchingService', () => {
     circlesService = { findByIds: jest.fn().mockResolvedValue([]) };
     meetingsService = {
       hasMutualDoorOpen: jest.fn().mockResolvedValue(false),
+      countConversationsForUsers: jest.fn().mockResolvedValue(new Map()),
     };
     matchExclusionsService = {
       findExcludedUserIds: jest.fn().mockResolvedValue([]),
@@ -89,6 +90,9 @@ describe('MatchingService', () => {
       membershipsService.findCircleMembershipsForUsers.mockResolvedValue(
         new Map([[liveUserId, [circleA]]]),
       );
+      meetingsService.countConversationsForUsers.mockResolvedValue(
+        new Map([[liveUserId, 7]]),
+      );
       circlesService.findByIds.mockResolvedValue([
         {
           id: circleA.toString(),
@@ -106,6 +110,7 @@ describe('MatchingService', () => {
 
       expect(result.candidates).toHaveLength(1);
       const [first] = result.candidates;
+      expect(first.conversationCount).toBe(7);
       expect(first.id).toBe(liveUserId);
       // Anonymous by default — no mutual door-open on record for this pair.
       expect(first.firstName).toBe('');

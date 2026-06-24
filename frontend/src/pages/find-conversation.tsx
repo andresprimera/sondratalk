@@ -3,7 +3,12 @@ import { Link, useNavigate, useSearchParams } from "react-router"
 import { useTranslation } from "react-i18next"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { AlertCircleIcon, ArrowRight, ChevronLeft } from "lucide-react"
+import {
+  AlertCircleIcon,
+  ArrowRight,
+  ChevronLeft,
+  MessageCircle,
+} from "lucide-react"
 import type { Circle, MatchCandidate } from "@base-dashboard/shared"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -45,6 +50,7 @@ interface CardMatch {
   name?: string
   anonymousLabel: string
   intentLabel: string
+  conversationCount: number
   slots?: SlotDay[]
 }
 
@@ -122,6 +128,7 @@ function realTalkToCardMatch(
       letter: String.fromCharCode(65 + index),
     }),
     intentLabel: intentLabelFor(intent),
+    conversationCount: candidate.conversationCount,
     circles: candidate.sharedCircles.map((c) => c.labels[locale]),
     slots: candidate.availableNow ? undefined : groupSlotsByDate(candidate.slots),
   }
@@ -820,6 +827,14 @@ function MatchCard({
             <p className="mt-1.5 text-xs italic text-muted-foreground">
               {match.intentLabel}
             </p>
+            <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <MessageCircle className="size-3.5" aria-hidden />
+              <span>
+                {t("{{count}} conversation", {
+                  count: match.conversationCount,
+                })}
+              </span>
+            </div>
           </div>
         </div>
 

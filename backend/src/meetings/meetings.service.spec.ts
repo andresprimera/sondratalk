@@ -50,6 +50,7 @@ describe('MeetingsService', () => {
       create: jest.fn(),
       find: jest.fn(),
       findById: jest.fn(),
+      aggregate: jest.fn(),
     };
     feedbackModel = {
       find: jest.fn(),
@@ -785,6 +786,31 @@ describe('MeetingsService', () => {
         NotFoundException,
       );
       expect(doc.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('countConversationsForUsers', () => {
+    it('returns an empty map without querying when given no users', async () => {
+      const result = await service.countConversationsForUsers([]);
+
+      expect(result.size).toBe(0);
+      expect(meetingModel.aggregate).not.toHaveBeenCalled();
+    });
+
+    it('maps each user id to its aggregated conversation count', async () => {
+      const a = new Types.ObjectId(USER_A);
+      const b = new Types.ObjectId(USER_B);
+      meetingModel.aggregate.mockResolvedValue([
+        { _id: a, count: 3 },
+        { _id: b, count: 1 },
+      ]);
+
+      const result = await service.countConversationsForUsers([a, b]);
+
+      expect(result.get(USER_A)).toBe(3);
+      expect(result.get(USER_B)).toBe(1);
+      // Users absent from the aggregation are simply not in the map.
+      expect(result.has(USER_C)).toBe(false);
     });
   });
 });

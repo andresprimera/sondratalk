@@ -510,6 +510,8 @@
   "Pick whoever works for you — now or at a time that fits.": "Elige a quien te encaje — ahora o cuando te venga bien.",
   "Available to talk, right now or later.": "Disponible para hablar, ahora o más tarde.",
   "Pick someone to talk to — they'll ring instantly.": "Elige con quién hablar — sonará al instante.",
+  "{{count}} conversation_one": "{{count}} conversación",
+  "{{count}} conversation_other": "{{count}} conversaciones",
   "No one's free right now — schedule a time instead.": "Nadie está libre ahora mismo — agenda un horario en su lugar.",
   "Schedule for later": "Agendar para más tarde",
   "Can help with": "Puede ayudar con",

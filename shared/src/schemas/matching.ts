@@ -22,6 +22,9 @@ export const matchCandidateSchema = z.object({
   firstName: z.string(),
   sharedCircles: z.array(circleSchema),
   availableNow: z.boolean(),
+  // Past, non-cancelled conversations this candidate has had — shown on the
+  // match card as a light credibility signal.
+  conversationCount: z.number().int().nonnegative(),
   slots: z.array(projectedSlotSchema),
 });
 export type MatchCandidate = z.infer<typeof matchCandidateSchema>;

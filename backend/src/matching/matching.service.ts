@@ -134,16 +134,22 @@ export class MatchingService {
       throw new NotFoundException('No one available right now');
     }
 
-    const [users, availabilities, scheduledSharedCircles, revealedIds] =
-      await Promise.all([
-        this.usersService.findByIds(allPickedIds),
-        this.availabilityService.findByUserIds(scheduledPicked),
-        this.membershipsService.findCircleMembershipsForUsers(
-          scheduledPicked,
-          requestedCircleIds,
-        ),
-        this.findRevealedCandidateIds(userId, allPickedIds),
-      ]);
+    const [
+      users,
+      availabilities,
+      scheduledSharedCircles,
+      revealedIds,
+      conversationCounts,
+    ] = await Promise.all([
+      this.usersService.findByIds(allPickedIds),
+      this.availabilityService.findByUserIds(scheduledPicked),
+      this.membershipsService.findCircleMembershipsForUsers(
+        scheduledPicked,
+        requestedCircleIds,
+      ),
+      this.findRevealedCandidateIds(userId, allPickedIds),
+      this.meetingsService.countConversationsForUsers(allPickedIds),
+    ]);
     // The now-bucket memberships were already fetched for ranking; merge them
     // with the scheduled-bucket memberships. The two id sets are disjoint.
     const sharedCirclesByUser = new Map<string, Types.ObjectId[]>([
@@ -183,6 +189,7 @@ export class MatchingService {
           circleById,
         ),
         availableNow: true,
+        conversationCount: conversationCounts.get(id.toString()) ?? 0,
         slots: [],
       });
     }
@@ -212,6 +219,7 @@ export class MatchingService {
           circleById,
         ),
         availableNow: false,
+        conversationCount: conversationCounts.get(id.toString()) ?? 0,
         slots: slots.map(toProjectedSlot),
       });
     }

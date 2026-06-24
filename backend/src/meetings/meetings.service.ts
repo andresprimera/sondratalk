@@ -322,6 +322,37 @@ export class MeetingsService {
     });
   }
 
+  // Batch variant of countConversationsForUser: returns a userId -> count map
+  // for the given users in a single aggregation. Uses the same definition of a
+  // "conversation" (non-cancelled, already started). Users with no past
+  // conversations are simply absent from the map (callers default to 0).
+  async countConversationsForUsers(
+    userIds: Types.ObjectId[],
+  ): Promise<Map<string, number>> {
+    const out = new Map<string, number>();
+    if (userIds.length === 0) return out;
+    const now = new Date();
+    const rows = await this.meetingModel.aggregate<{
+      _id: Types.ObjectId;
+      count: number;
+    }>([
+      {
+        $match: {
+          participants: { $in: userIds },
+          cancelled: false,
+          scheduledAt: { $lte: now },
+        },
+      },
+      { $unwind: '$participants' },
+      { $match: { participants: { $in: userIds } } },
+      { $group: { _id: '$participants', count: { $sum: 1 } } },
+    ]);
+    for (const row of rows) {
+      out.set(row._id.toString(), row.count);
+    }
+    return out;
+  }
+
   async findByIdForParticipant(
     userId: string,
     meetingId: string,

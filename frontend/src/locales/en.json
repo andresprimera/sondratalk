@@ -510,6 +510,8 @@
   "Pick whoever works for you — now or at a time that fits.": "Pick whoever works for you — now or at a time that fits.",
   "Available to talk, right now or later.": "Available to talk, right now or later.",
   "Pick someone to talk to — they'll ring instantly.": "Pick someone to talk to — they'll ring instantly.",
+  "{{count}} conversation_one": "{{count}} conversation",
+  "{{count}} conversation_other": "{{count}} conversations",
   "No one's free right now — schedule a time instead.": "No one's free right now — schedule a time instead.",
   "Schedule for later": "Schedule for later",
   "Can help with": "Can help with",
