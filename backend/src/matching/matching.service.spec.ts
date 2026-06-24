@@ -121,6 +121,66 @@ describe('MatchingService', () => {
       expect(ageMs).toBeLessThanOrEqual(2 * 60 * 1000 + 1_000);
     });
 
+    it('orders available-now candidates by shared-circle count, descending', async () => {
+      const oneShareId = '507f1f77bcf86cd799439044';
+      const twoShareId = '507f1f77bcf86cd799439055';
+      const oneShareOid = new Types.ObjectId(oneShareId);
+      const twoShareOid = new Types.ObjectId(twoShareId);
+      membershipsService.findCircleIdsForUser.mockResolvedValueOnce([
+        circleA,
+        circleB,
+      ]);
+      // Listed least-shared-first to prove the service re-orders by affinity.
+      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([
+        oneShareOid,
+        twoShareOid,
+      ]);
+      availabilityService.findAvailableNowUserIds.mockResolvedValue([
+        oneShareOid,
+        twoShareOid,
+      ]);
+      usersService.findByIds.mockResolvedValue([
+        { id: oneShareId, name: 'Uno', timezone: 'Europe/Madrid' },
+        { id: twoShareId, name: 'Dos', timezone: 'Europe/Madrid' },
+      ]);
+      membershipsService.findCircleMembershipsForUsers.mockResolvedValue(
+        new Map([
+          [oneShareId, [circleA]],
+          [twoShareId, [circleA, circleB]],
+        ]),
+      );
+      circlesService.findByIds.mockResolvedValue([
+        {
+          id: circleA.toString(),
+          slug: 'catalan',
+          themeId: new Types.ObjectId(),
+          labels: { en: 'Catalan', es: 'Catalán' },
+          aliases: { en: [], es: [] },
+          popularity: 0,
+        },
+        {
+          id: circleB.toString(),
+          slug: 'hiking',
+          themeId: new Types.ObjectId(),
+          labels: { en: 'Hiking', es: 'Senderismo' },
+          aliases: { en: [], es: [] },
+          popularity: 0,
+        },
+      ]);
+
+      const result = await service.findTalkMatch(requesterId, [
+        circleA.toString(),
+        circleB.toString(),
+      ]);
+
+      expect(result.candidates.map((c) => c.id)).toEqual([
+        twoShareId,
+        oneShareId,
+      ]);
+      expect(result.candidates[0].sharedCircles).toHaveLength(2);
+      expect(result.candidates[1].sharedCircles).toHaveLength(1);
+    });
+
     it('mixes available-now first then scheduled candidates with projected slots', async () => {
       // Pin to a Monday so the Tuesday-morning window below always projects
       // a future slot within the 7-day horizon, regardless of when CI runs.

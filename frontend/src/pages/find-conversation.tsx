@@ -142,6 +142,9 @@ export default function FindConversationPage() {
   const [intent, setIntent] = useState<Intent | null>(isTalkNow ? "talk" : null)
   const autoStarted = useRef(false)
   const [selectedSlot, setSelectedSlot] = useState<SelectedSlot | null>(null)
+  // Talk Now only: when nobody is available right now, the user can opt into
+  // the scheduling fallback. We never auto-show it.
+  const [showScheduled, setShowScheduled] = useState(false)
 
   const locale: "en" | "es" =
     i18n.language?.split("-")[0] === "es" ? "es" : "en"
@@ -226,6 +229,7 @@ export default function FindConversationPage() {
   function reset() {
     setStage("request")
     setSelectedSlot(null)
+    setShowScheduled(false)
     talkMatch.reset()
   }
 
@@ -281,6 +285,119 @@ export default function FindConversationPage() {
           realTalkToCardMatch(c, locale),
         )
       : []
+
+  // Talk Now is a live picker: anonymized "Match N" cards for whoever is
+  // available right now, ordered by how many circles they share with us
+  // (the backend already sorts; this guards the order client-side too).
+  if (stage === "matches" && isTalkNow) {
+    const liveMatches = cardMatches
+      .filter((m) => m.available)
+      .sort((a, b) => (b.circles?.length ?? 0) - (a.circles?.length ?? 0))
+    const scheduledMatches = cardMatches.filter((m) => !m.available)
+
+    const retry = () => {
+      if (activeCircleIds.length === 0) return
+      setSelectedSlot(null)
+      setShowScheduled(false)
+      setStage("searching")
+      talkMatch.mutate(
+        { circleIds: activeCircleIds },
+        { onSettled: () => setStage("matches") },
+      )
+    }
+
+    return (
+      <div className="mx-auto w-full max-w-3xl py-8">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mb-6 -ml-2"
+          render={<Link to="/dashboard" />}
+        >
+          <ChevronLeft /> {t("Dashboard")}
+        </Button>
+
+        {liveMatches.length > 0 ? (
+          <>
+            <div className="mb-2 text-[0.6875rem] tracking-widest text-primary/80 uppercase">
+              {liveMatches.length === 1
+                ? t("We found a match")
+                : t("We found {{count}} good matches", {
+                    count: liveMatches.length,
+                  })}
+            </div>
+            <h1 className="mb-2">{t("Someone is waiting.")}</h1>
+            <p className="mb-8 text-sm text-muted-foreground">
+              {t("Pick someone to talk to — they'll ring instantly.")}
+            </p>
+
+            <div className="flex flex-col gap-4">
+              {liveMatches.map((m, i) => (
+                <MatchCard
+                  key={m.id}
+                  match={m}
+                  locale={locale}
+                  ordinal={i + 1}
+                  selectedSlot={null}
+                  onSelectSlot={setSelectedSlot}
+                  onTalkNow={() => {
+                    if (!isRealObjectId(m.id)) return
+                    createMeeting.mutate(
+                      { peerUserId: m.id, instant: true },
+                      {
+                        onSuccess: (meeting) => navigate(`/call/${meeting.id}`),
+                      },
+                    )
+                  }}
+                  talkNowDisabled={
+                    !isRealObjectId(m.id) || createMeeting.isPending
+                  }
+                />
+              ))}
+            </div>
+          </>
+        ) : showScheduled && scheduledMatches.length > 0 ? (
+          <>
+            <h1 className="mb-2">{t("Someone is waiting.")}</h1>
+            <p className="mb-8 text-sm text-muted-foreground">
+              {t("No one's free right now — schedule a time instead.")}
+            </p>
+
+            <div className="flex flex-col gap-4">
+              {scheduledMatches.map((m) => (
+                <MatchCard
+                  key={m.id}
+                  match={m}
+                  locale={locale}
+                  selectedSlot={
+                    selectedSlot?.matchId === m.id ? selectedSlot : null
+                  }
+                  onSelectSlot={setSelectedSlot}
+                />
+              ))}
+            </div>
+
+            {selectedSlot && (
+              <SelectedSlotBar
+                selectedSlot={selectedSlot}
+                matches={cardMatches}
+                onConfirm={confirmSelectedSlot}
+              />
+            )}
+          </>
+        ) : (
+          <NoMatchState
+            onRetry={retry}
+            onSchedule={
+              scheduledMatches.length > 0
+                ? () => setShowScheduled(true)
+                : undefined
+            }
+          />
+        )}
+      </div>
+    )
+  }
 
   if (stage === "matches") {
     const noMatch =
@@ -355,39 +472,11 @@ export default function FindConversationPage() {
             </div>
 
             {selectedSlot && (
-              <Card className="mt-6">
-                <CardContent className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-sm text-muted-foreground">
-                    {(() => {
-                      const match = cardMatches.find(
-                        (c) => c.id === selectedSlot.matchId,
-                      )
-                      const dayLabel = selectedSlot.date.toLocaleDateString(
-                        i18n.language,
-                        {
-                          weekday: "long",
-                          day: "numeric",
-                          month: "short",
-                        },
-                      )
-                      const day = selectedSlot.dayKey
-                        ? `${t(selectedSlot.dayKey)} · ${dayLabel}`
-                        : dayLabel
-                      return t(
-                        "Scheduling with {{name}} — {{day}} at {{time}}",
-                        {
-                          name: match?.name ?? `#${selectedSlot.matchId}`,
-                          day,
-                          time: selectedSlot.time,
-                        },
-                      )
-                    })()}
-                  </p>
-                  <Button onClick={confirmSelectedSlot}>
-                    {t("Confirm")} <ArrowRight />
-                  </Button>
-                </CardContent>
-              </Card>
+              <SelectedSlotBar
+                selectedSlot={selectedSlot}
+                matches={cardMatches}
+                onConfirm={confirmSelectedSlot}
+              />
             )}
           </>
         )}
@@ -582,10 +671,11 @@ function IntentChoice({
 
 interface NoMatchStateProps {
   onRetry: () => void
-  onRefine: () => void
+  onRefine?: () => void
+  onSchedule?: () => void
 }
 
-function NoMatchState({ onRetry, onRefine }: NoMatchStateProps) {
+function NoMatchState({ onRetry, onRefine, onSchedule }: NoMatchStateProps) {
   const { t } = useTranslation()
   return (
     <Card className="mt-6">
@@ -599,10 +689,56 @@ function NoMatchState({ onRetry, onRefine }: NoMatchStateProps) {
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button onClick={onRetry}>{t("Try again")}</Button>
-          <Button variant="outline" onClick={onRefine}>
-            {t("Refine request")}
-          </Button>
+          {onSchedule && (
+            <Button variant="outline" onClick={onSchedule}>
+              {t("Schedule for later")}
+            </Button>
+          )}
+          {onRefine && (
+            <Button variant="outline" onClick={onRefine}>
+              {t("Refine request")}
+            </Button>
+          )}
         </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+interface SelectedSlotBarProps {
+  selectedSlot: SelectedSlot
+  matches: CardMatch[]
+  onConfirm: () => void
+}
+
+function SelectedSlotBar({
+  selectedSlot,
+  matches,
+  onConfirm,
+}: SelectedSlotBarProps) {
+  const { t } = useTranslation()
+  const match = matches.find((c) => c.id === selectedSlot.matchId)
+  const dayLabel = selectedSlot.date.toLocaleDateString(i18n.language, {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+  })
+  const day = selectedSlot.dayKey
+    ? `${t(selectedSlot.dayKey)} · ${dayLabel}`
+    : dayLabel
+  return (
+    <Card className="mt-6">
+      <CardContent className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          {t("Scheduling with {{name}} — {{day}} at {{time}}", {
+            name: match?.name ?? `#${selectedSlot.matchId}`,
+            day,
+            time: selectedSlot.time,
+          })}
+        </p>
+        <Button onClick={onConfirm}>
+          {t("Confirm")} <ArrowRight />
+        </Button>
       </CardContent>
     </Card>
   )
@@ -615,6 +751,9 @@ interface MatchCardProps {
   onSelectSlot: (slot: SelectedSlot) => void
   onTalkNow?: () => void
   talkNowDisabled?: boolean
+  // When set, the card is shown anonymized as "Match N" (no name) — used by
+  // the Talk Now live picker.
+  ordinal?: number
 }
 
 function MatchCard({
@@ -624,11 +763,16 @@ function MatchCard({
   onSelectSlot,
   onTalkNow,
   talkNowDisabled,
+  ordinal,
 }: MatchCardProps) {
   const { t } = useTranslation()
-  const idLabel = match.name
-    ? match.name.charAt(0).toUpperCase()
-    : String(match.id)
+  const isAnon = ordinal !== undefined
+  const heading = isAnon ? t("Match {{n}}", { n: ordinal }) : match.name
+  const idLabel = isAnon
+    ? String(ordinal)
+    : match.name
+      ? match.name.charAt(0).toUpperCase()
+      : String(match.id)
 
   return (
     <Card>
@@ -637,7 +781,7 @@ function MatchCard({
           <div
             className={cn(
               "flex size-8 shrink-0 items-center justify-center rounded-full border text-sm",
-              match.name
+              isAnon || match.name
                 ? "border-primary/30 bg-primary/10 text-primary"
                 : "border-border bg-muted text-muted-foreground",
             )}
@@ -646,7 +790,7 @@ function MatchCard({
             {idLabel}
           </div>
           <div className="flex-1">
-            {match.name && <h6 className="mb-1">{match.name}</h6>}
+            {heading && <h6 className="mb-1">{heading}</h6>}
             {(match.circles ?? []).length > 0 && (
               <>
                 <div className="mb-1 text-[0.6875rem] tracking-widest text-muted-foreground/60 uppercase">

@@ -97,7 +97,22 @@ export class MatchingService {
       ]);
     }
 
-    const nowPicked = this.shuffle(nowEligible).slice(0, MAX_CANDIDATES);
+    // Rank the available-now bucket by how many of the requested circles each
+    // candidate shares with the requester (most in common first). Shuffle
+    // first so equal-affinity ties stay fair — V8's sort is stable, so the
+    // randomized order survives within each shared-count group.
+    const nowSharedCircles =
+      await this.membershipsService.findCircleMembershipsForUsers(
+        nowEligible,
+        requestedCircleIds,
+      );
+    const nowPicked = this.shuffle(nowEligible)
+      .sort(
+        (a, b) =>
+          (nowSharedCircles.get(b.toString())?.length ?? 0) -
+          (nowSharedCircles.get(a.toString())?.length ?? 0),
+      )
+      .slice(0, MAX_CANDIDATES);
     const scheduledBudget = MAX_CANDIDATES - nowPicked.length;
     const scheduledPicked =
       scheduledBudget > 0
@@ -110,13 +125,19 @@ export class MatchingService {
       throw new NotFoundException('No one available right now');
     }
 
-    const [users, availabilities, sharedCirclesByUser] = await Promise.all([
+    const [users, availabilities, scheduledSharedCircles] = await Promise.all([
       this.usersService.findByIds(allPickedIds),
       this.availabilityService.findByUserIds(scheduledPicked),
       this.membershipsService.findCircleMembershipsForUsers(
-        allPickedIds,
+        scheduledPicked,
         requestedCircleIds,
       ),
+    ]);
+    // The now-bucket memberships were already fetched for ranking; merge them
+    // with the scheduled-bucket memberships. The two id sets are disjoint.
+    const sharedCirclesByUser = new Map<string, Types.ObjectId[]>([
+      ...nowSharedCircles,
+      ...scheduledSharedCircles,
     ]);
 
     const usersById = new Map(users.map((u) => [u.id.toString(), u]));
