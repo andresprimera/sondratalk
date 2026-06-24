@@ -19,7 +19,8 @@ import { type SignupInput } from './dto/signup.dto';
 import { type LoginInput } from './dto/login.dto';
 import { type ForgotPasswordInput } from './dto/forgot-password.dto';
 import { type ResetPasswordInput } from './dto/reset-password.dto';
-import { type AuthResponse } from '@base-dashboard/shared';
+import { type AuthResponse, type LocaleKey } from '@base-dashboard/shared';
+import { PASSWORD_RESET_EMAIL_COPY } from './password-reset-email';
 
 const MAX_SESSIONS_PER_USER = 10;
 
@@ -208,14 +209,16 @@ export class AuthService {
       this.configService.getOrThrow<string>('FRONTEND_URL');
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(user.email)}`;
 
+    // Send the reset email in the user's own language (the meeting/scheduling
+    // emails already do this); fall back to English for any other value.
+    const locale: LocaleKey = user.locale === 'es' ? 'es' : 'en';
+    const copy = PASSWORD_RESET_EMAIL_COPY[locale];
+
     await this.mailService.sendMail({
       to: user.email,
-      subject: 'Password Reset Request',
-      html: `<p>You requested a password reset.</p>
-             <p>Click <a href="${resetUrl}">here</a> to reset your password.</p>
-             <p>This link expires in 1 hour.</p>
-             <p>If you did not request this, ignore this email.</p>`,
-      text: `You requested a password reset. Visit this link to reset your password: ${resetUrl}\n\nThis link expires in 1 hour.\n\nIf you did not request this, ignore this email.`,
+      subject: copy.subject,
+      html: copy.bodyHtml(resetUrl),
+      text: copy.bodyText(resetUrl),
     });
   }
 

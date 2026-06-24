@@ -358,9 +358,23 @@ describe('AuthService', () => {
       expect(mailService.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'test@example.com',
-          subject: 'Password Reset Request',
+          subject: 'Reset your Sondra password',
         }),
       );
+    });
+
+    it('sends the reset email in the user locale (Spanish)', async () => {
+      usersService.findByEmail.mockResolvedValue({
+        ...mockUser,
+        locale: 'es',
+      });
+      mailService.sendMail.mockResolvedValue(undefined);
+
+      await service.forgotPassword({ email: 'test@example.com' });
+
+      const arg = mailService.sendMail.mock.calls[0][0];
+      expect(arg.subject).toBe('Restablece tu contraseña de Sondra');
+      expect(arg.text).toContain('Restablécela aquí');
     });
 
     it('should silently return on cooldown without sending email', async () => {
