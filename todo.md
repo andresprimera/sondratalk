@@ -1,2 +1,2 @@
 - [ ] Links on emails are not working. We should build them using env variables so it works in prod and dev.
-- [ ] circulo privado "Hebraica"?
+- [ ] can we make private circles like "Hebraica" only to be shown to people that type the word in the "Add more" text field?
