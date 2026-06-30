@@ -29,6 +29,8 @@ function escapeHtml(value: string): string {
 // so transactional mail stays visually consistent.
 function renderHtml(labels: ResetLabels, resetUrl: string): string {
   const url = escapeHtml(resetUrl);
+  const appOrigin = escapeHtml(new URL(resetUrl).origin);
+  const appHost = escapeHtml(new URL(resetUrl).hostname);
   const serif = "'Cormorant Garamond',Georgia,'Times New Roman',serif";
   return (
     `<!doctype html><html lang="${labels.lang}"><head>` +
@@ -59,7 +61,7 @@ function renderHtml(labels: ResetLabels, resetUrl: string): string {
     '<tr><td style="padding:20px 36px 30px;border-top:1px solid rgba(232,220,196,0.05);">' +
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
     '<td style="font-size:13px;letter-spacing:1px;color:#6f6650;">Sondra</td>' +
-    '<td align="right"><a href="https://www.sondratalk.com" style="font-size:12px;color:#6f6650;text-decoration:none;letter-spacing:0.5px;">sondratalk.com</a></td>' +
+    `<td align="right"><a href="${appOrigin}" style="font-size:12px;color:#6f6650;text-decoration:none;letter-spacing:0.5px;">${appHost}</a></td>` +
     '</tr></table></td></tr>' +
     '</table></td></tr></table></body></html>'
   );

@@ -48,6 +48,8 @@ export function renderHtml(labels: HtmlLabels, data: MeetingEmailData): string {
   const dayLabel = escapeHtml(data.dayLabel);
   const timeRange = escapeHtml(data.timeRange);
   const tzLabel = escapeHtml(data.tzLabel);
+  const appOrigin = escapeHtml(new URL(data.joinUrl).origin);
+  const appHost = escapeHtml(new URL(data.joinUrl).hostname);
   const serif = "'Cormorant Garamond',Georgia,'Times New Roman',serif";
 
   return (
@@ -93,7 +95,7 @@ export function renderHtml(labels: HtmlLabels, data: MeetingEmailData): string {
     '<tr><td style="padding:20px 36px 30px;border-top:1px solid rgba(232,220,196,0.05);">' +
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
     '<td style="font-size:13px;letter-spacing:1px;color:#6f6650;">Sondra</td>' +
-    '<td align="right"><a href="https://www.sondratalk.com" style="font-size:12px;color:#6f6650;text-decoration:none;letter-spacing:0.5px;">sondratalk.com</a></td>' +
+    `<td align="right"><a href="${appOrigin}" style="font-size:12px;color:#6f6650;text-decoration:none;letter-spacing:0.5px;">${appHost}</a></td>` +
     '</tr></table></td></tr>' +
     '</table></td></tr></table></body></html>'
   );

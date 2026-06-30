@@ -229,7 +229,7 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CopyableInput value="https://www.sondratalk.com" />
+            <CopyableInput value={`${window.location.origin}/signup`} />
           </CardContent>
         </Card>
       </section>

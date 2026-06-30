@@ -98,6 +98,7 @@ describe('AuthService', () => {
     configService.getOrThrow.mockImplementation((key: string) => {
       if (key === 'JWT_REFRESH_EXPIRATION') return '7d';
       if (key === 'JWT_ACCESS_EXPIRATION') return '15m';
+      if (key === 'FRONTEND_URL') return 'http://localhost:5174';
       return 'mock-secret';
     });
     allowlistService.isEmailAllowed.mockResolvedValue(true);
