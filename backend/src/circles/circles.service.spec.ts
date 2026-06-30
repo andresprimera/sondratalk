@@ -155,7 +155,7 @@ describe('CirclesService', () => {
   });
 
   describe('findAllPaginated', () => {
-    it('returns paginated results filtered by themeId when provided', async () => {
+    it('returns paginated results filtered by themeId when provided, excluding private circles', async () => {
       const chainable = {
         sort: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
@@ -166,14 +166,17 @@ describe('CirclesService', () => {
 
       const result = await service.findAllPaginated(1, 10, 'theme-1');
 
-      expect(model.find).toHaveBeenCalledWith({ themeId: 'theme-1' });
+      expect(model.find).toHaveBeenCalledWith({
+        isPrivate: { $ne: true },
+        themeId: 'theme-1',
+      });
       expect(chainable.sort).toHaveBeenCalledWith({ popularity: -1, slug: 1 });
       expect(chainable.skip).toHaveBeenCalledWith(0);
       expect(chainable.limit).toHaveBeenCalledWith(10);
       expect(result).toEqual({ data: [mockCircle], total: 1 });
     });
 
-    it('returns all when themeId is omitted', async () => {
+    it('excludes private circles when themeId is omitted', async () => {
       const chainable = {
         sort: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
@@ -184,7 +187,7 @@ describe('CirclesService', () => {
 
       await service.findAllPaginated(2, 10);
 
-      expect(model.find).toHaveBeenCalledWith({});
+      expect(model.find).toHaveBeenCalledWith({ isPrivate: { $ne: true } });
       expect(chainable.skip).toHaveBeenCalledWith(10);
     });
   });

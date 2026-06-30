@@ -87,7 +87,10 @@ export class CirclesService {
     limit: number,
     themeId?: string,
   ): Promise<{ data: CircleDocument[]; total: number }> {
-    const filter: FilterQuery<Circle> = themeId ? { themeId } : {};
+    const filter: FilterQuery<Circle> = {
+      isPrivate: { $ne: true },
+      ...(themeId ? { themeId } : {}),
+    };
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
       this.circleModel

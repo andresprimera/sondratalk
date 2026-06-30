@@ -1,1 +1,0 @@
-- [ ] can we make private circles like "Hebraica" only to be shown to people that type the word in the "Add more" text field?
