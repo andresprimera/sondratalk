@@ -43,7 +43,6 @@ const EMPTY_DEFAULTS: CreateCircleInput = {
   labels: { en: "", es: "" },
   aliases: { en: [], es: [] },
   isPrivate: false,
-  password: "",
 }
 
 export function AddCircleDialog({
