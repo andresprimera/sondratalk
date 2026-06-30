@@ -1,2 +1,1 @@
-- [ ] I want to be able to delete or edit circles in backend; also, if private circle I want to be able to see and change the password
 - [ ] fix a bug; i cant add new circles now; dont know why

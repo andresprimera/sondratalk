@@ -3,6 +3,7 @@ import {
   type Circle,
   type PaginatedResponse,
   type CreateCircleInput,
+  type UpdateCircleInput,
   type CircleSearchQuery,
 } from "@base-dashboard/shared"
 import { authFetch } from "@/lib/api"
@@ -53,6 +54,23 @@ export async function createCircleApi(
     body: JSON.stringify(data),
   })
   return res.json()
+}
+
+export async function updateCircleApi(
+  id: string,
+  data: UpdateCircleInput,
+): Promise<Circle> {
+  const res = await authFetch(`/api/circles/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  })
+  return res.json()
+}
+
+export async function removeCircleApi(id: string): Promise<void> {
+  await authFetch(`/api/circles/${id}`, {
+    method: "DELETE",
+  })
 }
 
 export async function verifyCirclePasswordApi(

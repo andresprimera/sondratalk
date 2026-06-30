@@ -4,6 +4,8 @@ import {
   fetchAllCirclesApi,
   fetchCircleByIdApi,
   createCircleApi,
+  updateCircleApi,
+  removeCircleApi,
   verifyCirclePasswordApi,
 } from "@/lib/circles"
 import { authFetch } from "@/lib/api"
@@ -209,6 +211,34 @@ describe("circles API", () => {
       expect(authFetch).toHaveBeenCalledWith(
         "/api/circles/admin?q=ger&themeId=t1&page=1&limit=10",
       )
+    })
+  })
+
+
+  describe("updateCircleApi", () => {
+    it("PATCHes /api/circles/:id with the body", async () => {
+      vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(sampleCircle))
+
+      const dto = { labels: { en: "New Label", es: "Nuevo Label" } }
+      const result = await updateCircleApi("c1", dto)
+
+      expect(authFetch).toHaveBeenCalledWith("/api/circles/c1", {
+        method: "PATCH",
+        body: JSON.stringify(dto),
+      })
+      expect(result).toEqual(sampleCircle)
+    })
+  })
+
+  describe("removeCircleApi", () => {
+    it("DELETEs /api/circles/:id", async () => {
+      vi.mocked(authFetch).mockResolvedValue({} as Response)
+
+      await removeCircleApi("c1")
+
+      expect(authFetch).toHaveBeenCalledWith("/api/circles/c1", {
+        method: "DELETE",
+      })
     })
   })
 

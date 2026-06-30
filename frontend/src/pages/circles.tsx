@@ -2,13 +2,16 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   useQuery,
+  useMutation,
+  useQueryClient,
   keepPreviousData,
 } from "@tanstack/react-query"
-import { fetchAdminCirclesApi } from "@/lib/circles"
+import { fetchAdminCirclesApi, removeCircleApi } from "@/lib/circles"
 import { circleTypeLabel } from "@/lib/circle-types"
 import { fetchAllThemesApi } from "@/lib/themes"
 import type { AdminCircle, CircleSortBy } from "@base-dashboard/shared"
 import { AddCircleDialog } from "@/components/add-circle-dialog"
+import { EditCircleDialog } from "@/components/edit-circle-dialog"
 import {
   Table,
   TableBody,
@@ -24,6 +27,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -39,7 +52,10 @@ import {
   ArrowUpIcon,
   ArrowDownIcon,
   ArrowUpDownIcon,
+  PencilIcon,
+  TrashIcon,
 } from "lucide-react"
+import { toast } from "sonner"
 
 const ALL_THEMES_VALUE = "__all__"
 
@@ -79,6 +95,8 @@ export default function CirclesPage() {
   const [sortBy, setSortBy] = useState<CircleSortBy>("slug")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
   const [addOpen, setAddOpen] = useState(false)
+  const [editCircle, setEditCircle] = useState<AdminCircle | null>(null)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQ(q), 250)
@@ -88,6 +106,26 @@ export default function CirclesPage() {
   useEffect(() => {
     setPage(1)
   }, [debouncedQ, themeId])
+
+  const queryClient = useQueryClient()
+
+  const deleteMutation = useMutation({
+    mutationFn: removeCircleApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["circles"] })
+      toast.success(t("Circle deleted"))
+    },
+    onError: (error: Error) => {
+      toast.error(t(error.message) || t("Failed to delete circle"))
+    },
+  })
+
+  function handleDelete() {
+    if (!deleteId) return
+    deleteMutation.mutate(deleteId, {
+      onSettled: () => setDeleteId(null),
+    })
+  }
 
   const { data: allThemes = [] } = useQuery({
     queryKey: ["themes", "all"],
@@ -202,6 +240,7 @@ export default function CirclesPage() {
                 <TableHead>{t("Theme")}</TableHead>
                 <TableHead>{t("Circle Type")}</TableHead>
                 <TableHead>{t("Popularity")}</TableHead>
+                <TableHead className="w-25">{t("Actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -225,6 +264,9 @@ export default function CirclesPage() {
                     </TableCell>
                     <TableCell>
                       <Skeleton className="h-4 w-8" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="size-8" />
                     </TableCell>
                   </TableRow>
                 ),
@@ -274,12 +316,13 @@ export default function CirclesPage() {
                   <SortIcon col={col} sortBy={sortBy} sortDir={sortDir} />
                 </TableHead>
               ))}
+              <TableHead className="w-25">{t("Actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {circles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={COLUMNS.length} className="h-32 text-center">
+                <TableCell colSpan={COLUMNS.length + 1} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                     <CircleDotIcon className="size-8" />
                     <p>
@@ -291,7 +334,7 @@ export default function CirclesPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              circles.map((c: AdminCircle) => (
+              circles.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-mono text-sm">{c.slug}</TableCell>
                   <TableCell className="font-medium">{c.labels.en}</TableCell>
@@ -304,6 +347,26 @@ export default function CirclesPage() {
                   </TableCell>
                   <TableCell>{t(circleTypeLabel(c.type))}</TableCell>
                   <TableCell>{c.membershipCount}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setEditCircle(c)}
+                      >
+                        <PencilIcon className="size-4" />
+                        <span className="sr-only">{t("Edit")}</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteId(c.id)}
+                      >
+                        <TrashIcon className="size-4" />
+                        <span className="sr-only">{t("Delete")}</span>
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -385,6 +448,29 @@ export default function CirclesPage() {
         </div>
       )}
       <AddCircleDialog open={addOpen} onOpenChange={setAddOpen} />
+      <EditCircleDialog
+        circle={editCircle}
+        onOpenChange={(open) => { if (!open) setEditCircle(null) }}
+      />
+      <AlertDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => { if (!open) setDeleteId(null) }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("Delete circle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("This action cannot be undone. All memberships in this circle will be removed.")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("Cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>
+              {deleteMutation.isPending ? t("Deleting...") : t("Delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
