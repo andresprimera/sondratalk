@@ -98,9 +98,11 @@ describe('MatchingService', () => {
           id: circleA.toString(),
           slug: 'catalan',
           themeId: new Types.ObjectId(),
+          type: 'who-you-are',
           labels: { en: 'Catalan', es: 'Catalán' },
           aliases: { en: [], es: [] },
           popularity: 0,
+          isPrivate: false,
         },
       ]);
 
@@ -172,17 +174,21 @@ describe('MatchingService', () => {
           id: circleA.toString(),
           slug: 'catalan',
           themeId: new Types.ObjectId(),
+          type: 'who-you-are',
           labels: { en: 'Catalan', es: 'Catalán' },
           aliases: { en: [], es: [] },
           popularity: 0,
+          isPrivate: false,
         },
         {
           id: circleB.toString(),
           slug: 'hiking',
           themeId: new Types.ObjectId(),
+          type: 'what-you-love',
           labels: { en: 'Hiking', es: 'Senderismo' },
           aliases: { en: [], es: [] },
           popularity: 0,
+          isPrivate: false,
         },
       ]);
 
@@ -235,9 +241,11 @@ describe('MatchingService', () => {
           id: circleA.toString(),
           slug: 'catalan',
           themeId: new Types.ObjectId(),
+          type: 'who-you-are',
           labels: { en: 'Catalan', es: 'Catalán' },
           aliases: { en: [], es: [] },
           popularity: 0,
+          isPrivate: false,
         },
       ]);
 
@@ -262,6 +270,9 @@ describe('MatchingService', () => {
     it('drops scheduled candidates whose windows yield no future slots', async () => {
       const scheduledOid = new Types.ObjectId(scheduledUserId);
       membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
+      circlesService.findByIds.mockResolvedValue([
+        { id: circleA.toString(), slug: 'catalan', isPrivate: false, themeId: new Types.ObjectId(), type: 'who-you-are', labels: { en: 'Catalan', es: 'Catalán' }, aliases: { en: [], es: [] }, popularity: 0 },
+      ]);
       membershipsService.findOtherUserIdsInCircles.mockResolvedValue([
         scheduledOid,
       ]);
@@ -300,6 +311,9 @@ describe('MatchingService', () => {
 
     it('throws NotFoundException and logs an empty match when no candidates exist', async () => {
       membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
+      circlesService.findByIds.mockResolvedValue([
+        { id: circleA.toString(), slug: 'catalan', isPrivate: false, themeId: new Types.ObjectId(), type: 'who-you-are', labels: { en: 'Catalan', es: 'Catalán' }, aliases: { en: [], es: [] }, popularity: 0 },
+      ]);
       membershipsService.findOtherUserIdsInCircles.mockResolvedValue([]);
       availabilityService.findAvailableNowUserIds.mockResolvedValue([]);
 
@@ -316,6 +330,9 @@ describe('MatchingService', () => {
     it('does not throw when logging the attempt fails', async () => {
       const liveOid = new Types.ObjectId(liveUserId);
       membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
+      circlesService.findByIds.mockResolvedValue([
+        { id: circleA.toString(), slug: 'catalan', isPrivate: false, themeId: new Types.ObjectId(), type: 'who-you-are', labels: { en: 'Catalan', es: 'Catalán' }, aliases: { en: [], es: [] }, popularity: 0 },
+      ]);
       membershipsService.findOtherUserIdsInCircles.mockResolvedValue([liveOid]);
       availabilityService.findAvailableNowUserIds.mockResolvedValue([liveOid]);
       usersService.findByIds.mockResolvedValue([
@@ -333,6 +350,9 @@ describe('MatchingService', () => {
     it('reveals the real first name when the pair has a mutual door-open', async () => {
       const liveOid = new Types.ObjectId(liveUserId);
       membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
+      circlesService.findByIds.mockResolvedValue([
+        { id: circleA.toString(), slug: 'catalan', isPrivate: false, themeId: new Types.ObjectId(), type: 'who-you-are', labels: { en: 'Catalan', es: 'Catalán' }, aliases: { en: [], es: [] }, popularity: 0 },
+      ]);
       membershipsService.findOtherUserIdsInCircles.mockResolvedValue([liveOid]);
       availabilityService.findAvailableNowUserIds.mockResolvedValue([liveOid]);
       usersService.findByIds.mockResolvedValue([
@@ -355,6 +375,9 @@ describe('MatchingService', () => {
       const liveOid = new Types.ObjectId(liveUserId);
       const excludedOid = new Types.ObjectId(scheduledUserId);
       membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
+      circlesService.findByIds.mockResolvedValue([
+        { id: circleA.toString(), slug: 'catalan', isPrivate: false, themeId: new Types.ObjectId(), type: 'who-you-are', labels: { en: 'Catalan', es: 'Catalán' }, aliases: { en: [], es: [] }, popularity: 0 },
+      ]);
       membershipsService.findOtherUserIdsInCircles.mockResolvedValue([
         liveOid,
         excludedOid,
@@ -380,11 +403,89 @@ describe('MatchingService', () => {
     });
   });
 
+  describe('private circle gating', () => {
+    const privateCircleId = new Types.ObjectId('507f1f77bcf86cd799439ccc');
+    const publicCircleId = new Types.ObjectId('507f1f77bcf86cd799439ddd');
+    const privateUserId = '507f1f77bcf86cd799439066';
+    const publicOnlyUserId = '507f1f77bcf86cd799439077';
+
+    it('when a private circle is selected, only returns candidates in that private circle', async () => {
+      const privateOid = new Types.ObjectId(privateUserId);
+      // requester belongs to both a private and a public circle
+      membershipsService.findCircleIdsForUser.mockResolvedValueOnce([
+        privateCircleId,
+        publicCircleId,
+      ]);
+      // circlesService.findByIds is called once: gating check + display reuse same result
+      circlesService.findByIds.mockResolvedValue([
+        { id: privateCircleId.toString(), slug: 'vip-group', isPrivate: true, themeId: new Types.ObjectId(), type: 'who-you-are', labels: { en: 'VIP', es: 'VIP' }, aliases: { en: [], es: [] }, popularity: 0 },
+        { id: publicCircleId.toString(), slug: 'cooking', isPrivate: false, themeId: new Types.ObjectId(), type: 'what-you-love', labels: { en: 'Cooking', es: 'Cocina' }, aliases: { en: [], es: [] }, popularity: 0 },
+      ]);
+      // only privateUserId is in the private circle
+      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([privateOid]);
+      availabilityService.findAvailableNowUserIds.mockResolvedValue([privateOid]);
+      usersService.findByIds.mockResolvedValue([
+        { id: privateUserId, name: 'Vip User', timezone: 'Europe/Madrid' },
+      ]);
+      membershipsService.findCircleMembershipsForUsers.mockResolvedValue(
+        new Map([[privateUserId, [privateCircleId]]]),
+      );
+
+      const result = await service.findTalkMatch(requesterId, [
+        privateCircleId.toString(),
+        publicCircleId.toString(),
+      ]);
+
+      // Only users from the private circle pool should be candidates
+      expect(result.candidates).toHaveLength(1);
+      expect(result.candidates[0].id).toBe(privateUserId);
+      // findOtherUserIdsInCircles must have been called with only the private circle
+      const [calledCircleIds] =
+        membershipsService.findOtherUserIdsInCircles.mock.calls[0];
+      expect(calledCircleIds).toHaveLength(1);
+      expect(calledCircleIds[0].toString()).toBe(privateCircleId.toString());
+    });
+
+    it('when only public circles are selected, uses all requested circles as pool', async () => {
+      const publicOid = new Types.ObjectId(publicOnlyUserId);
+      membershipsService.findCircleIdsForUser.mockResolvedValueOnce([
+        publicCircleId,
+      ]);
+      // circlesService.findByIds called once — gating check and display reuse same result
+      circlesService.findByIds.mockResolvedValue([
+        { id: publicCircleId.toString(), slug: 'cooking', isPrivate: false, themeId: new Types.ObjectId(), type: 'what-you-love', labels: { en: 'Cooking', es: 'Cocina' }, aliases: { en: [], es: [] }, popularity: 0 },
+      ]);
+      membershipsService.findOtherUserIdsInCircles.mockResolvedValue([publicOid]);
+      availabilityService.findAvailableNowUserIds.mockResolvedValue([publicOid]);
+      usersService.findByIds.mockResolvedValue([
+        { id: publicOnlyUserId, name: 'Cook User', timezone: 'Europe/Madrid' },
+      ]);
+      membershipsService.findCircleMembershipsForUsers.mockResolvedValue(
+        new Map([[publicOnlyUserId, [publicCircleId]]]),
+      );
+
+      const result = await service.findTalkMatch(requesterId, [
+        publicCircleId.toString(),
+      ]);
+
+      expect(result.candidates).toHaveLength(1);
+      expect(result.candidates[0].id).toBe(publicOnlyUserId);
+      // findOtherUserIdsInCircles must have been called with all requested circles
+      const [calledCircleIds] =
+        membershipsService.findOtherUserIdsInCircles.mock.calls[0];
+      expect(calledCircleIds).toHaveLength(1);
+      expect(calledCircleIds[0].toString()).toBe(publicCircleId.toString());
+    });
+  });
+
   describe('findHeardMatch', () => {
     it('filters both available-now and scheduled branches through host-exp filter', async () => {
       const liveOid = new Types.ObjectId(liveUserId);
       const scheduledOid = new Types.ObjectId(scheduledUserId);
       membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
+      circlesService.findByIds.mockResolvedValue([
+        { id: circleA.toString(), slug: 'catalan', isPrivate: false, themeId: new Types.ObjectId(), type: 'who-you-are', labels: { en: 'Catalan', es: 'Catalán' }, aliases: { en: [], es: [] }, popularity: 0 },
+      ]);
       membershipsService.findOtherUserIdsInCircles.mockResolvedValue([
         liveOid,
         scheduledOid,
@@ -431,6 +532,9 @@ describe('MatchingService', () => {
     it('throws NotFoundException when no candidates have hostExp > 0', async () => {
       const liveOid = new Types.ObjectId(liveUserId);
       membershipsService.findCircleIdsForUser.mockResolvedValueOnce([circleA]);
+      circlesService.findByIds.mockResolvedValue([
+        { id: circleA.toString(), slug: 'catalan', isPrivate: false, themeId: new Types.ObjectId(), type: 'who-you-are', labels: { en: 'Catalan', es: 'Catalán' }, aliases: { en: [], es: [] }, popularity: 0 },
+      ]);
       membershipsService.findOtherUserIdsInCircles.mockResolvedValue([liveOid]);
       availabilityService.findAvailableNowUserIds.mockResolvedValue([liveOid]);
       usersService.filterByHasHostExp.mockResolvedValue([]);

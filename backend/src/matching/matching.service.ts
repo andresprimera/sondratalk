@@ -81,9 +81,29 @@ export class MatchingService {
     const requester = await this.usersService.findById(userId);
     if (!requester) throw new NotFoundException('User not found');
 
+    // When any selected circle is private, restrict candidates to members of
+    // those private circles only — a gated context requires a shared key.
+    const requestedCircleDocs = await this.circlesService.findByIds(
+      requestedCircleIds.map((id) => id.toString()),
+    );
+    const privateCircleIds = requestedCircleIds.filter((reqId) =>
+      requestedCircleDocs.some(
+        (c) => c.id.toString() === reqId.toString() && c.isPrivate,
+      ),
+    );
+    const poolCircleIds =
+      privateCircleIds.length > 0 ? privateCircleIds : requestedCircleIds;
+    // Docs for the effective pool — used for display and ranking below.
+    const poolCircleDocs =
+      privateCircleIds.length > 0
+        ? requestedCircleDocs.filter((c) =>
+            privateCircleIds.some((id) => id.toString() === c.id.toString()),
+          )
+        : requestedCircleDocs;
+
     const rawCandidateUserIds =
       await this.membershipsService.findOtherUserIdsInCircles(
-        requestedCircleIds,
+        poolCircleIds,
         userId,
       );
     // One-directional: people the requester chose not to be matched with
@@ -106,14 +126,14 @@ export class MatchingService {
       ]);
     }
 
-    // Rank the available-now bucket by how many of the requested circles each
+    // Rank the available-now bucket by how many of the pool circles each
     // candidate shares with the requester (most in common first). Shuffle
     // first so equal-affinity ties stay fair — V8's sort is stable, so the
     // randomized order survives within each shared-count group.
     const nowSharedCircles =
       await this.membershipsService.findCircleMembershipsForUsers(
         nowEligible,
-        requestedCircleIds,
+        poolCircleIds,
       );
     const nowPicked = this.shuffle(nowEligible)
       .sort(
@@ -145,7 +165,7 @@ export class MatchingService {
       this.availabilityService.findByUserIds(scheduledPicked),
       this.membershipsService.findCircleMembershipsForUsers(
         scheduledPicked,
-        requestedCircleIds,
+        poolCircleIds,
       ),
       this.findRevealedCandidateIds(userId, allPickedIds),
       this.meetingsService.countConversationsForUsers(allPickedIds),
@@ -162,15 +182,10 @@ export class MatchingService {
       availabilities.map((a) => [a.userId.toString(), a]),
     );
 
-    const allSharedCircleIds = new Set<string>();
-    for (const list of sharedCirclesByUser.values()) {
-      for (const id of list) allSharedCircleIds.add(id.toString());
-    }
-    const sharedCircleDocs = await this.circlesService.findByIds([
-      ...allSharedCircleIds,
-    ]);
+    // poolCircleDocs covers exactly the circles that gated and ranked this match —
+    // only those appear as shared-circle badges on the candidate cards.
     const circleById = new Map(
-      sharedCircleDocs.map((c) => [c.id.toString(), c]),
+      poolCircleDocs.map((c) => [c.id.toString(), c]),
     );
 
     const now = new Date();
