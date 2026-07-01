@@ -135,7 +135,7 @@ export class UsersService {
   ): Promise<void> {
     const cutoff = new Date(Date.now() - refreshTtlMs);
     await this.userModel.findByIdAndUpdate(userId, {
-      $pull: { sessions: { createdAt: { $lt: cutoff } } },
+      $pull: { sessions: { lastUsedAt: { $lt: cutoff } } },
     });
     await this.userModel.findByIdAndUpdate(userId, {
       $push: {

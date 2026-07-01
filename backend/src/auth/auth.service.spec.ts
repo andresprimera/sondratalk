@@ -96,7 +96,7 @@ describe('AuthService', () => {
 
     jwtService.signAsync.mockResolvedValue('mock-token');
     configService.getOrThrow.mockImplementation((key: string) => {
-      if (key === 'JWT_REFRESH_EXPIRATION') return '7d';
+      if (key === 'JWT_REFRESH_EXPIRATION') return '30d';
       if (key === 'JWT_ACCESS_EXPIRATION') return '15m';
       if (key === 'FRONTEND_URL') return 'http://localhost:5174';
       return 'mock-secret';
@@ -255,7 +255,7 @@ describe('AuthService', () => {
       expect(session.jti).toEqual(expect.any(String));
       expect(session.hashedToken).toBe('hashed-value');
       expect(maxSessions).toBe(10);
-      expect(ttlMs).toBe(7 * 24 * 60 * 60 * 1000);
+      expect(ttlMs).toBe(30 * 24 * 60 * 60 * 1000);
     });
   });
 

@@ -192,11 +192,11 @@ describe('UsersService', () => {
     it('prunes expired sessions then pushes the new one capped at maxSessions', async () => {
       model.findByIdAndUpdate.mockResolvedValue(undefined);
 
-      await service.addSession('user-1', session, 10, 7 * 24 * 60 * 60 * 1000);
+      await service.addSession('user-1', session, 10, 30 * 24 * 60 * 60 * 1000);
 
       const [firstCall, secondCall] = model.findByIdAndUpdate.mock.calls;
       expect(firstCall[0]).toBe('user-1');
-      expect(firstCall[1].$pull.sessions.createdAt.$lt).toBeInstanceOf(Date);
+      expect(firstCall[1].$pull.sessions.lastUsedAt.$lt).toBeInstanceOf(Date);
       expect(secondCall[0]).toBe('user-1');
       expect(secondCall[1]).toEqual({
         $push: { sessions: { $each: [session], $slice: -10 } },

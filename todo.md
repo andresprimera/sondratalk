@@ -1,0 +1,1 @@
+- [ ] When a private circle is active, the user will match only with people of that same private circle
