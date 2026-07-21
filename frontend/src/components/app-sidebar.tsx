@@ -20,7 +20,6 @@ import {
   Settings2Icon,
   LayersIcon,
   CircleDotIcon,
-  ShieldCheckIcon,
   ClipboardListIcon,
   MessageSquareTextIcon,
 } from "lucide-react"
@@ -37,11 +36,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     { title: t("Users"), url: "/dashboard/users", icon: <UsersIcon /> },
     { title: t("Themes"), url: "/dashboard/themes", icon: <LayersIcon /> },
     { title: t("Circles"), url: "/dashboard/circles", icon: <CircleDotIcon /> },
-    {
-      title: t("Early Access"),
-      url: "/dashboard/allowlist",
-      icon: <ShieldCheckIcon />,
-    },
     {
       title: t("Applications"),
       url: "/dashboard/applications",

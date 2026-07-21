@@ -68,15 +68,6 @@ export {
 } from "./schemas/theme";
 
 export {
-  allowlistEntrySchema,
-  type AllowlistEntry,
-  createAllowlistEntrySchema,
-  type CreateAllowlistEntryInput,
-  updateAllowlistEntrySchema,
-  type UpdateAllowlistEntryInput,
-} from "./schemas/allowlist";
-
-export {
   LOCALE_KEYS,
   type LocaleKey,
   circleTypeEnum,

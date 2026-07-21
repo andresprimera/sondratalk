@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -14,7 +13,6 @@ import { UsersService } from '../users/users.service';
 import { toUser } from '../users/users.mapper';
 import { MailService } from '../services';
 import { AvailabilityService } from '../availability/availability.service';
-import { AllowlistService } from '../allowlist/allowlist.service';
 import { type SignupInput } from './dto/signup.dto';
 import { type LoginInput } from './dto/login.dto';
 import { type ForgotPasswordInput } from './dto/forgot-password.dto';
@@ -34,24 +32,13 @@ export class AuthService {
     private configService: ConfigService,
     private mailService: MailService,
     private availabilityService: AvailabilityService,
-    private allowlistService: AllowlistService,
   ) {}
 
   async signup(dto: SignupInput): Promise<AuthResponse> {
-    // The very first user bootstraps the app as admin and is exempt from the
-    // allowlist (there is no one to maintain it yet). Every signup after that
-    // must be on the early-access allowlist — an empty allowlist blocks all.
+    // The very first user bootstraps the app as admin; everyone after signs up
+    // as a regular user.
     const userCount = await this.usersService.countUsers();
     const isFirstUser = userCount === 0;
-
-    if (
-      !isFirstUser &&
-      !(await this.allowlistService.isEmailAllowed(dto.email))
-    ) {
-      throw new ForbiddenException(
-        "This email isn't on the early access list. Sondra is invite-only right now.",
-      );
-    }
 
     const existingUser = await this.usersService.findByEmail(dto.email);
     if (existingUser) {
