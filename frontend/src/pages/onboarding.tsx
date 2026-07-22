@@ -180,12 +180,12 @@ export default function OnboardingPage() {
     <div className="onboarding-bg relative flex min-h-svh flex-col text-foreground">
       <div className="onboarding-grain" aria-hidden />
 
-      <header className="relative z-10 mx-auto flex w-full max-w-[600px] items-center justify-between px-6 pt-8">
+      <header className="relative z-10 mx-auto flex w-full max-w-[680px] items-center justify-between px-6 pt-8">
         <span className="onboarding-logo">Sondra</span>
         {step !== 5 && <OnboardingProgress current={step} total={4} />}
       </header>
 
-      <main className="relative z-10 mx-auto w-full max-w-[600px] flex-1 px-6 pb-20">
+      <main className="relative z-10 mx-auto w-full max-w-[680px] flex-1 px-6 pb-20">
         {step === 1 && (
           <OnboardingLocationStep
             selectedIana={selectedIana}

@@ -124,7 +124,7 @@ export function OnboardingLanguagesStep({
               </div>
               <div className="flex items-center gap-3">
                 <ToggleGroup
-                  spacing={6}
+                  spacing={2}
                   value={[lang.fluency]}
                   onValueChange={(next) => {
                     const picked = next[0]
@@ -138,7 +138,13 @@ export function OnboardingLanguagesStep({
                     <ToggleGroupItem
                       key={level}
                       value={level}
-                      className="onboarding-fluency-item border-transparent bg-transparent px-3 data-[state=on]:bg-primary"
+                      // base-ui's Toggle marks the active item with aria-pressed
+                      // (not Radix's data-state=on); target that so the selected
+                      // fluency reads as primary green instead of the faint
+                      // bg-muted the shared toggle falls back to. cn()/twMerge
+                      // resolves the aria-pressed:bg-* conflict in favour of the
+                      // last class, so no !important is needed.
+                      className="onboarding-fluency-item border-transparent bg-transparent px-3 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
                     >
                       {t(level)}
                     </ToggleGroupItem>

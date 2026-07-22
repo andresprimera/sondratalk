@@ -1,3 +1,2 @@
-- [ ] Check design on the onboarding. For example, on step two, the last language overflow to the right. Also, selected languages are not different enough from unselected ones, so it can be confusing. We could just make the max width a little larger.
 - [ ] User's can not add their own circles on the onboarding.
 - [ ] The sign up button actually says "Apply". It shouldn't.

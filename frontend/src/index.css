@@ -561,12 +561,6 @@
     color: var(--foreground);
   }
 
-  .onboarding-fluency-item[data-state="on"] {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: var(--primary-foreground);
-  }
-
   .onboarding-chip-row {
     display: flex;
     flex-wrap: wrap;
