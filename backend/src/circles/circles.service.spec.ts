@@ -28,6 +28,7 @@ describe('CirclesService', () => {
       find: jest.fn(),
       findById: jest.fn(),
       findByIdAndUpdate: jest.fn(),
+      findOneAndUpdate: jest.fn(),
       findByIdAndDelete: jest.fn(),
       deleteMany: jest.fn(),
       exists: jest.fn(),
@@ -696,6 +697,55 @@ describe('CirclesService', () => {
       model.deleteMany.mockResolvedValue({ deletedCount: 3 });
       await service.removeAll();
       expect(model.deleteMany).toHaveBeenCalledWith({});
+    });
+  });
+
+  describe('findOrCreateCustom', () => {
+    it('upserts a public circle with a namespaced slug and the label on both locales', async () => {
+      model.findOneAndUpdate.mockResolvedValue(mockCircle);
+
+      const result = await service.findOrCreateCustom('  Salsa Dancing  ');
+
+      expect(result).toBe(mockCircle);
+      const [filter, update, options] =
+        model.findOneAndUpdate.mock.calls[0];
+      expect(filter).toEqual({ slug: 'custom-salsa-dancing' });
+      expect(options).toEqual({
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true,
+      });
+      expect(update.$setOnInsert).toMatchObject({
+        slug: 'custom-salsa-dancing',
+        type: 'what-you-love',
+        labels: { en: 'Salsa Dancing', es: 'Salsa Dancing' },
+        isPrivate: false,
+        popularity: 0,
+      });
+    });
+
+    it('slugs case- and accent-insensitively so equivalent labels dedupe', async () => {
+      model.findOneAndUpdate.mockResolvedValue(mockCircle);
+
+      await service.findOrCreateCustom('Café Culture');
+      await service.findOrCreateCustom('cafe culture');
+
+      const slugA = model.findOneAndUpdate.mock.calls[0][0].slug;
+      const slugB = model.findOneAndUpdate.mock.calls[1][0].slug;
+      expect(slugA).toBe('custom-cafe-culture');
+      expect(slugB).toBe('custom-cafe-culture');
+    });
+
+    it('falls back to a stable hashed slug when the label has no latin characters', async () => {
+      model.findOneAndUpdate.mockResolvedValue(mockCircle);
+
+      await service.findOrCreateCustom('日本語');
+      await service.findOrCreateCustom('日本語');
+
+      const slugA = model.findOneAndUpdate.mock.calls[0][0].slug;
+      const slugB = model.findOneAndUpdate.mock.calls[1][0].slug;
+      expect(slugA).toMatch(/^custom-[a-f0-9]{12}$/);
+      expect(slugA).toBe(slugB);
     });
   });
 });

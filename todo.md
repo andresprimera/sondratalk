@@ -1,2 +1,1 @@
-- [ ] User's can not add their own circles on the onboarding.
 - [ ] The sign up button actually says "Apply". It shouldn't.
