@@ -30,7 +30,7 @@ async function loginOrSignup(page: import("@playwright/test").Page) {
     const passwordFields = page.getByLabel("Password")
     await passwordFields.first().fill(PASSWORD)
     await page.getByLabel("Confirm Password").fill(PASSWORD)
-    await page.getByRole("button", { name: "Apply" }).click()
+    await page.getByRole("button", { name: "Sign up" }).click()
     // After signup, app redirects to /onboarding first — navigate directly to dashboard
     await page.waitForURL(/\/(onboarding|dashboard)/, { timeout: 15000 })
     if (page.url().includes("/onboarding")) {

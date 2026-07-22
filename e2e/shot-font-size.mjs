@@ -50,7 +50,7 @@ if (mode === "before") {
   await suPage.getByLabel("Email").fill(email)
   await suPage.getByLabel("Password", { exact: true }).fill(USER_PW)
   await suPage.getByLabel("Confirm Password").fill(USER_PW)
-  await suPage.getByRole("button", { name: "Apply", exact: true }).click()
+  await suPage.getByRole("button", { name: "Sign up", exact: true }).click()
   await suPage.waitForURL(/\/onboarding/, { timeout: 20000 })
   // Onboarding integrity: capture the languages step where the fluency pills
   // previously wrapped/overflowed when the font was enlarged.

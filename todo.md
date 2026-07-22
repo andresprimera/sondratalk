@@ -1,1 +1,0 @@
-- [ ] The sign up button actually says "Apply". It shouldn't.

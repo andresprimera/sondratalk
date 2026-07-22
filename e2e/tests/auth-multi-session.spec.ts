@@ -63,7 +63,7 @@ async function signupViaUi(page: Page): Promise<void> {
   // Two PasswordInputs share the type, distinguish by label.
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   await page.getByLabel("Confirm Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Apply" }).click();
+  await page.getByRole("button", { name: "Sign up" }).click();
   // Signup form navigates to /onboarding on success.
   await page.waitForURL(/\/onboarding/, { timeout: 15_000 });
 }

@@ -72,7 +72,7 @@ export default function LandingPage() {
             className="landing-flicker tracking-[0.05em]"
             render={<Link to="/signup" />}
           >
-            {t("Apply")}
+            {t("Sign up")}
           </Button>
         </div>
       </header>
@@ -109,7 +109,7 @@ export default function LandingPage() {
               className="tracking-[0.05em]"
               render={<Link to="/signup" />}
             >
-              {t("Apply")}
+              {t("Sign up")}
             </Button>
           </div>
 
@@ -207,7 +207,7 @@ export default function LandingPage() {
               className="tracking-[0.05em]"
               render={<Link to="/signup" />}
             >
-              {t("Apply")}
+              {t("Sign up")}
             </Button>
           </div>
         </section>
