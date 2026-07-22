@@ -3,7 +3,6 @@ import {
   ConflictException,
   UnauthorizedException,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -12,7 +11,6 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { MailService } from '../services';
 import { AvailabilityService } from '../availability/availability.service';
-import { AllowlistService } from '../allowlist/allowlist.service';
 
 jest.mock('bcrypt');
 
@@ -73,10 +71,6 @@ describe('AuthService', () => {
     clearAvailableNow: jest.fn().mockResolvedValue(undefined),
   };
 
-  const allowlistService = {
-    isEmailAllowed: jest.fn(),
-  };
-
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -88,7 +82,6 @@ describe('AuthService', () => {
         { provide: ConfigService, useValue: configService },
         { provide: MailService, useValue: mailService },
         { provide: AvailabilityService, useValue: availabilityService },
-        { provide: AllowlistService, useValue: allowlistService },
       ],
     }).compile();
 
@@ -101,7 +94,6 @@ describe('AuthService', () => {
       if (key === 'FRONTEND_URL') return 'http://localhost:5174';
       return 'mock-secret';
     });
-    allowlistService.isEmailAllowed.mockResolvedValue(true);
     mockedBcrypt.hash.mockResolvedValue('hashed-value' as never);
     mockedBcrypt.compare.mockResolvedValue(true as never);
   });
@@ -120,33 +112,9 @@ describe('AuthService', () => {
       await expect(service.signup(dto)).rejects.toThrow(ConflictException);
     });
 
-    it('should reject signup when the email is not on the allowlist and users exist', async () => {
+    it('should allow signup for any email once users already exist', async () => {
       usersService.countUsers.mockResolvedValue(5);
       usersService.findByEmail.mockResolvedValue(null);
-      allowlistService.isEmailAllowed.mockResolvedValue(false);
-
-      await expect(service.signup(dto)).rejects.toThrow(ForbiddenException);
-      expect(allowlistService.isEmailAllowed).toHaveBeenCalledWith(dto.email);
-      expect(usersService.create).not.toHaveBeenCalled();
-    });
-
-    it('should exempt the first user from the allowlist (bootstrap admin)', async () => {
-      usersService.countUsers.mockResolvedValue(0);
-      usersService.findByEmail.mockResolvedValue(null);
-      usersService.create.mockResolvedValue(mockUser);
-      allowlistService.isEmailAllowed.mockResolvedValue(false);
-
-      await expect(service.signup(dto)).resolves.toBeDefined();
-      expect(allowlistService.isEmailAllowed).not.toHaveBeenCalled();
-      expect(usersService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ role: 'admin' }),
-      );
-    });
-
-    it('should proceed when the email is on the allowlist', async () => {
-      allowlistService.isEmailAllowed.mockResolvedValue(true);
-      usersService.findByEmail.mockResolvedValue(null);
-      usersService.countUsers.mockResolvedValue(5);
       usersService.create.mockResolvedValue(mockUser);
 
       await expect(service.signup(dto)).resolves.toBeDefined();

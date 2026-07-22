@@ -7,7 +7,6 @@ import { tmpdir } from "node:os"
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUT = join(__dirname, "..", "screenshots")
 const BASE = "http://localhost:5174"
-const ADMIN = { email: "andresprimera@gmail.com", password: "Test@123" }
 const USER_PW = "Sup3rSecret!23"
 const EMAIL_FILE = join(tmpdir(), "sondra-width-user-email.txt")
 
@@ -35,21 +34,7 @@ if (mode === "before") {
   email = `goal-width-${Date.now()}@example.com`
   writeFileSync(EMAIL_FILE, email)
 
-  // 1) Admin allowlists the @example.com domain (idempotent — a duplicate just
-  // toasts an error, the domain is still allowlisted).
-  const adminCtx = await browser.newContext({ viewport })
-  const adminPage = await adminCtx.newPage()
-  await login(adminPage, ADMIN.email, ADMIN.password)
-  await adminPage.goto(`${BASE}/dashboard/allowlist`, {
-    waitUntil: "networkidle",
-  })
-  await adminPage.getByRole("button", { name: "Add Entry" }).click()
-  await adminPage.locator("#add-allowlist-value").fill("@example.com")
-  await adminPage.getByRole("button", { name: "Add", exact: true }).click()
-  await adminPage.waitForTimeout(1200)
-  await adminCtx.close()
-
-  // 2) Sign up the (non-first => role "user") account.
+  // Sign up the (non-first => role "user") account.
   const suCtx = await browser.newContext({ viewport })
   const suPage = await suCtx.newPage()
   await suPage.goto(`${BASE}/signup`)
