@@ -1,15 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model, PipelineStage, Types } from 'mongoose';
-import { createHash } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { LOCALE_KEYS, type CircleSortBy, type LocaleKey } from '@base-dashboard/shared';
 import { Circle, CircleDocument } from './schemas/circle.schema';
 import { CreateCircleInput, UpdateCircleInput } from './dto';
-import {
-  USER_CIRCLE_THEME_ID,
-  USER_CIRCLE_THEME_LABELS,
-} from './user-circle-theme';
 
 const PASSWORD_SALT_ROUNDS = 12;
 
@@ -306,57 +301,6 @@ export class CirclesService {
 
   async findBySlugExists(slug: string): Promise<boolean> {
     return this.circleModel.exists({ slug }).then((r) => r !== null);
-  }
-
-  // Deterministic slug for a user-typed circle name, namespaced with a
-  // `custom-` prefix. Curated and private circles always use plain slugs
-  // (from the seeder and admins, e.g. `venezuelan`), so a user-typed label
-  // never resolves to — and can't silently join — one of them; combined with
-  // the always-public `isPrivate: false` on creation below, the custom path
-  // can't reach a private circle. Identical labels — regardless of case,
-  // accents, or surrounding whitespace — map to the same slug so two users who
-  // type the same thing land in one shared, matchable circle. Names with no
-  // latin characters (e.g. non-latin scripts, emoji) fall back to a stable
-  // hash so they still yield a valid slug that dedupes.
-  private customCircleSlug(label: string): string {
-    const normalized = label.trim().toLowerCase();
-    const latin = normalized
-      .normalize('NFKD')
-      .replace(/\p{Mn}/gu, '') // strip NFKD-decomposed combining accent marks
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    const token =
-      latin || createHash('sha1').update(normalized).digest('hex').slice(0, 12);
-    return `custom-${token}`;
-  }
-
-  // Find-or-create a shared public circle for a user-typed name. Uses an atomic
-  // upsert so concurrent onboarding submits with the same label converge on one
-  // document (the unique slug index) instead of racing to insert duplicates.
-  async findOrCreateCustom(label: string): Promise<CircleDocument> {
-    const trimmed = label.trim();
-    const slug = this.customCircleSlug(trimmed);
-    const doc = await this.circleModel.findOneAndUpdate(
-      { slug },
-      {
-        $setOnInsert: {
-          slug,
-          themeId: new Types.ObjectId(USER_CIRCLE_THEME_ID),
-          type: 'what-you-love',
-          labels: { en: trimmed, es: trimmed },
-          aliases: { en: [], es: [] },
-          themeLabels: USER_CIRCLE_THEME_LABELS,
-          popularity: 0,
-          isPrivate: false,
-        },
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true },
-    );
-    if (!doc) {
-      // Unreachable with upsert + new, but keeps the type honest without a cast.
-      throw new Error(`Failed to create custom circle for "${trimmed}"`);
-    }
-    return doc;
   }
 
   async update(

@@ -9,11 +9,7 @@ import { CirclesService } from '../circles/circles.service';
 describe('MembershipsService', () => {
   let service: MembershipsService;
   let membershipModel: Record<string, jest.Mock>;
-  let circlesService: {
-    findByIds: jest.Mock;
-    findAll: jest.Mock;
-    findOrCreateCustom: jest.Mock;
-  };
+  let circlesService: { findByIds: jest.Mock; findAll: jest.Mock };
 
   const userId = '507f1f77bcf86cd799439011';
   const circleId1 = '507f1f77bcf86cd799439021';
@@ -40,7 +36,6 @@ describe('MembershipsService', () => {
     circlesService = {
       findByIds: jest.fn(),
       findAll: jest.fn(),
-      findOrCreateCustom: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -79,25 +74,6 @@ describe('MembershipsService', () => {
         true,
       );
       expect(result).toEqual([c1, c2]);
-    });
-
-    it('find-or-creates a circle per custom label and persists it as a membership', async () => {
-      const custom = buildMockCircle(circleId3, 'custom-salsa');
-      circlesService.findOrCreateCustom.mockResolvedValue(custom);
-      circlesService.findByIds.mockResolvedValue([custom]);
-
-      const findChain = { select: jest.fn().mockResolvedValue([]) };
-      membershipModel.find.mockReturnValue(findChain);
-
-      const result = await service.replaceCirclesForUser(userId, [], ['Salsa']);
-
-      expect(circlesService.findOrCreateCustom).toHaveBeenCalledWith('Salsa');
-      // The freshly-created custom circle id is validated + inserted like a pick.
-      expect(circlesService.findByIds).toHaveBeenCalledWith([circleId3]);
-      const [ops] = membershipModel.bulkWrite.mock.calls[0];
-      expect(ops).toHaveLength(1);
-      expect(ops[0].insertOne.document.circleId.toString()).toBe(circleId3);
-      expect(result).toEqual([custom]);
     });
 
     it('idempotent no-op: same set as before → no bulkWrite call', async () => {

@@ -16,20 +16,10 @@ export class MembershipsService {
   async replaceCirclesForUser(
     userId: string,
     circleIds: string[],
-    customLabels: string[] = [],
   ): Promise<CircleDocument[]> {
-    // Turn any user-typed names into real, shared circles first, then treat
-    // their ids exactly like the picked ones. Find-or-create dedupes identical
-    // labels across users so they become matchable.
-    const customCircles = await Promise.all(
-      customLabels.map((label) => this.circlesService.findOrCreateCustom(label)),
-    );
-    // Dedupe — duplicate ids in the request body (or a custom label that
-    // slugs to an already-picked circle) shouldn't surface as a misleading
-    // "circle not found" error.
-    const uniqueIds = [
-      ...new Set([...circleIds, ...customCircles.map((c) => c.id)]),
-    ];
+    // Dedupe — duplicate ids in the request body shouldn't surface as a
+    // misleading "circle not found" error.
+    const uniqueIds = [...new Set(circleIds)];
     const validCircles = await this.circlesService.findByIds(uniqueIds);
     if (validCircles.length !== uniqueIds.length) {
       throw new BadRequestException('One or more circles do not exist');

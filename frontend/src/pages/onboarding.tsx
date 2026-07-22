@@ -155,20 +155,7 @@ export default function OnboardingPage() {
   }
 
   function handleSubmit() {
-    const predefinedIds = circles
-      .filter((c) => !c.id.startsWith("custom:"))
-      .map((c) => c.id)
-    // Custom circles carry a "custom:" id prefix locally; send their labels so
-    // the backend find-or-creates a shared circle per name and persists them.
-    const customCircleLabels = circles
-      .filter((c) => c.id.startsWith("custom:"))
-      .map((c) => c.label)
-    submitMutation.mutate({
-      circleIds: predefinedIds,
-      customCircleLabels: customCircleLabels.length
-        ? customCircleLabels
-        : undefined,
-    })
+    submitMutation.mutate({ circleIds: circles.map((c) => c.id) })
   }
 
   // Skip onboarding only when the user already has memberships. Gating on

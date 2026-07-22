@@ -215,7 +215,6 @@ export class UsersController {
     const docs = await this.membershipsService.replaceCirclesForUser(
       userId,
       dto.circleIds,
-      dto.customCircleLabels ?? [],
     );
     return docs.map(toCircle);
   }

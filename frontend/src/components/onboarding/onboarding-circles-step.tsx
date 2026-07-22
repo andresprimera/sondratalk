@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useQuery } from "@tanstack/react-query"
-import { ArrowLeft, Plus, X } from "lucide-react"
+import { ArrowLeft, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchAllCirclesApi } from "@/lib/circles"
 import { CirclePasswordDialog } from "@/components/circle-password-dialog"
@@ -116,7 +115,6 @@ export function OnboardingCirclesStep({
   const { t, i18n } = useTranslation()
   const locale: "en" | "es" =
     i18n.language?.split("-")[0] === "es" ? "es" : "en"
-  const [customInput, setCustomInput] = useState("")
   const [pendingPrivateCircle, setPendingPrivateCircle] =
     useState<Circle | null>(null)
 
@@ -149,15 +147,6 @@ export function OnboardingCirclesStep({
 
   function remove(id: string) {
     onCirclesChange(circles.filter((c) => c.id !== id))
-  }
-
-  function addCustom() {
-    const val = customInput.trim()
-    if (!val) return
-    const id = `custom:${val}`
-    if (circles.some((c) => c.id === id)) return
-    add({ id, label: val })
-    setCustomInput("")
   }
 
   const hintText =
@@ -253,29 +242,6 @@ export function OnboardingCirclesStep({
           ))}
         </div>
       )}
-
-      <div className="mt-10 flex gap-2">
-        <Input
-          value={customInput}
-          onChange={(e) => setCustomInput(e.target.value)}
-          placeholder={t("Add your own…")}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault()
-              addCustom()
-            }
-          }}
-          className="h-11 text-base"
-        />
-        <button
-          type="button"
-          className="onboarding-add-btn"
-          onClick={addCustom}
-          aria-label={t("Add circle")}
-        >
-          <Plus className="size-5" aria-hidden />
-        </button>
-      </div>
 
       <div className="mt-10">
         <Button

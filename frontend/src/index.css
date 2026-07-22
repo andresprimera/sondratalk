@@ -619,27 +619,6 @@
     color: var(--primary-foreground);
   }
 
-  .onboarding-add-btn {
-    background: var(--primary);
-    color: var(--primary-foreground);
-    border: none;
-    border-radius: 8px;
-    width: 44px;
-    height: 44px;
-    font-size: 1.5rem;
-    font-family: inherit;
-    cursor: pointer;
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 200ms ease;
-  }
-
-  .onboarding-add-btn:hover {
-    background: var(--accent);
-  }
-
   .onboarding-show-more-btn {
     background: none;
     border: none;
