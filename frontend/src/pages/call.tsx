@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from "react-router"
 import { useTranslation } from "react-i18next"
 import { useQuery } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { AlertCircleIcon, Loader2Icon, PhoneOffIcon } from "lucide-react"
 import {
   LiveKitRoom,
@@ -22,6 +23,10 @@ import { useAuth } from "@/hooks/use-auth"
 import { useCallSocket } from "@/hooks/use-call-socket"
 import { fetchCallTokenApi } from "@/lib/calls"
 import { fetchMeetingByIdApi } from "@/lib/meetings"
+import {
+  deviceFailureMessageKey,
+  toCallDeviceKind,
+} from "@/lib/device-errors"
 import i18n from "@/lib/i18n"
 import {
   CALL_SOCKET_EVENTS,
@@ -157,6 +162,15 @@ export default function CallPage() {
           options={{ videoCaptureDefaults: { facingMode: "user" } }}
           onConnected={() => setStartedAt((prev) => prev ?? Date.now())}
           onDisconnected={endCall}
+          // The mic/camera are auto-enabled on connect. If one fails (permission
+          // blocked, device in use) the room still connects with the other, and
+          // that failure is otherwise silent — the customer just saw a dead mic
+          // with no explanation. Surface it with an actionable toast.
+          onMediaDeviceFailure={(failure, kind) =>
+            toast.error(
+              t(deviceFailureMessageKey(toCallDeviceKind(kind), failure)),
+            )
+          }
           className="contents"
         >
           <RoomAudioRenderer />
