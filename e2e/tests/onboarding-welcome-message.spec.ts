@@ -2,20 +2,25 @@ import { test, expect, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
-// Proves the copy change on the final onboarding welcome / "application is in"
-// screen (OnboardingWelcomeStep). The flow is:
+// Proves the onboarding welcome screen (OnboardingWelcomeStep) no longer uses
+// the old "application / we review / 48 hours" waitlist framing. The flow is:
 //   signup -> /onboarding
-//   step 1: location   -> "Looks right →"
-//   step 2: languages  -> "Continue →"      (a native language is pre-selected)
-//   step 3: circles    -> pick >=3 chips -> "Enter Sondra →"
-//   step 4: application-> type text      -> "Submit application"
-//   step 5: welcome    -> assert new copy + screenshot
+//   step 1: location  -> "Looks right →"
+//   step 2: languages -> "Continue →"      (a native language is pre-selected)
+//   step 3: circles   -> pick >=3 chips -> "Enter Sondra →"
+//   step 4: welcome   -> assert new copy + screenshot
 //
 // The screenshot lands at repo-root /screenshots/onboarding-welcome-message.png.
 
+const NEW_HEADLINE_EN = "you're in.";
+const NEW_HEADLINE_ES = "ya estás dentro.";
 const NEW_LINE_EN = "if you're here, you are welcome";
 const NEW_LINE_ES = "si estás aquí, eres bienvenido";
-const OLD_LINE = "We review every application personally";
+// The waitlist/"application" framing that must no longer appear on this screen.
+const OLD_LINES = [
+  "Your application is in.",
+  "We review every application personally",
+];
 
 const SCREENSHOTS_DIR = resolve(__dirname, "../../screenshots");
 const SCREENSHOT_PATH = resolve(SCREENSHOTS_DIR, "onboarding-welcome-message.png");
@@ -106,25 +111,21 @@ test("onboarding welcome screen shows the new welcome copy", async ({ page }) =>
   await expect(enterBtn).toBeEnabled({ timeout: 10000 });
   await enterBtn.click();
 
-  // --- Step 4: Application ----------------------------------------------
-  await expect(
-    page.getByRole("heading", { name: "One last thing before you join" }),
-  ).toBeVisible({ timeout: 15000 });
-  await page
-    .getByLabel("Why are you looking for these conversations?")
-    .fill("Just here to talk and meet good people.");
-  await page.getByRole("button", { name: "Submit application" }).click();
-
-  // --- Step 5: Welcome / "application is in" ----------------------------
-  await expect(page.getByText("Your application is in.")).toBeVisible({
-    timeout: 15000,
-  });
+  // --- Step 4: Welcome --------------------------------------------------
+  // Clicking "Enter Sondra →" submits circles and lands straight on the
+  // welcome screen — there is no longer an "application" step in between.
+  const newHeadline = page.getByText(
+    new RegExp(`${NEW_HEADLINE_EN}|${NEW_HEADLINE_ES}`),
+  );
+  await expect(newHeadline).toBeVisible({ timeout: 15000 });
 
   // The new copy must be present (English or Spanish, depending on detected
-  // locale), and the old copy must be gone.
+  // locale), and every trace of the old waitlist/application framing gone.
   const newLine = page.getByText(new RegExp(`${NEW_LINE_EN}|${NEW_LINE_ES}`));
   await expect(newLine).toBeVisible();
-  await expect(page.getByText(OLD_LINE)).toHaveCount(0);
+  for (const oldLine of OLD_LINES) {
+    await expect(page.getByText(oldLine)).toHaveCount(0);
+  }
 
   // The dashboard CTA should be reachable.
   await expect(page.getByRole("button", { name: "Go to dashboard →" })).toBeVisible();

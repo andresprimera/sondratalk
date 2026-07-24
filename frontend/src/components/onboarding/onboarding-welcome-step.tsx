@@ -17,7 +17,7 @@ export function OnboardingWelcomeStep() {
         {t("Thank you, {{firstName}}.", { firstName })}
       </h1>
       <p className="onboarding-welcome-line mb-4">
-        {t("Your application is in.")}
+        {t("you're in.")}
       </p>
       <p className="mb-12 max-w-sm text-balance text-sm text-muted-foreground">
         {t("if you're here, you are welcome")}

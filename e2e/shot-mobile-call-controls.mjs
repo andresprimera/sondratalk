@@ -5,7 +5,7 @@
  *     aria-label communicate state instead).
  *
  * Reaches the ConnectingPlaceholder (DisabledCallControls + CallFooter) by
- * mocking auth (fake JWT, matching shot-onboarding-task15.mjs's pattern) and
+ * mocking auth (fake JWT) and
  * holding the call-token request pending forever — no real LiveKit
  * connection or camera needed, mirrors e2e/tests/responsive-call-layout.spec.ts.
  */

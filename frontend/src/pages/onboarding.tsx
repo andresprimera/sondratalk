@@ -1,7 +1,7 @@
 // Onboarding is a transient pre-dashboard ceremony. Step 1 confirms the
 // timezone we inferred at signup; step 2 persists the languages spoken plus
 // a primary language used for email/calendar invites; step 3 persists circle
-// memberships; step 4 collects the application text.
+// memberships; step 4 is the welcome screen.
 import { useState } from "react"
 import { Navigate } from "react-router"
 import { useTranslation } from "react-i18next"
@@ -22,14 +22,13 @@ import {
   type OnboardingCircle,
 } from "@/components/onboarding/onboarding-circles-step"
 import { OnboardingWelcomeStep } from "@/components/onboarding/onboarding-welcome-step"
-import { OnboardingApplicationStep } from "@/components/onboarding/onboarding-application-step"
 import { detectTimezone } from "@/lib/timezones"
 import { detectBrowserLanguage } from "@/lib/languages"
 import {
   fetchMyCirclesApi,
   updateMyCirclesApi,
 } from "@/lib/memberships"
-import { updateTimezoneApi, updateMyLanguagesApi, updateMyApplicationApi } from "@/lib/profile"
+import { updateTimezoneApi, updateMyLanguagesApi } from "@/lib/profile"
 import { useAuth } from "@/hooks/use-auth"
 
 type SupportedEmailLocale = "en" | "es"
@@ -39,7 +38,7 @@ function localeFromPrimary(primaryCode: string | null): SupportedEmailLocale {
   return "en"
 }
 
-type Step = 1 | 2 | 3 | 4 | 5
+type Step = 1 | 2 | 3 | 4
 
 function detectInitialIana(fallback: string): string {
   const detected = detectTimezone()
@@ -79,7 +78,6 @@ export default function OnboardingPage() {
     () => detectInitialLanguages()[0]?.code ?? null,
   )
   const [circles, setCircles] = useState<OnboardingCircle[]>([])
-  const [applicationText, setApplicationText] = useState("")
 
   const myCirclesQuery = useQuery({
     queryKey: ["users", "me", "circles"] as const,
@@ -97,17 +95,6 @@ export default function OnboardingPage() {
       toast.error(
         error instanceof Error ? error.message : t("Failed to save your circles"),
       )
-    },
-  })
-
-  const applicationMutation = useMutation({
-    mutationFn: updateMyApplicationApi,
-    onSuccess: () => {
-      setStep(5)
-      window.scrollTo(0, 0)
-    },
-    onError: () => {
-      toast.error(t("Failed to save your application"))
     },
   })
 
@@ -163,10 +150,9 @@ export default function OnboardingPage() {
   // the query resolves and the redirect kicks in) — acceptable because
   // returning users almost never land on /onboarding directly. Step !== 4
   // keeps the welcome screen reachable after a fresh submit, since the
-  // mutation seeds the cache before advancing to step 4.
+  // circles mutation seeds the cache before advancing to the welcome step.
   if (
     step !== 4 &&
-    step !== 5 &&
     myCirclesQuery.isSuccess &&
     myCirclesQuery.data.length > 0
   ) {
@@ -179,7 +165,7 @@ export default function OnboardingPage() {
 
       <header className="relative z-10 mx-auto flex w-full max-w-[680px] items-center justify-between px-6 pt-8">
         <span className="onboarding-logo">Sondra</span>
-        {step !== 5 && <OnboardingProgress current={step} total={4} />}
+        {step !== 4 && <OnboardingProgress current={step} total={3} />}
       </header>
 
       <main className="relative z-10 mx-auto w-full max-w-[680px] flex-1 px-6 pb-20">
@@ -228,18 +214,7 @@ export default function OnboardingPage() {
             onBack={() => go(2)}
           />
         )}
-        {step === 4 && (
-          <OnboardingApplicationStep
-            value={applicationText}
-            onChange={setApplicationText}
-            onNext={() =>
-              applicationMutation.mutate({ applicationText })
-            }
-            onBack={() => go(3)}
-            isSubmitting={applicationMutation.isPending}
-          />
-        )}
-        {step === 5 && <OnboardingWelcomeStep />}
+        {step === 4 && <OnboardingWelcomeStep />}
       </main>
     </div>
   )
