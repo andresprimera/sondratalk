@@ -15,6 +15,7 @@ import { AvailabilityService } from '../availability/availability.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { buildMeetingIcs } from './ics';
 import {
+  ANONYMOUS_MATCH_LABEL,
   EMAIL_COPY,
   formatDayLabel,
   formatTimeRange,
@@ -153,70 +154,84 @@ export class MeetingsService {
     return doc;
   }
 
-  private sendCalendarInvitesFireAndForget(
+  // Fire-and-forget: callers never await this, so every failure — including
+  // the hasMutualDoorOpen lookup, not just the mail send — must be caught
+  // here or it becomes an unhandled rejection.
+  private async sendCalendarInvitesFireAndForget(
     meeting: MeetingDocument,
     initiator: UserDocument,
     peer: UserDocument,
-  ): void {
-    const frontendUrl = this.configService.getOrThrow<string>('FRONTEND_URL');
-    const fromAddress = this.configService.getOrThrow<string>('SMTP_FROM');
-    const joinUrl = `${frontendUrl}/call/${meeting.id}`;
+  ): Promise<void> {
+    try {
+      const frontendUrl = this.configService.getOrThrow<string>('FRONTEND_URL');
+      const fromAddress = this.configService.getOrThrow<string>('SMTP_FROM');
+      const joinUrl = `${frontendUrl}/call/${meeting.id}`;
+      // Matches stay anonymous in email too, unless mutually revealed — see
+      // hasMutualDoorOpen(). Symmetric for the pair, so resolve it once
+      // rather than once per recipient.
+      const revealed = await this.hasMutualDoorOpen(
+        initiator.id.toString(),
+        peer.id.toString(),
+      );
 
-    Promise.all(
-      [
-        { recipient: initiator, other: peer },
-        { recipient: peer, other: initiator },
-      ].map(({ recipient, other }) => {
-        const locale: LocaleKey = recipient.locale === 'es' ? 'es' : 'en';
-        const copy = EMAIL_COPY[locale];
-        const otherFirst = extractFirstName(other.name);
-        // Render the time in the recipient's own timezone, not UTC.
-        const tz = recipient.timezone || 'UTC';
-        const emailData = {
-          otherFirst,
-          dayLabel: formatDayLabel(meeting.scheduledAt, locale, tz),
-          timeRange: formatTimeRange(
-            meeting.scheduledAt,
-            MEETING_DURATION_MINUTES,
-            locale,
-            tz,
-          ),
-          tzLabel: formatTimeZoneLabel(meeting.scheduledAt, locale, tz),
-          joinUrl,
-        };
+      await Promise.all(
+        [
+          { recipient: initiator, other: peer },
+          { recipient: peer, other: initiator },
+        ].map(async ({ recipient, other }) => {
+          const locale: LocaleKey = recipient.locale === 'es' ? 'es' : 'en';
+          const copy = EMAIL_COPY[locale];
+          const otherFirst = revealed
+            ? extractFirstName(other.name)
+            : ANONYMOUS_MATCH_LABEL[locale];
+          // Render the time in the recipient's own timezone, not UTC.
+          const tz = recipient.timezone || 'UTC';
+          const emailData = {
+            otherFirst,
+            dayLabel: formatDayLabel(meeting.scheduledAt, locale, tz),
+            timeRange: formatTimeRange(
+              meeting.scheduledAt,
+              MEETING_DURATION_MINUTES,
+              locale,
+              tz,
+            ),
+            tzLabel: formatTimeZoneLabel(meeting.scheduledAt, locale, tz),
+            joinUrl,
+          };
 
-        const ics = buildMeetingIcs({
-          meetingId: meeting.id,
-          organizerEmail: fromAddress,
-          attendeeEmail: recipient.email,
-          attendeeName: recipient.name,
-          summary: copy.icsSummary(otherFirst),
-          description: copy.icsDescription(joinUrl),
-          scheduledAt: meeting.scheduledAt,
-          durationMinutes: MEETING_DURATION_MINUTES,
-          joinUrl,
-        });
+          const ics = buildMeetingIcs({
+            meetingId: meeting.id,
+            organizerEmail: fromAddress,
+            attendeeEmail: recipient.email,
+            attendeeName: recipient.name,
+            summary: copy.icsSummary(otherFirst),
+            description: copy.icsDescription(joinUrl),
+            scheduledAt: meeting.scheduledAt,
+            durationMinutes: MEETING_DURATION_MINUTES,
+            joinUrl,
+          });
 
-        return this.mailService.sendMail({
-          to: recipient.email,
-          subject: copy.subject(otherFirst),
-          text: copy.bodyText(emailData),
-          html: copy.bodyHtml(emailData),
-          attachments: [
-            {
-              filename: ics.filename,
-              content: ics.content,
-              contentType: 'text/calendar; charset=utf-8; method=REQUEST',
-            },
-          ],
-        });
-      }),
-    ).catch((err) =>
+          return this.mailService.sendMail({
+            to: recipient.email,
+            subject: copy.subject(otherFirst),
+            text: copy.bodyText(emailData),
+            html: copy.bodyHtml(emailData),
+            attachments: [
+              {
+                filename: ics.filename,
+                content: ics.content,
+                contentType: 'text/calendar; charset=utf-8; method=REQUEST',
+              },
+            ],
+          });
+        }),
+      );
+    } catch (err) {
       this.logger.error(
         `Failed to send calendar invites for meeting ${meeting.id}`,
         err,
-      ),
-    );
+      );
+    }
   }
 
   async findUpcomingForUser(userId: string): Promise<MeetingWithPeer[]> {

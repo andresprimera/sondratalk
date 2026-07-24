@@ -158,6 +158,14 @@ export const EMAIL_COPY: Record<LocaleKey, EmailCopy> = {
   },
 };
 
+// Fallback name shown in emails when the recipient's match is still
+// anonymous — see MeetingsService.hasMutualDoorOpen(). Mirrors the frontend's
+// "Your match" placeholder (frontend/src/locales/{en,es}.json).
+export const ANONYMOUS_MATCH_LABEL: Record<LocaleKey, string> = {
+  en: 'Your match',
+  es: 'Tu coincidencia',
+};
+
 const LOCALE_TO_INTL: Record<LocaleKey, string> = {
   en: 'en-GB',
   es: 'es-ES',

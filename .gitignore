@@ -5,3 +5,4 @@ dist/
 .claude/scheduled_tasks.lock
 test-results/
 screenshots/
+.DS_Store

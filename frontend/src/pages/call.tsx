@@ -152,6 +152,9 @@ export default function CallPage() {
           connect
           video
           audio
+          // Without this, mobile browsers are free to resolve "the default
+          // camera" to the rear lens — pin the front (selfie) camera.
+          options={{ videoCaptureDefaults: { facingMode: "user" } }}
           onConnected={() => setStartedAt((prev) => prev ?? Date.now())}
           onDisconnected={endCall}
           className="contents"
@@ -465,16 +468,16 @@ interface CallFooterProps {
 function CallFooter({ live, onEndCall }: CallFooterProps) {
   const { t } = useTranslation()
   return (
-    <footer className="flex items-center justify-center gap-3 px-6 pb-6">
+    <footer className="flex items-center justify-center gap-2 px-3 pb-4 sm:gap-3 sm:px-6 sm:pb-6">
       {live ? <CallControls /> : <DisabledCallControls />}
       <Button
         variant="destructive"
         size="lg"
         onClick={onEndCall}
         aria-label={t("End call")}
-        className="rounded-full px-6"
+        className="rounded-full px-4 sm:px-6"
       >
-        <PhoneOffIcon /> {t("End call")}
+        <PhoneOffIcon /> <span className="hidden sm:inline">{t("End call")}</span>
       </Button>
     </footer>
   )
