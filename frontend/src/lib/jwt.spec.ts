@@ -1,4 +1,8 @@
-import { getTokenExpiry, isTokenExpiringSoon } from "@/lib/jwt"
+import {
+  getTokenExpiry,
+  getTokenSubject,
+  isTokenExpiringSoon,
+} from "@/lib/jwt"
 
 // Build a token whose payload segment decodes to the given object. Only the
 // payload (second segment) matters to these helpers.
@@ -28,6 +32,21 @@ describe("jwt", () => {
       expect(getTokenExpiry("not-a-jwt")).toBeNull()
       expect(getTokenExpiry("")).toBeNull()
       expect(getTokenExpiry("a..c")).toBeNull()
+    })
+  })
+
+  describe("getTokenSubject", () => {
+    it("returns the sub claim", () => {
+      expect(getTokenSubject(makeToken({ sub: "user-123" }))).toBe("user-123")
+    })
+
+    it("returns null when sub is missing or not a string", () => {
+      expect(getTokenSubject(makeToken({ exp: 1 }))).toBeNull()
+      expect(getTokenSubject(makeToken({ sub: 42 }))).toBeNull()
+    })
+
+    it("returns null for a malformed token", () => {
+      expect(getTokenSubject("nope")).toBeNull()
     })
   })
 

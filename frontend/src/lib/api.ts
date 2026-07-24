@@ -84,26 +84,44 @@ function refreshAbortSignal(): AbortSignal | undefined {
   return undefined
 }
 
-// Monotonic session generation. Any code that ends the session (logout or a
-// cross-tab logout) bumps it via `endSession()`. A refresh captures the
-// generation when it starts and refuses to persist its result if it changed
-// mid-flight — otherwise a refresh in flight when the user logs out (or logs
-// out and straight back in) would resurrect or clobber tokens in storage. This
-// lives here, not in a caller, so it guards *every* `refreshTokens()` caller
-// uniformly, including the call socket.
+// Session guards that keep *every* refreshTokens() caller — including the call
+// socket, which refreshes outside React — from persisting tokens for a session
+// the user has left. Two complementary checks, both flipped only at true session
+// boundaries (endSession / beginSession), never by an ordinary refresh commit:
+//   - sessionEpoch (a counter) catches a refresh whose generation changed while
+//     it was outstanding — an in-flight refresh at logout, OR a refresh that
+//     started during logout and is then outlived by a re-login (which advances
+//     the generation, making the stale refresh's captured epoch mismatch).
+//   - sessionEnded (a flag) catches a refresh that STARTS AFTER a logout with no
+//     re-login (e.g. a socket connect_error during logout's await window) — the
+//     counter can't, because that refresh captures the already-bumped epoch.
+// A refresh refuses to storeTokens() while either says the session is gone.
 let sessionEpoch = 0
+let sessionEnded = false
 let refreshPromise: Promise<AuthResponse> | null = null
 
 export function getSessionEpoch(): number {
   return sessionEpoch
 }
 
-// Ends the current session generation: any refresh in flight declines to write
-// its result back, and the shared refresh promise is dropped so a brand-new
-// session never dedupes onto a pre-logout refresh. Does NOT clear storage —
-// callers decide that, since a logout request may still need the current token.
+// Ends the current session: marks it ended (so even a refresh that starts later
+// won't persist), bumps the generation (so an in-flight refresh declines its
+// result), and drops the shared refresh promise (so a brand-new session never
+// dedupes onto a pre-logout refresh). Does NOT clear storage — callers decide
+// that, since a logout request may still need the current token.
 export function endSession(): void {
   sessionEpoch++
+  sessionEnded = true
+  refreshPromise = null
+}
+
+// Starts a new session generation on a real login/signup. Advancing the epoch
+// (not just clearing the flag) is essential: a refresh that started during the
+// previous logout captured the post-logout epoch, so only a fresh generation
+// makes its captured epoch stale and keeps it from overwriting the new tokens.
+export function beginSession(): void {
+  sessionEpoch++
+  sessionEnded = false
   refreshPromise = null
 }
 
@@ -112,6 +130,15 @@ export async function refreshTokens(): Promise<AuthResponse> {
 
   const epochAtStart = sessionEpoch
   const pending = withRefreshLock(async () => {
+    // Waiting for the cross-tab lock can take a while; the session may have
+    // ended or rotated in the meantime. Re-check BEFORE hitting the network so
+    // we don't fire a refresh (which rotates the server token) for a session we
+    // have already left — the post-fetch guards would discard the result, but
+    // the needless rotation could desync a freshly-logged-in session.
+    if (sessionEnded || sessionEpoch !== epochAtStart) {
+      throw new Error("Refresh superseded by a newer session")
+    }
+
     // Read inside the lock: another tab may have rotated the token while we
     // waited our turn, so capturing it earlier would send a stale value.
     const { refreshToken } = getStoredTokens()
@@ -130,10 +157,11 @@ export async function refreshTokens(): Promise<AuthResponse> {
     })
 
     if (!res.ok) {
-      if (sessionEpoch !== epochAtStart) {
-        // Superseded by a newer session mid-flight — don't surface as an auth
-        // failure (a plain Error keeps callers from signing out) and don't
-        // touch storage, which now belongs to that newer session.
+      if (sessionEnded || sessionEpoch !== epochAtStart) {
+        // The session ended, or was superseded by a newer one, while this
+        // refresh was outstanding — don't surface as an auth failure (a plain
+        // Error keeps callers from signing out) and don't touch storage, which
+        // now belongs to that newer session (or was cleared by the logout).
         throw new Error("Refresh superseded by a newer session")
       }
       // A definitive auth rejection ends the session; transient 5xx / network
@@ -145,9 +173,9 @@ export async function refreshTokens(): Promise<AuthResponse> {
     }
 
     const data: AuthResponse = await res.json()
-    if (sessionEpoch !== epochAtStart) {
-      // Same guard on the success path: decline to persist without deleting
-      // storage that may belong to a newer valid session.
+    if (sessionEnded || sessionEpoch !== epochAtStart) {
+      // Same guard on the success path: decline to persist the rotated tokens
+      // for a session the user has left (or that a newer session superseded).
       throw new Error("Refresh superseded by a newer session")
     }
     storeTokens(data.accessToken, data.refreshToken)

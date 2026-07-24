@@ -9,7 +9,8 @@ import {
   clearTokens,
   getSessionEpoch,
 } from "@/lib/api"
-import { getTokenExpiry, isTokenExpiringSoon } from "@/lib/jwt"
+import { getTokenExpiry, getTokenSubject, isTokenExpiringSoon } from "@/lib/jwt"
+import { loginApi, logoutApi } from "@/lib/auth"
 import { ApiError } from "@/lib/api-error"
 
 vi.mock("@/lib/api", () => ({
@@ -17,6 +18,7 @@ vi.mock("@/lib/api", () => ({
   storeTokens: vi.fn(),
   clearTokens: vi.fn(),
   refreshTokens: vi.fn(),
+  beginSession: vi.fn(),
   endSession: vi.fn(),
   getSessionEpoch: vi.fn(() => 0),
   TOKEN_KEYS: { access: "accessToken", refresh: "refreshToken" },
@@ -24,6 +26,7 @@ vi.mock("@/lib/api", () => ({
 
 vi.mock("@/lib/jwt", () => ({
   getTokenExpiry: vi.fn(),
+  getTokenSubject: vi.fn(),
   isTokenExpiringSoon: vi.fn(),
 }))
 
@@ -87,6 +90,8 @@ describe("useAuth session hardening", () => {
     vi.mocked(isTokenExpiringSoon).mockReturnValue(false)
     // clearAllMocks keeps implementations, so reset the epoch each test.
     vi.mocked(getSessionEpoch).mockReturnValue(0)
+    // By default the stored token belongs to the signed-in test user.
+    vi.mocked(getTokenSubject).mockReturnValue("u1")
   })
 
   it("renews on network reconnect when the access token is stale", async () => {
@@ -233,6 +238,70 @@ describe("useAuth session hardening", () => {
     })
 
     await waitFor(() => expect(result.current.isAuthenticated).toBe(true))
+  })
+
+  it("logs out: signs out synchronously, no-refresh, then clears tokens", async () => {
+    const { result } = await renderAuthed()
+    vi.mocked(logoutApi).mockResolvedValue(undefined)
+
+    await act(async () => {
+      await result.current.logout()
+    })
+
+    expect(result.current.isAuthenticated).toBe(false)
+    expect(result.current.user).toBeNull()
+    expect(logoutApi).toHaveBeenCalledTimes(1)
+    expect(clearTokens).toHaveBeenCalled()
+  })
+
+  it("does not clear tokens on logout if the user logged back in mid-request", async () => {
+    const { result } = await renderAuthed()
+    // logoutApi hangs; a login lands before it resolves.
+    let resolveLogout: () => void = () => {}
+    vi.mocked(logoutApi).mockReturnValue(
+      new Promise<void>((resolve) => {
+        resolveLogout = resolve
+      }),
+    )
+    vi.mocked(clearTokens).mockClear()
+
+    let logoutDone: Promise<void> = Promise.resolve()
+    await act(async () => {
+      logoutDone = result.current.logout()
+    })
+    // User logs back in while the logout request is still in flight.
+    vi.mocked(loginApi).mockResolvedValue(authResponse)
+    await act(async () => {
+      await result.current.login("a@b.com", "pw")
+      resolveLogout()
+      await logoutDone
+    })
+
+    // The trailing clearTokens() must be skipped so the new session survives.
+    expect(clearTokens).not.toHaveBeenCalled()
+    expect(result.current.isAuthenticated).toBe(true)
+  })
+
+  it("signs out when shared storage switches to a different user", async () => {
+    const { result } = await renderAuthed()
+
+    // Another tab logged in as a different user; the stored token's subject no
+    // longer matches the on-screen user.
+    vi.mocked(getStoredTokens).mockReturnValue({
+      accessToken: "other-a",
+      refreshToken: "other-r",
+    })
+    vi.mocked(getTokenSubject).mockReturnValue("someone-else")
+    await act(async () => {
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "accessToken",
+          newValue: "other-a",
+        }),
+      )
+    })
+
+    expect(result.current.isAuthenticated).toBe(false)
   })
 
   it("does not resurrect a logged-out tab when tokens reappear", async () => {

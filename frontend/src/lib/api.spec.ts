@@ -262,6 +262,39 @@ describe("api", () => {
       expect(locationMock.href).toBe("")
     })
 
+    it("rethrows a superseded refresh (logout mid-flight) without redirecting", async () => {
+      api.storeTokens("expired", "r1")
+      const fetchMock = vi.mocked(fetch)
+      fetchMock.mockResolvedValueOnce(mockResponse({}, { status: 401 }))
+      let resolveRefresh: (res: Response) => void = () => {}
+      fetchMock.mockReturnValueOnce(
+        new Promise<Response>((r) => {
+          resolveRefresh = r
+        }),
+      )
+      const locationMock = { ...window.location, href: "" }
+      vi.stubGlobal("location", locationMock)
+
+      const pending = api.authFetch("/api/secure")
+      // The session ends while the refresh is in flight -> refreshTokens throws
+      // a plain (non-ApiError) "superseded" Error.
+      api.endSession()
+      resolveRefresh(
+        mockResponse({
+          accessToken: "new",
+          refreshToken: "new",
+          user: { id: "1", email: "a@b.com", name: "Test", role: "user" },
+        }),
+      )
+
+      const err = await pending.catch((e: unknown) => e)
+
+      // Not signed out: no redirect, and the error is the plain superseded Error
+      // (not an ApiError 401 that would bounce the user to /login).
+      expect(locationMock.href).toBe("")
+      expect((err as { name?: string }).name).not.toBe("ApiError")
+    })
+
     it("should surface a business 403 from the retried request without logging out", async () => {
       api.storeTokens("expired", "valid-refresh")
 
@@ -455,6 +488,59 @@ describe("api", () => {
       // ...but the guard must NOT delete storage either — it may already belong
       // to a newer session (here the pre-existing value is left untouched).
       expect(localStorage.getItem("refreshToken")).toBe("r1")
+    })
+
+    it("refuses to persist tokens for a refresh that STARTS after logout", async () => {
+      // Models the call socket firing a refresh during logout's await window:
+      // the epoch counter can't catch it (it captures the already-bumped epoch),
+      // so the sessionEnded flag must block the write-back.
+      localStorage.setItem("refreshToken", "r1")
+      api.endSession()
+      vi.mocked(fetch).mockResolvedValue(mockResponse(refreshBody))
+
+      await expect(api.refreshTokens()).rejects.toBeTruthy()
+      expect(localStorage.getItem("accessToken")).toBeNull()
+      // The re-check short-circuits before any network POST (no needless
+      // server-side token rotation for a session we've left).
+      expect(fetch).not.toHaveBeenCalled()
+    })
+
+    it("lets a refresh persist again after beginSession reactivates the session", async () => {
+      // endSession() then a login (beginSession) must re-enable refreshes.
+      localStorage.setItem("refreshToken", "r-login")
+      api.endSession()
+      api.beginSession()
+      vi.mocked(fetch).mockResolvedValue(mockResponse(refreshBody))
+
+      const data = await api.refreshTokens()
+
+      expect(data.accessToken).toBe("new-access")
+      expect(localStorage.getItem("accessToken")).toBe("new-access")
+    })
+
+    it("declines a post-logout refresh even after a re-login (epoch advances)", async () => {
+      localStorage.setItem("refreshToken", "r-old")
+      // Logout, then a stale refresh (e.g. the call socket) STARTS and captures
+      // the post-logout epoch...
+      api.endSession()
+      let resolveFetch: (res: Response) => void = () => {}
+      vi.mocked(fetch).mockReturnValueOnce(
+        new Promise<Response>((r) => {
+          resolveFetch = r
+        }),
+      )
+      const stale = api.refreshTokens().catch((e: unknown) => e)
+      // ...the user logs back in (new generation) and stores new tokens...
+      api.beginSession()
+      api.storeTokens("a-new", "r-new")
+      // ...and only then does the stale refresh resolve 200.
+      resolveFetch(mockResponse(refreshBody))
+      await stale
+
+      // The fresh login's tokens must survive — not be clobbered by the stale
+      // refresh that started under the previous session.
+      expect(localStorage.getItem("accessToken")).toBe("a-new")
+      expect(localStorage.getItem("refreshToken")).toBe("r-new")
     })
   })
 })

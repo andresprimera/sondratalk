@@ -14,11 +14,12 @@ import {
   storeTokens,
   clearTokens,
   refreshTokens,
+  beginSession,
   endSession,
   getSessionEpoch,
   TOKEN_KEYS,
 } from "@/lib/api"
-import { getTokenExpiry, isTokenExpiringSoon } from "@/lib/jwt"
+import { getTokenExpiry, getTokenSubject, isTokenExpiringSoon } from "@/lib/jwt"
 import { ApiError } from "@/lib/api-error"
 import { loginApi, signupApi, logoutApi } from "@/lib/auth"
 
@@ -100,8 +101,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      // Refresh 1 minute before expiry
-      const delay = Math.max(expiry - Date.now() - 60_000, 0)
+      // Refresh 1 minute before expiry, but never busy-loop: a very short or
+      // misconfigured token TTL floors to a 5s poll instead of delay 0.
+      const delay = Math.max(expiry - Date.now() - 60_000, 5_000)
 
       refreshTimerRef.current = setTimeout(() => {
         void attemptRefreshRef.current()
@@ -134,7 +136,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       if (!mountedRef.current || getSessionEpoch() !== epoch) return
       if (isDefinitiveAuthFailure(err)) {
-        // refreshTokens already cleared storage on a definitive failure.
+        // The session is dead (refreshTokens already cleared storage). Mark this
+        // tab logged out so events don't keep retrying against dead tokens.
+        loggedOutRef.current = true
         setUser(null)
       } else {
         scheduleRetry()
@@ -145,6 +149,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     attemptRefreshRef.current = attemptRefresh
   }, [attemptRefresh])
+
+  // Tear down this tab's session in response to an external signal (a cross-tab
+  // logout, or shared storage switching to a different user). Crucially it calls
+  // endSession() so any refresh still in flight in THIS tab declines to persist
+  // its result — every reactive sign-out must do this, or a concurrent refresh
+  // clobbers the new owner's tokens. Does NOT clear storage: callers that own
+  // the tokens (a mirrored logout) clear them; a different-user takeover must
+  // leave the other user's tokens alone.
+  const signOutLocally = useCallback(() => {
+    endSession()
+    loggedOutRef.current = true
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current)
+      refreshTimerRef.current = null
+    }
+    setUser(null)
+  }, [])
 
   // Renew on demand when the tab regains attention or the network returns —
   // moments a background `setTimeout` is most likely to have lapsed (sleep,
@@ -157,14 +178,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { accessToken, refreshToken } = getStoredTokens()
     if (!refreshToken) return
 
-    if (userRef.current && accessToken && !isTokenExpiringSoon(accessToken)) {
-      // Signed in with plenty of runway — just make sure the timer is armed.
-      scheduleRefresh(accessToken)
-      return
+    if (userRef.current && accessToken) {
+      if (getTokenSubject(accessToken) !== userRef.current.id) {
+        // Shared storage now holds a different user's token — our session is
+        // stale. Sign out rather than renew someone else's token.
+        signOutLocally()
+        return
+      }
+      if (!isTokenExpiringSoon(accessToken)) {
+        // Signed in with plenty of runway — just make sure the timer is armed.
+        scheduleRefresh(accessToken)
+        return
+      }
     }
 
     await attemptRefresh()
-  }, [scheduleRefresh, attemptRefresh])
+  }, [scheduleRefresh, attemptRefresh, signOutLocally])
 
   // Re-check freshness whenever the tab regains attention or the network comes
   // back — the moments where a background timer is most likely to have lapsed.
@@ -202,24 +231,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { accessToken, refreshToken } = getStoredTokens()
       if (!refreshToken) {
-        // Logged out elsewhere — mirror it, and end the session generation so
-        // an in-flight refresh here can't write fresh tokens back.
-        endSession()
-        loggedOutRef.current = true
-        if (refreshTimerRef.current) {
-          clearTimeout(refreshTimerRef.current)
-          refreshTimerRef.current = null
-        }
+        // Logged out elsewhere — mirror it (signOutLocally ends the session so
+        // an in-flight refresh here can't write fresh tokens back), then clear
+        // any tokens a racing refresh may have resurrected.
+        signOutLocally()
         clearTokens()
-        setUser(null)
         return
       }
 
-      if (userRef.current && !loggedOutRef.current) {
-        // Already signed in; another tab rotated the tokens — realign our timer
-        // to the new token rather than firing a duplicate refresh. Skip while a
-        // logout is in progress so a rotation event can't re-arm the timer.
-        if (accessToken) scheduleRefresh(accessToken)
+      if (userRef.current && !loggedOutRef.current && accessToken) {
+        if (getTokenSubject(accessToken) === userRef.current.id) {
+          // Same user, another tab rotated the token — realign our timer to it
+          // rather than firing a duplicate refresh.
+          scheduleRefresh(accessToken)
+        } else {
+          // A DIFFERENT user now owns shared storage — this tab's session is
+          // stale. Sign out rather than adopt: adopting would renew/display the
+          // wrong identity, and a reload restores whoever storage now belongs to.
+          // signOutLocally ends the session so an in-flight refresh here can't
+          // clobber the new owner's tokens.
+          signOutLocally()
+        }
       }
       // Tokens appearing while this tab is signed out are deliberately NOT
       // adopted here: doing so would let a logout's own token-rotation broadcast
@@ -231,7 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     window.addEventListener("storage", onStorage)
     return () => window.removeEventListener("storage", onStorage)
-  }, [scheduleRefresh])
+  }, [scheduleRefresh, signOutLocally])
 
   // On mount: try to restore the session from the stored refresh token.
   // attemptRefresh handles all three outcomes — success signs in, a definitive
@@ -262,6 +294,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await loginApi(email, password)
+    // Start a new session generation so any refresh still in flight from a
+    // just-ended session can't overwrite these tokens.
+    beginSession()
     loggedOutRef.current = false
     queryClient.clear()
     storeTokens(data.accessToken, data.refreshToken)
@@ -277,6 +312,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       timezone: string,
     ) => {
       const data = await signupApi(name, email, password, timezone)
+      beginSession()
       loggedOutRef.current = false
       queryClient.clear()
       storeTokens(data.accessToken, data.refreshToken)

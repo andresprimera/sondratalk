@@ -27,6 +27,30 @@ export function getTokenExpiry(token: string): number | null {
   }
 }
 
+// Decode a JWT's `sub` claim (the user id). Returns null when the token is
+// malformed or carries no string `sub`. Used only to detect when another tab
+// wrote a *different* user's tokens — never for authorization.
+export function getTokenSubject(token: string): string | null {
+  const payloadPart = token.split(".")[1]
+  if (!payloadPart) return null
+
+  try {
+    const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/")
+    const decoded: unknown = JSON.parse(atob(normalized))
+    if (
+      typeof decoded === "object" &&
+      decoded !== null &&
+      "sub" in decoded &&
+      typeof decoded.sub === "string"
+    ) {
+      return decoded.sub
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 // A token counts as "expiring soon" once it is within `thresholdMs` of expiry
 // (default one minute, matching the proactive refresh lead time). A token we
 // cannot decode is treated as stale so callers renew rather than fire a request
