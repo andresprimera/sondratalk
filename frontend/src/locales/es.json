@@ -581,6 +581,8 @@
   "Blur on": "Desenfoque activado",
   "Blur off": "Desenfoque desactivado",
   "Couldn't change the background blur.": "No se pudo cambiar el desenfoque de fondo.",
+  "Couldn't turn on the microphone.": "No se pudo activar el micrófono.",
+  "Couldn't turn on the camera.": "No se pudo activar la cámara.",
   "Call duration": "Duración de la llamada",
   "Waiting for {{name}} to join…": "Esperando a que {{name}} se una…",
   "Connecting to {{name}}…": "Conectando con {{name}}…",

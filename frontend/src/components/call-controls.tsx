@@ -9,7 +9,12 @@ import {
   VideoOffIcon,
 } from "lucide-react"
 import { TrackToggle, useLocalParticipant } from "@livekit/components-react"
-import { LocalParticipant, LocalVideoTrack, Track } from "livekit-client"
+import {
+  LocalParticipant,
+  LocalVideoTrack,
+  Track,
+  type VideoCaptureOptions,
+} from "livekit-client"
 import { BackgroundBlur } from "@livekit/track-processors"
 import { cn } from "@/lib/utils"
 
@@ -33,18 +38,26 @@ interface CallControlToggleProps {
   name: string
   stateLabel: string
   icon: ReactNode
+  errorMessage: string
+  captureOptions?: VideoCaptureOptions
 }
 
 // A single mic/camera control. The icon, color, and text label are all driven
 // off the live `enabled` state (from useLocalParticipant) rather than CSS data
 // attributes, so the muted/unmuted state is always reflected. TrackToggle still
 // performs the actual enable/disable + permission handling.
+//
+// TrackToggle swallows device errors (permission denied, device busy, etc.) by
+// default — the button just silently stays off with no feedback. onDeviceError
+// surfaces that as a toast instead.
 export function CallControlToggle({
   source,
   enabled,
   name,
   stateLabel,
   icon,
+  errorMessage,
+  captureOptions,
 }: CallControlToggleProps): ReactNode {
   return (
     <div className="flex flex-col items-center gap-1.5">
@@ -53,12 +66,14 @@ export function CallControlToggle({
         showIcon={false}
         aria-label={name}
         className={cn(controlButtonClass, !enabled && controlButtonOffClass)}
+        captureOptions={captureOptions}
+        onDeviceError={() => toast.error(errorMessage)}
       >
         {icon}
       </TrackToggle>
       <span
         className={cn(
-          "text-[0.625rem] font-medium tracking-wide uppercase",
+          "hidden text-[0.625rem] font-medium tracking-wide uppercase sm:block",
           enabled ? "text-muted-foreground" : "text-destructive",
         )}
       >
@@ -86,6 +101,7 @@ export function CallControls(): ReactNode {
         enabled={micOn}
         name={t("Microphone")}
         stateLabel={micOn ? t("Mic on") : t("Mic off")}
+        errorMessage={t("Couldn't turn on the microphone.")}
         icon={
           micOn ? (
             <MicIcon className="size-5" />
@@ -99,6 +115,10 @@ export function CallControls(): ReactNode {
         enabled={camOn}
         name={t("Camera")}
         stateLabel={camOn ? t("Camera on") : t("Camera off")}
+        errorMessage={t("Couldn't turn on the camera.")}
+        // Pinned so re-enabling after a toggle-off doesn't re-resolve to a
+        // different physical camera (e.g. flipping to the rear lens).
+        captureOptions={{ facingMode: "user" }}
         icon={
           camOn ? (
             <VideoIcon className="size-5" />
@@ -185,7 +205,7 @@ function BackgroundBlurToggle({
       </button>
       <span
         className={cn(
-          "text-[0.625rem] font-medium tracking-wide uppercase",
+          "hidden text-[0.625rem] font-medium tracking-wide uppercase sm:block",
           blurOn ? "text-primary" : "text-muted-foreground",
         )}
       >
@@ -216,7 +236,7 @@ function DisabledControl({
       >
         {children}
       </button>
-      <span className="text-[0.625rem] font-medium tracking-wide text-muted-foreground/50 uppercase">
+      <span className="hidden text-[0.625rem] font-medium tracking-wide text-muted-foreground/50 uppercase sm:block">
         {stateLabel}
       </span>
     </div>

@@ -123,7 +123,9 @@ test.describe("responsive call layout (connecting state)", () => {
     await expect(page.getByText("Connecting to Marta…")).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByText("Camera off")).toBeVisible();
+    // Below `sm`, the control's text label is hidden (icon + aria-label only)
+    // to fix control-row overflow on narrow phones — check via aria-label.
+    await expect(page.getByLabel("Camera")).toBeVisible();
 
     // Measure the GENUINE tiles before any visual injection.
     const { remote, local } = await tileBoxes(page);

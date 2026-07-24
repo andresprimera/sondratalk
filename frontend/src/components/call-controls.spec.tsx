@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
+import { toast } from "sonner"
 import { CallControls, DisabledCallControls } from "@/components/call-controls"
 
 vi.mock("react-i18next", () => ({
@@ -19,12 +20,19 @@ vi.mock("@livekit/components-react", () => ({
     children,
     className,
     "aria-label": ariaLabel,
+    onDeviceError,
   }: {
     children: ReactNode
     className?: string
     "aria-label"?: string
+    onDeviceError?: (error: Error) => void
+    captureOptions?: unknown
   }) => (
-    <button className={className} aria-label={ariaLabel}>
+    <button
+      className={className}
+      aria-label={ariaLabel}
+      onClick={() => onDeviceError?.(new Error("device busy"))}
+    >
       {children}
     </button>
   ),
@@ -109,6 +117,29 @@ describe("CallControls", () => {
     expect(
       screen.getByLabelText("Background blur").hasAttribute("disabled"),
     ).toBe(true)
+  })
+
+  // TrackToggle swallows getUserMedia failures (permission denied, device
+  // busy) by default — without onDeviceError wired up, the button just stays
+  // off with zero feedback, which is exactly what this fix addresses.
+  it("surfaces a toast when the microphone device fails to enable", () => {
+    setParticipant({ isMicrophoneEnabled: false, isCameraEnabled: true })
+
+    render(<CallControls />)
+    fireEvent.click(screen.getByLabelText("Microphone"))
+
+    expect(toast.error).toHaveBeenCalledWith(
+      "Couldn't turn on the microphone.",
+    )
+  })
+
+  it("surfaces a toast when the camera device fails to enable", () => {
+    setParticipant({ isMicrophoneEnabled: true, isCameraEnabled: false })
+
+    render(<CallControls />)
+    fireEvent.click(screen.getByLabelText("Camera"))
+
+    expect(toast.error).toHaveBeenCalledWith("Couldn't turn on the camera.")
   })
 })
 

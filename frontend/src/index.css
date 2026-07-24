@@ -2,6 +2,17 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* @livekit/components-styles ships its own (unlayered) stylesheet that forces
+   object-fit: contain on portrait-oriented video tracks — the normal case for
+   a phone's front/rear camera held vertically — letterboxing the call video
+   tiles our own layout already sizes correctly. Unlayered CSS beats Tailwind's
+   @layer utilities regardless of source order or selector specificity, so a
+   plain `object-cover` class can never win here; !important is required. See
+   frontend/src/pages/call.tsx (VideoTrack) and call-controls.tsx. */
+.lk-participant-media-video[data-lk-orientation="portrait"] {
+  object-fit: cover !important;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

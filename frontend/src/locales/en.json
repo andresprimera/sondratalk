@@ -581,6 +581,8 @@
   "Blur on": "Blur on",
   "Blur off": "Blur off",
   "Couldn't change the background blur.": "Couldn't change the background blur.",
+  "Couldn't turn on the microphone.": "Couldn't turn on the microphone.",
+  "Couldn't turn on the camera.": "Couldn't turn on the camera.",
   "Call duration": "Call duration",
   "Waiting for {{name}} to join…": "Waiting for {{name}} to join…",
   "Connecting to {{name}}…": "Connecting to {{name}}…",
