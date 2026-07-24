@@ -26,7 +26,8 @@ export async function fetchAdminCirclesApi(
 ): Promise<PaginatedResponse<AdminCircle>> {
   const params = new URLSearchParams()
   if (query.q) params.set("q", query.q)
-  if (query.themeId) params.set("themeId", query.themeId)
+  if (query.noTheme) params.set("noTheme", "true")
+  else if (query.themeId) params.set("themeId", query.themeId)
   if (query.locale) params.set("locale", query.locale)
   if (query.sortBy) params.set("sortBy", query.sortBy)
   if (query.sortDir) params.set("sortDir", query.sortDir)

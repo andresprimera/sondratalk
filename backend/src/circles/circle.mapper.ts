@@ -6,7 +6,7 @@ export function toCircle(doc: CircleDocument): Circle {
   return {
     id: doc.id,
     slug: doc.slug,
-    themeId: doc.themeId.toString(),
+    themeId: doc.themeId?.toString() ?? null,
     // eslint-disable-next-line no-restricted-syntax
     type: doc.type as CircleType,
     labels: { en: doc.labels.en, es: doc.labels.es },
@@ -20,7 +20,7 @@ export function toCircleFromAgg(row: AdminCircleAggRow): AdminCircle {
   return {
     id: row._id.toString(),
     slug: row.slug,
-    themeId: row.themeId.toString(),
+    themeId: row.themeId?.toString() ?? null,
     // eslint-disable-next-line no-restricted-syntax
     type: row.type as CircleType,
     labels: { en: row.labels.en, es: row.labels.es },

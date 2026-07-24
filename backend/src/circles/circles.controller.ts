@@ -16,7 +16,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { CirclesService } from './circles.service';
+import { CirclesService, type ThemeLabelsSnapshot } from './circles.service';
 import { toCircle, toCircleFromAgg } from './circle.mapper';
 import { ThemesService } from '../themes/themes.service';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -74,6 +74,20 @@ export class CirclesController {
     private readonly themesService: ThemesService,
   ) {}
 
+  // Looks up the theme's labels to snapshot onto the circle. Returns
+  // undefined when no theme is assigned — a circle can legitimately have
+  // no theme, so this is not itself an error.
+  private async resolveThemeLabels(
+    themeId: string | null | undefined,
+  ): Promise<ThemeLabelsSnapshot | undefined> {
+    if (!themeId) return undefined;
+    const theme = await this.themesService.findById(themeId);
+    if (!theme) {
+      throw new BadRequestException('Theme not found');
+    }
+    return { en: theme.labels.en, es: theme.labels.es };
+  }
+
   @Post()
   @UseGuards(RolesGuard)
   @Roles('admin')
@@ -84,14 +98,8 @@ export class CirclesController {
     if (slugTaken) {
       throw new ConflictException('Slug already in use');
     }
-    const theme = await this.themesService.findById(dto.themeId);
-    if (!theme) {
-      throw new BadRequestException('Theme not found');
-    }
-    const doc = await this.circlesService.create(dto, {
-      en: theme.labels.en,
-      es: theme.labels.es,
-    });
+    const themeLabels = await this.resolveThemeLabels(dto.themeId);
+    const doc = await this.circlesService.create(dto, themeLabels);
     return toCircle(doc);
   }
 
@@ -101,11 +109,11 @@ export class CirclesController {
     query: CircleSearchQuery,
     @Headers('accept-language') acceptLanguage: string | undefined,
   ): Promise<PaginatedResponse<Circle>> {
-    const { q, themeId, page, limit, locale: queryLocale } = query;
+    const { q, themeId, noTheme, page, limit, locale: queryLocale } = query;
     const locale = resolveLocale(queryLocale, acceptLanguage);
     const { data, total } = q
-      ? await this.circlesService.searchPaginated(q, page, limit, locale, themeId)
-      : await this.circlesService.findAllPaginated(page, limit, themeId);
+      ? await this.circlesService.searchPaginated(q, page, limit, locale, themeId, noTheme)
+      : await this.circlesService.findAllPaginated(page, limit, themeId, noTheme);
     return {
       data: data.map(toCircle),
       meta: {
@@ -125,11 +133,11 @@ export class CirclesController {
     query: CircleSearchQuery,
     @Headers('accept-language') acceptLanguage: string | undefined,
   ): Promise<PaginatedResponse<AdminCircle>> {
-    const { q, themeId, page, limit, locale: queryLocale, sortBy, sortDir } = query;
+    const { q, themeId, noTheme, page, limit, locale: queryLocale, sortBy, sortDir } = query;
     const locale = resolveLocale(queryLocale, acceptLanguage);
     const { data, total } = q
-      ? await this.circlesService.searchPaginatedForAdmin(q, page, limit, locale, themeId, sortBy, sortDir)
-      : await this.circlesService.findAllPaginatedForAdmin(page, limit, themeId, sortBy, sortDir);
+      ? await this.circlesService.searchPaginatedForAdmin(q, page, limit, locale, themeId, sortBy, sortDir, noTheme)
+      : await this.circlesService.findAllPaginatedForAdmin(page, limit, themeId, sortBy, sortDir, noTheme);
     return {
       data: data.map(toCircleFromAgg),
       meta: {
@@ -195,14 +203,7 @@ export class CirclesController {
         throw new ConflictException('Slug already in use');
       }
     }
-    let themeLabels: { en: string; es: string } | undefined;
-    if (dto.themeId) {
-      const theme = await this.themesService.findById(dto.themeId);
-      if (!theme) {
-        throw new BadRequestException('Theme not found');
-      }
-      themeLabels = { en: theme.labels.en, es: theme.labels.es };
-    }
+    const themeLabels = await this.resolveThemeLabels(dto.themeId);
     const doc = await this.circlesService.update(id, dto, themeLabels);
     if (!doc) {
       throw new NotFoundException('Circle not found');

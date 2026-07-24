@@ -212,6 +212,23 @@ describe("circles API", () => {
         "/api/circles/admin?q=ger&themeId=t1&page=1&limit=10",
       )
     })
+
+    it("includes noTheme when true, ignoring themeId", async () => {
+      vi.mocked(authFetch).mockResolvedValue(
+        mockJsonResponse({ data: [], meta: {} }),
+      )
+
+      await fetchAdminCirclesApi({
+        noTheme: true,
+        themeId: "t1",
+        page: 1,
+        limit: 10,
+      })
+
+      expect(authFetch).toHaveBeenCalledWith(
+        "/api/circles/admin?noTheme=true&page=1&limit=10",
+      )
+    })
   })
 
 

@@ -137,6 +137,20 @@ describe('CirclesService', () => {
       const callArgs = model.create.mock.calls[0][0];
       expect(callArgs.password).toBeUndefined();
     });
+
+    it('creates a themeless circle without a themeLabels snapshot', async () => {
+      model.create.mockResolvedValue(mockCircle);
+
+      await service.create({
+        slug: 'no-theme-circle',
+        themeId: null,
+        type: 'what-you-love',
+        labels: { en: 'No Theme', es: 'Sin Tema' },
+      });
+
+      const callArgs = model.create.mock.calls[0][0];
+      expect(callArgs).not.toHaveProperty('themeLabels');
+    });
   });
 
   describe('findAll', () => {
@@ -189,6 +203,23 @@ describe('CirclesService', () => {
 
       expect(model.find).toHaveBeenCalledWith({ isPrivate: { $ne: true } });
       expect(chainable.skip).toHaveBeenCalledWith(10);
+    });
+
+    it('filters to circles with no theme when noTheme is true, ignoring themeId', async () => {
+      const chainable = {
+        sort: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockResolvedValue([]),
+      };
+      model.find.mockReturnValue(chainable);
+      model.countDocuments.mockResolvedValue(0);
+
+      await service.findAllPaginated(1, 10, 'theme-1', true);
+
+      expect(model.find).toHaveBeenCalledWith({
+        isPrivate: { $ne: true },
+        themeId: null,
+      });
     });
   });
 
@@ -272,6 +303,29 @@ describe('CirclesService', () => {
 
       const searchStage = model.aggregate.mock.calls[0][0][0].$search;
       expect(searchStage.compound.filter).toBeUndefined();
+    });
+
+    it('excludes circles that have a theme when noTheme is true, ignoring themeId', async () => {
+      model.aggregate
+        .mockReturnValueOnce({ exec: jest.fn().mockResolvedValue([]) })
+        .mockReturnValueOnce({
+          exec: jest.fn().mockResolvedValue([{ count: { total: 0 } }]),
+        });
+
+      await service.searchPaginated(
+        'ger',
+        1,
+        10,
+        'en',
+        '507f1f77bcf86cd799439011',
+        true,
+      );
+
+      const searchStage = model.aggregate.mock.calls[0][0][0].$search;
+      expect(searchStage.compound.filter).toBeUndefined();
+      expect(searchStage.compound.mustNot).toEqual([
+        { exists: { path: 'themeId' } },
+      ]);
     });
 
     it('uses the spanish locale paths when locale is "es"', async () => {
@@ -372,6 +426,25 @@ describe('CirclesService', () => {
       const pipeline = model.aggregate.mock.calls[0][0];
       const matchStage = pipeline.find((s: Record<string, unknown>) => '$match' in s);
       expect(matchStage).toBeDefined();
+    });
+
+    it('filters to circles with no theme when noTheme is true, ignoring themeId', async () => {
+      model.aggregate.mockResolvedValue([{ data: [], total: [{ n: 0 }] }]);
+
+      await service.findAllPaginatedForAdmin(
+        1,
+        10,
+        '507f1f77bcf86cd799439011',
+        'slug',
+        'asc',
+        true,
+      );
+
+      const pipeline = model.aggregate.mock.calls[0][0];
+      const matchStage = pipeline.find((s: Record<string, unknown>) => '$match' in s) as {
+        $match: Record<string, unknown>;
+      };
+      expect(matchStage.$match).toEqual({ themeId: null });
     });
 
     it('returns empty data and zero total when aggregate yields no result', async () => {
@@ -612,6 +685,33 @@ describe('CirclesService', () => {
       expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
         'circle-1',
         { $set: { isPrivate: false }, $unset: { password: '' } },
+        { new: true },
+      );
+    });
+
+    it('unsets the denormalized themeLabels snapshot when the theme is explicitly cleared', async () => {
+      mockCurrent();
+      model.findByIdAndUpdate.mockResolvedValue(mockCircle);
+
+      await service.update('circle-1', { themeId: null });
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
+        'circle-1',
+        { $set: { themeId: null }, $unset: { themeLabels: '' } },
+        { new: true },
+      );
+    });
+
+    it('does not touch themeLabels when themeId is simply omitted from the update', async () => {
+      mockCurrent();
+      const updated = { ...mockCircle, slug: 'renamed' };
+      model.findByIdAndUpdate.mockResolvedValue(updated);
+
+      await service.update('circle-1', { slug: 'renamed' });
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
+        'circle-1',
+        { slug: 'renamed' },
         { new: true },
       );
     });

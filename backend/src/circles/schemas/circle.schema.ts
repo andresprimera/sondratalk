@@ -54,10 +54,9 @@ export class Circle {
   @Prop({
     type: MongooseSchema.Types.ObjectId,
     ref: 'Theme',
-    required: true,
     index: true,
   })
-  themeId: Types.ObjectId;
+  themeId?: Types.ObjectId;
 
   @Prop({
     required: true,
@@ -72,8 +71,8 @@ export class Circle {
   @Prop({ type: CircleAliasesSchema, default: () => ({ en: [], es: [] }) })
   aliases: CircleAliases;
 
-  @Prop({ type: CircleThemeLabelsSchema, required: true })
-  themeLabels: CircleThemeLabels;
+  @Prop({ type: CircleThemeLabelsSchema })
+  themeLabels?: CircleThemeLabels;
 
   @Prop({ required: true, default: 0, min: 0 })
   popularity: number;

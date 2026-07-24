@@ -58,6 +58,7 @@ import {
 import { toast } from "sonner"
 
 const ALL_THEMES_VALUE = "__all__"
+const NO_THEME_VALUE = "__none__"
 
 const COLUMNS: { col: CircleSortBy; label: string }[] = [
   { col: "slug", label: "Slug" },
@@ -92,6 +93,7 @@ export default function CirclesPage() {
   const [q, setQ] = useState("")
   const [debouncedQ, setDebouncedQ] = useState("")
   const [themeId, setThemeId] = useState<string | undefined>(undefined)
+  const [noTheme, setNoTheme] = useState(false)
   const [sortBy, setSortBy] = useState<CircleSortBy>("slug")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
   const [addOpen, setAddOpen] = useState(false)
@@ -105,7 +107,7 @@ export default function CirclesPage() {
 
   useEffect(() => {
     setPage(1)
-  }, [debouncedQ, themeId])
+  }, [debouncedQ, themeId, noTheme])
 
   const queryClient = useQueryClient()
 
@@ -135,12 +137,13 @@ export default function CirclesPage() {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
       "circles",
-      { q: debouncedQ, themeId, locale, page, pageSize, sortBy, sortDir },
+      { q: debouncedQ, themeId, noTheme, locale, page, pageSize, sortBy, sortDir },
     ] as const,
     queryFn: () =>
       fetchAdminCirclesApi({
         q: debouncedQ || undefined,
         themeId,
+        noTheme,
         locale,
         page,
         limit: pageSize,
@@ -162,7 +165,13 @@ export default function CirclesPage() {
 
   function handleThemeFilterChange(value: string | null) {
     if (!value) return
+    if (value === NO_THEME_VALUE) {
+      setThemeId(undefined)
+      setNoTheme(true)
+      return
+    }
     setThemeId(value === ALL_THEMES_VALUE ? undefined : value)
+    setNoTheme(false)
   }
 
   function handleSort(col: CircleSortBy) {
@@ -202,12 +211,13 @@ export default function CirclesPage() {
       <Select
         items={[
           { value: ALL_THEMES_VALUE, label: t("All themes") },
+          { value: NO_THEME_VALUE, label: t("No theme") },
           ...allThemes.map((theme) => ({
             value: theme.id,
             label: theme.labels[locale],
           })),
         ]}
-        value={themeId ?? ALL_THEMES_VALUE}
+        value={noTheme ? NO_THEME_VALUE : (themeId ?? ALL_THEMES_VALUE)}
         onValueChange={handleThemeFilterChange}
       >
         <SelectTrigger className="sm:w-56">
@@ -215,6 +225,7 @@ export default function CirclesPage() {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={ALL_THEMES_VALUE}>{t("All themes")}</SelectItem>
+          <SelectItem value={NO_THEME_VALUE}>{t("No theme")}</SelectItem>
           {allThemes.map((theme) => (
             <SelectItem key={theme.id} value={theme.id}>
               {theme.labels[locale]}
@@ -296,7 +307,7 @@ export default function CirclesPage() {
     )
   }
 
-  const isFiltered = Boolean(debouncedQ) || Boolean(themeId)
+  const isFiltered = Boolean(debouncedQ) || Boolean(themeId) || noTheme
 
   return (
     <div className="space-y-4">
@@ -340,10 +351,11 @@ export default function CirclesPage() {
                   <TableCell className="font-medium">{c.labels.en}</TableCell>
                   <TableCell>{c.labels.es}</TableCell>
                   <TableCell>
-                    {allThemes.find((th) => th.id === c.themeId)?.labels[
-                      locale
-                    ] ??
-                      c.themeId}
+                    {c.themeId
+                      ? (allThemes.find((th) => th.id === c.themeId)?.labels[
+                          locale
+                        ] ?? c.themeId)
+                      : t("No theme")}
                   </TableCell>
                   <TableCell>{t(circleTypeLabel(c.type))}</TableCell>
                   <TableCell>{c.membershipCount}</TableCell>

@@ -27,7 +27,7 @@ export interface ThemeLabelsSnapshot {
 export type AdminCircleAggRow = {
   _id: Types.ObjectId;
   slug: string;
-  themeId: Types.ObjectId;
+  themeId: Types.ObjectId | null;
   type: string;
   labels: { en: string; es: string };
   aliases: { en: string[]; es: string[] };
@@ -54,6 +54,7 @@ interface SearchCompound {
   should: Record<string, unknown>[];
   minimumShouldMatch: number;
   filter?: Record<string, unknown>[];
+  mustNot?: Record<string, unknown>[];
 }
 
 @Injectable()
@@ -64,7 +65,7 @@ export class CirclesService {
 
   async create(
     dto: CreateCircleInput,
-    themeLabels: ThemeLabelsSnapshot,
+    themeLabels?: ThemeLabelsSnapshot,
   ): Promise<CircleDocument> {
     const aliases = dto.aliases ?? { en: [], es: [] };
     const password = dto.password
@@ -73,7 +74,7 @@ export class CirclesService {
     return this.circleModel.create({
       ...dto,
       aliases,
-      themeLabels,
+      ...(themeLabels ? { themeLabels } : {}),
       password,
     });
   }
@@ -86,10 +87,11 @@ export class CirclesService {
     page: number,
     limit: number,
     themeId?: string,
+    noTheme?: boolean,
   ): Promise<{ data: CircleDocument[]; total: number }> {
     const filter: FilterQuery<Circle> = {
       isPrivate: { $ne: true },
-      ...(themeId ? { themeId } : {}),
+      ...(noTheme ? { themeId: null } : themeId ? { themeId } : {}),
     };
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
@@ -107,6 +109,7 @@ export class CirclesService {
     q: string,
     locale: LocaleKey,
     themeId?: string,
+    noTheme?: boolean,
   ): SearchCompound {
     if (!LOCALE_KEYS.includes(locale)) {
       throw new Error(`Unsupported locale: ${locale}`);
@@ -124,13 +127,15 @@ export class CirclesService {
         { text: { query: q, path: labelPath, fuzzy: { maxEdits: 1 } } },
       ],
       minimumShouldMatch: 1,
-      ...(themeId
-        ? {
-            filter: [
-              { equals: { path: 'themeId', value: new Types.ObjectId(themeId) } },
-            ],
-          }
-        : {}),
+      ...(noTheme
+        ? { mustNot: [{ exists: { path: 'themeId' } }] }
+        : themeId
+          ? {
+              filter: [
+                { equals: { path: 'themeId', value: new Types.ObjectId(themeId) } },
+              ],
+            }
+          : {}),
     };
   }
 
@@ -140,8 +145,9 @@ export class CirclesService {
     limit: number,
     locale: LocaleKey,
     themeId?: string,
+    noTheme?: boolean,
   ): Promise<{ data: CircleDocument[]; total: number }> {
-    const compound = this.buildSearchCompound(q, locale, themeId);
+    const compound = this.buildSearchCompound(q, locale, themeId, noTheme);
     const skip = (page - 1) * limit;
 
     // Atlas Search emits `searchScore` meta which Mongoose's PipelineStage
@@ -187,13 +193,18 @@ export class CirclesService {
     themeId?: string,
     sortBy: CircleSortBy = 'slug',
     sortDir: 'asc' | 'desc' = 'asc',
+    noTheme?: boolean,
   ): Promise<{ data: AdminCircleAggRow[]; total: number }> {
     const skip = (page - 1) * limit;
     const sortOrder = sortDir === 'asc' ? 1 : -1;
     const sortField = ADMIN_CIRCLE_SORT_FIELDS[sortBy];
 
     const [result] = await this.circleModel.aggregate<AdminCircleFacetResult>([
-      ...(themeId ? [{ $match: { themeId: new Types.ObjectId(themeId) } }] : []),
+      ...(noTheme
+        ? [{ $match: { themeId: null } }]
+        : themeId
+          ? [{ $match: { themeId: new Types.ObjectId(themeId) } }]
+          : []),
       {
         $lookup: {
           from: CIRCLE_MEMBERSHIPS_COLLECTION,
@@ -226,8 +237,9 @@ export class CirclesService {
     themeId?: string,
     sortBy: CircleSortBy = 'slug',
     sortDir: 'asc' | 'desc' = 'asc',
+    noTheme?: boolean,
   ): Promise<{ data: AdminCircleAggRow[]; total: number }> {
-    const compound = this.buildSearchCompound(q, locale, themeId);
+    const compound = this.buildSearchCompound(q, locale, themeId, noTheme);
     const skip = (page - 1) * limit;
     const sortOrder = sortDir === 'asc' ? 1 : -1;
     const sortField = ADMIN_CIRCLE_SORT_FIELDS[sortBy];
@@ -324,6 +336,7 @@ export class CirclesService {
     const set: Record<string, unknown> = themeLabels
       ? { ...rest, themeLabels }
       : { ...rest };
+    const unset: Record<string, ''> = {};
     if (password) {
       set.password = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
     }
@@ -333,9 +346,21 @@ export class CirclesService {
     // in both $set and $unset in the same update, so drop it from $set here.
     if (dto.isPrivate === false) {
       delete set.password;
+      unset.password = '';
+    }
+
+    // Clearing the theme (dto.themeId explicitly null) must also drop the
+    // denormalized themeLabels snapshot, or Atlas Search would keep matching
+    // this circle against a theme name it no longer has.
+    if (dto.themeId === null) {
+      delete set.themeLabels;
+      unset.themeLabels = '';
+    }
+
+    if (Object.keys(unset).length > 0) {
       return this.circleModel.findByIdAndUpdate(
         id,
-        { $set: set, $unset: { password: '' } },
+        { $set: set, $unset: unset },
         { new: true },
       );
     }

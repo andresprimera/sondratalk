@@ -9,6 +9,10 @@ import {
 import { createCircleApi } from "@/lib/circles"
 import { circleTypeOptions } from "@/lib/circle-types"
 import { fetchAllThemesApi } from "@/lib/themes"
+import {
+  NO_THEME_SELECT_VALUE,
+  themeSelectValueForCreate,
+} from "@/lib/circle-theme-select"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -38,7 +42,7 @@ import {
 
 const EMPTY_DEFAULTS: CreateCircleInput = {
   slug: "",
-  themeId: "",
+  themeId: undefined,
   type: "who-you-are",
   labels: { en: "", es: "" },
   aliases: { en: [], es: [] },
@@ -138,19 +142,26 @@ export function AddCircleDialog({
                 control={control}
                 render={({ field }) => (
                   <Select
-                    items={themes.map((theme) => ({
-                      value: theme.id,
-                      label: theme.labels[locale],
-                    }))}
-                    value={field.value || ""}
+                    items={[
+                      { value: NO_THEME_SELECT_VALUE, label: t("No theme") },
+                      ...themes.map((theme) => ({
+                        value: theme.id,
+                        label: theme.labels[locale],
+                      })),
+                    ]}
+                    value={field.value || NO_THEME_SELECT_VALUE}
                     onValueChange={(val) => {
-                      if (val) field.onChange(val)
+                      if (!val) return
+                      field.onChange(themeSelectValueForCreate(val))
                     }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder={t("Select a theme")} />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value={NO_THEME_SELECT_VALUE}>
+                        {t("No theme")}
+                      </SelectItem>
                       {themes.map((theme) => (
                         <SelectItem key={theme.id} value={theme.id}>
                           {theme.labels[locale]}

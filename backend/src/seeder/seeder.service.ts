@@ -89,6 +89,10 @@ export class SeederService implements OnModuleInit {
 
     for (const seed of SEED_CIRCLES) {
       const { id, ...data } = seed;
+      if (!data.themeId) {
+        this.logger.warn(`Skipping circle ${seed.slug}: no themeId`);
+        continue;
+      }
       const themeLabels = themeLabelsById.get(data.themeId);
       if (!themeLabels) {
         this.logger.warn(

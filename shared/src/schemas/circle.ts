@@ -29,7 +29,7 @@ export type CircleType = z.infer<typeof circleTypeEnum>;
 export const circleSchema = z.object({
   id: z.string(),
   slug: slugSchema,
-  themeId: z.string(),
+  themeId: z.string().nullable(),
   type: circleTypeEnum,
   labels: labelsSchema,
   aliases: aliasesSchemaRequired,
@@ -46,7 +46,7 @@ export type AdminCircle = z.infer<typeof adminCircleSchema>;
 
 const createCircleBaseSchema = z.object({
   slug: slugSchema,
-  themeId: z.string().min(1, "Theme is required"),
+  themeId: z.string().min(1).nullish(),
   type: circleTypeEnum,
   labels: labelsSchema,
   aliases: aliasesSchemaRequired.optional(),
@@ -91,6 +91,9 @@ export type CircleSortBy = z.infer<typeof circleSortByEnum>;
 export const circleSearchQuerySchema = paginationQuerySchema.extend({
   q: z.string().trim().optional(),
   themeId: z.string().optional(),
+  // Filters to circles with no theme assigned at all. Mutually exclusive
+  // with themeId in practice — callers pass one or the other.
+  noTheme: z.stringbool().optional(),
   locale: z.enum(LOCALE_KEYS).optional(),
   sortBy: circleSortByEnum.optional(),
   sortDir: z.enum(["asc", "desc"]).optional(),
