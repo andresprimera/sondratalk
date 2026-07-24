@@ -56,9 +56,11 @@ describe("auth API", () => {
 
       await logoutApi()
 
-      expect(authFetch).toHaveBeenCalledWith("/api/auth/logout", {
-        method: "POST",
-      })
+      expect(authFetch).toHaveBeenCalledWith(
+        "/api/auth/logout",
+        expect.objectContaining({ method: "POST" }),
+        { retryOnAuthFailure: false },
+      )
     })
   })
 
