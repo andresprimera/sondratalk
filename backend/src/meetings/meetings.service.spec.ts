@@ -278,7 +278,8 @@ describe('MeetingsService', () => {
       expect(result).toBe(created);
     });
 
-    it('sends one calendar invite to each participant for scheduled meetings, localized per recipient', async () => {
+    it('sends one calendar invite to each participant for scheduled meetings, localized per recipient, once mutually revealed', async () => {
+      jest.spyOn(service, 'hasMutualDoorOpen').mockResolvedValue(true);
       const future = new Date(Date.now() + 24 * 60 * 60 * 1000);
       const peer = {
         id: USER_B,
@@ -330,7 +331,46 @@ describe('MeetingsService', () => {
       expect(peerMail.attachments[0].content).toContain('BEGIN:VCALENDAR');
     });
 
+    it('sends anonymized calendar invites ("Your match"/"Tu coincidencia") when the pair has not mutually left the door open', async () => {
+      jest.spyOn(service, 'hasMutualDoorOpen').mockResolvedValue(false);
+      const future = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const peer = {
+        id: USER_B,
+        name: 'Beatriz Lopez',
+        email: 'beatriz@x.test',
+        locale: 'es',
+      };
+      const initiator = {
+        id: USER_A,
+        name: 'Ana María',
+        email: 'ana@x.test',
+        locale: 'en',
+      };
+      usersService.findById
+        .mockResolvedValueOnce(peer)
+        .mockResolvedValueOnce(initiator);
+      meetingModel.create.mockResolvedValue(
+        makeDoc({ scheduledAt: future, instant: false }),
+      );
+
+      await service.create(USER_A, {
+        peerUserId: USER_B,
+        scheduledAt: future.toISOString(),
+      });
+      await flushMicrotasks();
+
+      const calls = mailService.sendMail.mock.calls.map((c) => c[0]);
+      const initiatorMail = calls.find((c) => c.to === 'ana@x.test');
+      const peerMail = calls.find((c) => c.to === 'beatriz@x.test');
+
+      expect(initiatorMail.subject).toContain('Your match');
+      expect(initiatorMail.subject).not.toContain('Beatriz');
+      expect(peerMail.subject).toContain('Tu coincidencia');
+      expect(peerMail.subject).not.toContain('Ana');
+    });
+
     it("renders the conversation time in each recipient's own timezone", async () => {
+      jest.spyOn(service, 'hasMutualDoorOpen').mockResolvedValue(true);
       // June -> America/New_York is EDT (UTC-4), so 14:30 UTC is 10:30 local.
       const scheduledAt = new Date('2099-06-01T14:30:00Z');
       const peer = {
@@ -374,6 +414,7 @@ describe('MeetingsService', () => {
     });
 
     it('does not fail meeting creation when calendar invites fail to send', async () => {
+      jest.spyOn(service, 'hasMutualDoorOpen').mockResolvedValue(true);
       const future = new Date(Date.now() + 24 * 60 * 60 * 1000);
       usersService.findById
         .mockResolvedValueOnce({

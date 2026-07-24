@@ -18,6 +18,7 @@ import { MailService } from '../services/mail/mail.service';
 import { toSchedulingMessage } from './scheduling.mapper';
 import { extractFirstName } from './meetings.mapper';
 import {
+  ANONYMOUS_MATCH_LABEL,
   formatDayLabel,
   formatTimeRange,
   formatTimeZoneLabel,
@@ -47,16 +48,21 @@ export class SchedulingService {
   // Fire-and-forget notification email for a scheduling-thread event (a new
   // proposal, or a decline) — the meeting's own confirmation email already
   // covers the "accepted" case via MeetingsService.reschedule().
+  //
+  // otherFirstIfRevealed is null when the pair hasn't mutually left the door
+  // open (see MeetingsService.hasMutualDoorOpen) — matches stay anonymous in
+  // this email too, not just the app UI.
   private sendSchedulingNotification(
     copy: Record<LocaleKey, SchedulingEmailCopy>,
     recipient: UserDocument,
-    otherFirst: string,
+    otherFirstIfRevealed: string | null,
     proposedAt: Date,
     meetingId: string,
   ): void {
     const frontendUrl = this.configService.getOrThrow<string>('FRONTEND_URL');
     const threadUrl = `${frontendUrl}/dashboard/conversations/${meetingId}/schedule`;
     const locale: LocaleKey = recipient.locale === 'es' ? 'es' : 'en';
+    const otherFirst = otherFirstIfRevealed ?? ANONYMOUS_MATCH_LABEL[locale];
     const localeCopy = copy[locale];
     const tz = recipient.timezone || 'UTC';
     const emailData: MeetingEmailData = {
@@ -139,10 +145,14 @@ export class SchedulingService {
         this.usersService.findById(peerObjectId.toString()),
       ]);
       if (sender && peer) {
+        const revealed = await this.meetingsService.hasMutualDoorOpen(
+          peerObjectId.toString(),
+          userId,
+        );
         this.sendSchedulingNotification(
           PROPOSED_TIME_EMAIL_COPY,
           peer,
-          extractFirstName(sender.name),
+          revealed ? extractFirstName(sender.name) : null,
           when,
           meetingId,
         );
@@ -201,10 +211,14 @@ export class SchedulingService {
         this.usersService.findById(proposal.senderId.toString()),
       ]);
       if (decliner && proposer) {
+        const revealed = await this.meetingsService.hasMutualDoorOpen(
+          userId,
+          proposal.senderId.toString(),
+        );
         this.sendSchedulingNotification(
           PROPOSAL_DECLINED_EMAIL_COPY,
           proposer,
-          extractFirstName(decliner.name),
+          revealed ? extractFirstName(decliner.name) : null,
           proposal.proposedAt,
           meetingId,
         );

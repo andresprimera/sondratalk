@@ -78,6 +78,9 @@ describe('SchedulingService', () => {
         peer,
       }),
       reschedule: jest.fn().mockResolvedValue(undefined),
+      // Matches are anonymous by default in these emails too — see
+      // MeetingsService.hasMutualDoorOpen().
+      hasMutualDoorOpen: jest.fn().mockResolvedValue(false),
     };
     usersService = {
       findById: jest.fn((id: string) => {
@@ -126,6 +129,7 @@ describe('SchedulingService', () => {
     });
     mailService.sendMail.mockResolvedValue(undefined);
     configService.getOrThrow.mockReturnValue('https://app.example.com');
+    meetingsService.hasMutualDoorOpen.mockResolvedValue(false);
   });
 
   describe('getThread', () => {
@@ -169,13 +173,32 @@ describe('SchedulingService', () => {
       expect(messageModel.create).not.toHaveBeenCalled();
     });
 
-    it('emails the peer about the new proposal', async () => {
+    it('emails the peer about the new proposal without the real name by default (anonymous match)', async () => {
       const at = futureIso(24);
       await service.propose(USER_A, MEETING_ID, at);
 
       expect(usersService.findById).toHaveBeenCalledWith(USER_A);
       expect(usersService.findById).toHaveBeenCalledWith(USER_B);
+      expect(meetingsService.hasMutualDoorOpen).toHaveBeenCalledWith(
+        USER_B,
+        USER_A,
+      );
       expect(mailService.sendMail).toHaveBeenCalledTimes(1);
+      expect(mailService.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: userB.email,
+          subject: expect.stringContaining('Your match'),
+        }),
+      );
+      const [{ subject }] = mailService.sendMail.mock.calls[0];
+      expect(subject).not.toContain('Carlos');
+    });
+
+    it('emails the peer with the real name once the pair has mutually left the door open', async () => {
+      meetingsService.hasMutualDoorOpen.mockResolvedValue(true);
+      const at = futureIso(24);
+      await service.propose(USER_A, MEETING_ID, at);
+
       expect(mailService.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: userB.email,
@@ -230,7 +253,7 @@ describe('SchedulingService', () => {
       expect(meetingsService.reschedule).not.toHaveBeenCalled();
     });
 
-    it('emails the original proposer when their proposal is declined', async () => {
+    it('emails the original proposer without the real name by default when declined (anonymous match)', async () => {
       messageModel.findById.mockResolvedValue(
         makeMessageDoc({
           _id: new Types.ObjectId(PROPOSAL_ID),
@@ -239,7 +262,31 @@ describe('SchedulingService', () => {
       );
       await service.respond(USER_B, MEETING_ID, PROPOSAL_ID, false);
 
+      expect(meetingsService.hasMutualDoorOpen).toHaveBeenCalledWith(
+        USER_B,
+        USER_A,
+      );
       expect(mailService.sendMail).toHaveBeenCalledTimes(1);
+      expect(mailService.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: userA.email,
+          subject: expect.stringContaining('Your match'),
+        }),
+      );
+      const [{ subject }] = mailService.sendMail.mock.calls[0];
+      expect(subject).not.toContain('Marta');
+    });
+
+    it('emails the original proposer with the real name once the pair has mutually left the door open', async () => {
+      meetingsService.hasMutualDoorOpen.mockResolvedValue(true);
+      messageModel.findById.mockResolvedValue(
+        makeMessageDoc({
+          _id: new Types.ObjectId(PROPOSAL_ID),
+          senderId: new Types.ObjectId(USER_A),
+        }),
+      );
+      await service.respond(USER_B, MEETING_ID, PROPOSAL_ID, false);
+
       expect(mailService.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: userA.email,
