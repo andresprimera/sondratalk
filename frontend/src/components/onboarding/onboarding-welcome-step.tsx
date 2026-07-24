@@ -20,7 +20,7 @@ export function OnboardingWelcomeStep() {
         {t("Your application is in.")}
       </p>
       <p className="mb-12 max-w-sm text-balance text-sm text-muted-foreground">
-        {t("We review every application personally. You'll hear from us within 48 hours.")}
+        {t("if you're here, you are welcome")}
       </p>
       <Button
         size="xl"
