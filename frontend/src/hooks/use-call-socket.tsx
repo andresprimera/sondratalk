@@ -14,6 +14,7 @@ import {
   type IncomingCallPayload,
 } from "@base-dashboard/shared"
 import { getStoredTokens, refreshTokens } from "@/lib/api"
+import { ApiError } from "@/lib/api-error"
 import { createCallSocket } from "@/lib/socket"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -59,7 +60,20 @@ export function CallSocketProvider({ children }: { children: ReactNode }) {
         .then(({ accessToken: next }) => {
           s.auth = { token: next }
         })
-        .catch(() => {})
+        .catch((err: unknown) => {
+          // Transient failure (network / 5xx / a refresh superseded by another
+          // flow): let the next reconnect attempt try again. A definitive
+          // failure means the session is dead — leave the flag set so we don't
+          // spin; AuthProvider's own renewal notices and signs the user out.
+          if (
+            !(
+              err instanceof ApiError &&
+              (err.statusCode === 401 || err.statusCode === 403)
+            )
+          ) {
+            refreshedThisStreak = false
+          }
+        })
     }
 
     const handleIncomingCall = (raw: unknown) => {

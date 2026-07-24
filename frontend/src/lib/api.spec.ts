@@ -24,6 +24,7 @@ describe("api", () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   describe("getStoredTokens", () => {
@@ -202,6 +203,131 @@ describe("api", () => {
       expect(locationMock.href).toBe("/login")
     })
 
+    it("should NOT log out on a transient refresh failure during 401 recovery", async () => {
+      api.storeTokens("expired", "valid-refresh")
+
+      const fetchMock = vi.mocked(fetch)
+      // Original request 401s (expired access token).
+      fetchMock.mockResolvedValueOnce(mockResponse({}, { status: 401 }))
+      // The refresh itself hits a transient 503.
+      fetchMock.mockResolvedValueOnce(
+        mockResponse(
+          { statusCode: 503, message: "Service unavailable" },
+          { status: 503 },
+        ),
+      )
+
+      const locationMock = { ...window.location, href: "" }
+      vi.stubGlobal("location", locationMock)
+
+      const err = (await api
+        .authFetch("/api/secure")
+        .catch((e: unknown) => e)) as { statusCode?: number }
+
+      // Session preserved: tokens intact, no redirect, real error surfaced.
+      expect(localStorage.getItem("refreshToken")).toBe("valid-refresh")
+      expect(locationMock.href).toBe("")
+      expect(err.statusCode).toBe(503)
+    })
+
+    it("should surface a retried-request 401 as an error without logging out", async () => {
+      api.storeTokens("expired", "valid-refresh")
+
+      const fetchMock = vi.mocked(fetch)
+      // Original request 401s.
+      fetchMock.mockResolvedValueOnce(mockResponse({}, { status: 401 }))
+      // Refresh succeeds.
+      fetchMock.mockResolvedValueOnce(
+        mockResponse({
+          accessToken: "fresh",
+          refreshToken: "fresh-r",
+          user: { id: "1", email: "a@b.com", name: "Test", role: "user" },
+        }),
+      )
+      // The retried request 401s (e.g. a wrong current password) — a business
+      // error, not a dead session, so it must surface without a forced logout.
+      fetchMock.mockResolvedValueOnce(
+        mockResponse({ statusCode: 401, message: "Wrong password" }, { status: 401 }),
+      )
+
+      const locationMock = { ...window.location, href: "" }
+      vi.stubGlobal("location", locationMock)
+
+      const err = (await api
+        .authFetch("/api/secure")
+        .catch((e: unknown) => e)) as { statusCode?: number }
+
+      expect(err.statusCode).toBe(401)
+      expect(localStorage.getItem("accessToken")).toBe("fresh")
+      expect(locationMock.href).toBe("")
+    })
+
+    it("rethrows a superseded refresh (logout mid-flight) without redirecting", async () => {
+      api.storeTokens("expired", "r1")
+      const fetchMock = vi.mocked(fetch)
+      fetchMock.mockResolvedValueOnce(mockResponse({}, { status: 401 }))
+      let resolveRefresh: (res: Response) => void = () => {}
+      fetchMock.mockReturnValueOnce(
+        new Promise<Response>((r) => {
+          resolveRefresh = r
+        }),
+      )
+      const locationMock = { ...window.location, href: "" }
+      vi.stubGlobal("location", locationMock)
+
+      const pending = api.authFetch("/api/secure")
+      // The session ends while the refresh is in flight -> refreshTokens throws
+      // a plain (non-ApiError) "superseded" Error.
+      api.endSession()
+      resolveRefresh(
+        mockResponse({
+          accessToken: "new",
+          refreshToken: "new",
+          user: { id: "1", email: "a@b.com", name: "Test", role: "user" },
+        }),
+      )
+
+      const err = await pending.catch((e: unknown) => e)
+
+      // Not signed out: no redirect, and the error is the plain superseded Error
+      // (not an ApiError 401 that would bounce the user to /login).
+      expect(locationMock.href).toBe("")
+      expect((err as { name?: string }).name).not.toBe("ApiError")
+    })
+
+    it("should surface a business 403 from the retried request without logging out", async () => {
+      api.storeTokens("expired", "valid-refresh")
+
+      const fetchMock = vi.mocked(fetch)
+      fetchMock.mockResolvedValueOnce(mockResponse({}, { status: 401 }))
+      fetchMock.mockResolvedValueOnce(
+        mockResponse({
+          accessToken: "fresh",
+          refreshToken: "fresh-r",
+          user: { id: "1", email: "a@b.com", name: "Test", role: "user" },
+        }),
+      )
+      // The retried request is rejected for a business reason (wrong password).
+      fetchMock.mockResolvedValueOnce(
+        mockResponse(
+          { statusCode: 403, message: "Incorrect password" },
+          { status: 403 },
+        ),
+      )
+
+      const locationMock = { ...window.location, href: "" }
+      vi.stubGlobal("location", locationMock)
+
+      const err = (await api
+        .authFetch("/api/secure")
+        .catch((e: unknown) => e)) as { statusCode?: number }
+
+      // Not a session failure: session preserved, no redirect, 403 surfaced.
+      expect(err.statusCode).toBe(403)
+      expect(localStorage.getItem("accessToken")).toBe("fresh")
+      expect(locationMock.href).toBe("")
+    })
+
     it("should throw ApiError on non-401 error", async () => {
       api.storeTokens("valid-token", "valid-refresh")
 
@@ -247,6 +373,174 @@ describe("api", () => {
         ([url]) => url === "/api/auth/refresh",
       )
       expect(refreshCalls).toHaveLength(1)
+    })
+  })
+
+  describe("refreshTokens", () => {
+    const refreshBody = {
+      accessToken: "new-access",
+      refreshToken: "new-refresh",
+      user: { id: "1", email: "a@b.com", name: "Test", role: "user" },
+    }
+
+    it("serializes through the Web Locks API when available", async () => {
+      localStorage.setItem("refreshToken", "r1")
+      const request = vi.fn(
+        (_name: string, cb: (lock: unknown) => Promise<unknown>) => cb(null),
+      )
+      vi.stubGlobal("navigator", { locks: { request } })
+      vi.mocked(fetch).mockResolvedValue(mockResponse(refreshBody))
+
+      const data = await api.refreshTokens()
+
+      expect(request).toHaveBeenCalledWith(
+        "token-refresh",
+        expect.any(Function),
+      )
+      expect(data.accessToken).toBe("new-access")
+      expect(localStorage.getItem("refreshToken")).toBe("new-refresh")
+    })
+
+    it("reads the refresh token inside the lock so a rotation elsewhere is honored", async () => {
+      localStorage.setItem("refreshToken", "stale")
+      // Simulate another tab rotating the token while we waited for the lock:
+      // by the time our critical section runs, storage holds the fresh value.
+      const request = vi.fn(
+        (_name: string, cb: (lock: unknown) => Promise<unknown>) => {
+          localStorage.setItem("refreshToken", "rotated-by-other-tab")
+          return cb(null)
+        },
+      )
+      vi.stubGlobal("navigator", { locks: { request } })
+      vi.mocked(fetch).mockResolvedValue(mockResponse(refreshBody))
+
+      await api.refreshTokens()
+
+      const [, init] = vi.mocked(fetch).mock.calls[0]
+      const headers = init?.headers as Record<string, string>
+      expect(headers.Authorization).toBe("Bearer rotated-by-other-tab")
+    })
+
+    it("falls back to a direct call when the Web Locks API is absent", async () => {
+      vi.stubGlobal("navigator", {})
+      localStorage.setItem("refreshToken", "r1")
+      vi.mocked(fetch).mockResolvedValue(mockResponse(refreshBody))
+
+      const data = await api.refreshTokens()
+
+      expect(data.refreshToken).toBe("new-refresh")
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/auth/refresh",
+        expect.objectContaining({ method: "POST" }),
+      )
+    })
+
+    it("clears tokens on a definitive 401 auth failure", async () => {
+      localStorage.setItem("accessToken", "a1")
+      localStorage.setItem("refreshToken", "r1")
+      vi.mocked(fetch).mockResolvedValue(
+        mockResponse(
+          { statusCode: 401, message: "Access denied" },
+          { status: 401 },
+        ),
+      )
+
+      const err = (await api.refreshTokens().catch((e: unknown) => e)) as {
+        name: string
+        statusCode: number
+      }
+      expect(err.name).toBe("ApiError")
+      expect(err.statusCode).toBe(401)
+      expect(localStorage.getItem("refreshToken")).toBeNull()
+    })
+
+    it("preserves tokens on a transient 5xx so a later retry can recover", async () => {
+      localStorage.setItem("accessToken", "a1")
+      localStorage.setItem("refreshToken", "r1")
+      vi.mocked(fetch).mockResolvedValue(
+        mockResponse(
+          { statusCode: 503, message: "Service unavailable" },
+          { status: 503 },
+        ),
+      )
+
+      await expect(api.refreshTokens()).rejects.toBeTruthy()
+      expect(localStorage.getItem("refreshToken")).toBe("r1")
+    })
+
+    it("does not write the new tokens back if the session ends mid-refresh", async () => {
+      localStorage.setItem("refreshToken", "r1")
+      let resolveFetch: (res: Response) => void = () => {}
+      vi.mocked(fetch).mockReturnValue(
+        new Promise<Response>((r) => {
+          resolveFetch = r
+        }),
+      )
+
+      const pending = api.refreshTokens()
+      // A logout ends the session generation while the request is in flight.
+      api.endSession()
+      resolveFetch(mockResponse(refreshBody))
+
+      await expect(pending).rejects.toBeTruthy()
+      // The rotated tokens must NOT be persisted...
+      expect(localStorage.getItem("accessToken")).toBeNull()
+      // ...but the guard must NOT delete storage either — it may already belong
+      // to a newer session (here the pre-existing value is left untouched).
+      expect(localStorage.getItem("refreshToken")).toBe("r1")
+    })
+
+    it("refuses to persist tokens for a refresh that STARTS after logout", async () => {
+      // Models the call socket firing a refresh during logout's await window:
+      // the epoch counter can't catch it (it captures the already-bumped epoch),
+      // so the sessionEnded flag must block the write-back.
+      localStorage.setItem("refreshToken", "r1")
+      api.endSession()
+      vi.mocked(fetch).mockResolvedValue(mockResponse(refreshBody))
+
+      await expect(api.refreshTokens()).rejects.toBeTruthy()
+      expect(localStorage.getItem("accessToken")).toBeNull()
+      // The re-check short-circuits before any network POST (no needless
+      // server-side token rotation for a session we've left).
+      expect(fetch).not.toHaveBeenCalled()
+    })
+
+    it("lets a refresh persist again after beginSession reactivates the session", async () => {
+      // endSession() then a login (beginSession) must re-enable refreshes.
+      localStorage.setItem("refreshToken", "r-login")
+      api.endSession()
+      api.beginSession()
+      vi.mocked(fetch).mockResolvedValue(mockResponse(refreshBody))
+
+      const data = await api.refreshTokens()
+
+      expect(data.accessToken).toBe("new-access")
+      expect(localStorage.getItem("accessToken")).toBe("new-access")
+    })
+
+    it("declines a post-logout refresh even after a re-login (epoch advances)", async () => {
+      localStorage.setItem("refreshToken", "r-old")
+      // Logout, then a stale refresh (e.g. the call socket) STARTS and captures
+      // the post-logout epoch...
+      api.endSession()
+      let resolveFetch: (res: Response) => void = () => {}
+      vi.mocked(fetch).mockReturnValueOnce(
+        new Promise<Response>((r) => {
+          resolveFetch = r
+        }),
+      )
+      const stale = api.refreshTokens().catch((e: unknown) => e)
+      // ...the user logs back in (new generation) and stores new tokens...
+      api.beginSession()
+      api.storeTokens("a-new", "r-new")
+      // ...and only then does the stale refresh resolve 200.
+      resolveFetch(mockResponse(refreshBody))
+      await stale
+
+      // The fresh login's tokens must survive — not be clobbered by the stale
+      // refresh that started under the previous session.
+      expect(localStorage.getItem("accessToken")).toBe("a-new")
+      expect(localStorage.getItem("refreshToken")).toBe("r-new")
     })
   })
 })
