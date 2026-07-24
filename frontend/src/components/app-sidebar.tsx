@@ -22,6 +22,7 @@ import {
   CircleDotIcon,
   ClipboardListIcon,
   MessageSquareTextIcon,
+  RadioTowerIcon,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { Link } from "react-router"
@@ -34,6 +35,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const adminNavMain = [
     { title: t("Dashboard"), url: "/dashboard", icon: <LayoutDashboardIcon />, end: true },
     { title: t("Users"), url: "/dashboard/users", icon: <UsersIcon /> },
+    { title: t("Available Now"), url: "/dashboard/available-now", icon: <RadioTowerIcon /> },
     { title: t("Themes"), url: "/dashboard/themes", icon: <LayersIcon /> },
     { title: t("Circles"), url: "/dashboard/circles", icon: <CircleDotIcon /> },
     {

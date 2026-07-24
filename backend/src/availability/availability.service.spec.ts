@@ -29,6 +29,7 @@ describe('AvailabilityService', () => {
       deleteOne: jest.fn(),
       updateOne: jest.fn(),
       find: jest.fn(),
+      countDocuments: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -202,6 +203,36 @@ describe('AvailabilityService', () => {
       expect(filter.isAvailableNow).toBe(true);
       expect(filter.availableNowSetAt).toEqual({ $gte: freshSince });
       expect(result).toEqual([candidate]);
+    });
+  });
+
+  describe('findAvailableNowPaginated', () => {
+    it('filters on freshness, sorts by most recent presence, and paginates', async () => {
+      const id1 = new Types.ObjectId();
+      const id2 = new Types.ObjectId();
+      const freshSince = new Date('2026-01-01T00:00:00Z');
+      const chain = {
+        sort: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        select: jest
+          .fn()
+          .mockResolvedValue([{ userId: id1 }, { userId: id2 }]),
+      };
+      model.find.mockReturnValue(chain);
+      model.countDocuments.mockResolvedValue(7);
+
+      const result = await service.findAvailableNowPaginated(freshSince, 10, 5);
+
+      const filter = model.find.mock.calls[0][0];
+      expect(filter.isAvailableNow).toBe(true);
+      expect(filter.availableNowSetAt).toEqual({ $gte: freshSince });
+      expect(chain.sort).toHaveBeenCalledWith({ availableNowSetAt: -1, _id: 1 });
+      expect(chain.skip).toHaveBeenCalledWith(10);
+      expect(chain.limit).toHaveBeenCalledWith(5);
+      expect(chain.select).toHaveBeenCalledWith('userId');
+      expect(model.countDocuments).toHaveBeenCalledWith(filter);
+      expect(result).toEqual({ userIds: [id1, id2], total: 7 });
     });
   });
 

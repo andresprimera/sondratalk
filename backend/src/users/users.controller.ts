@@ -24,7 +24,7 @@ import { MembershipsService } from '../memberships/memberships.service';
 import { AvailabilityService } from '../availability/availability.service';
 import { toAvailability } from '../availability/availability.mapper';
 import { toCircle } from '../circles/circle.mapper';
-import { toUser, toUserFromAgg } from './users.mapper';
+import { toUser, toUserFromAgg, toAvailableNowUser } from './users.mapper';
 import { MailService } from '../services';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -50,6 +50,9 @@ import {
   usersQuerySchema,
   type UsersQuery,
   type AdminUser,
+  paginationQuerySchema,
+  type PaginationQuery,
+  type AvailableNowUser,
 } from '@base-dashboard/shared';
 import {
   updateProfileSchema,
@@ -280,6 +283,29 @@ export class UsersController {
     );
     return {
       data: data.map(toUserFromAgg),
+      meta: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.ceil(total / query.limit),
+      },
+    };
+  }
+
+  @Get('available-now')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async findAvailableNow(
+    @Query(new ZodValidationPipe(paginationQuerySchema))
+    query: PaginationQuery,
+  ): Promise<PaginatedResponse<AvailableNowUser>> {
+    const { data, total } =
+      await this.usersService.findAvailableNowWithCircles(
+        query.page,
+        query.limit,
+      );
+    return {
+      data: data.map(toAvailableNowUser),
       meta: {
         page: query.page,
         limit: query.limit,

@@ -42,6 +42,8 @@ export {
   type UsersQuery,
   adminUserSchema,
   type AdminUser,
+  availableNowUserSchema,
+  type AvailableNowUser,
 } from "./schemas/user";
 
 export {
