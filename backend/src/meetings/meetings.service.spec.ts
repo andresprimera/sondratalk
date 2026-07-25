@@ -331,7 +331,7 @@ describe('MeetingsService', () => {
       expect(peerMail.attachments[0].content).toContain('BEGIN:VCALENDAR');
     });
 
-    it('sends anonymized calendar invites ("Your match"/"Tu coincidencia") when the pair has not mutually left the door open', async () => {
+    it('sends anonymized calendar invites ("Your match"/"Tu match") when the pair has not mutually left the door open', async () => {
       jest.spyOn(service, 'hasMutualDoorOpen').mockResolvedValue(false);
       const future = new Date(Date.now() + 24 * 60 * 60 * 1000);
       const peer = {
@@ -365,7 +365,7 @@ describe('MeetingsService', () => {
 
       expect(initiatorMail.subject).toContain('Your match');
       expect(initiatorMail.subject).not.toContain('Beatriz');
-      expect(peerMail.subject).toContain('Tu coincidencia');
+      expect(peerMail.subject).toContain('Tu match');
       expect(peerMail.subject).not.toContain('Ana');
     });
 

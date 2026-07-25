@@ -163,7 +163,7 @@ export const EMAIL_COPY: Record<LocaleKey, EmailCopy> = {
 // "Your match" placeholder (frontend/src/locales/{en,es}.json).
 export const ANONYMOUS_MATCH_LABEL: Record<LocaleKey, string> = {
   en: 'Your match',
-  es: 'Tu coincidencia',
+  es: 'Tu match',
 };
 
 const LOCALE_TO_INTL: Record<LocaleKey, string> = {
