@@ -3,6 +3,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User, UserDocument, UserSession } from './schemas/user.schema';
 import type { UserLanguage } from '@base-dashboard/shared';
+import { AvailabilityService } from '../availability/availability.service';
+import { MembershipsService } from '../memberships/memberships.service';
+import { PRESENCE_FRESH_MS } from '../availability/presence.constants';
+import type { CircleDocument } from '../circles/schemas/circle.schema';
 
 export type AdminUserAggRow = {
   _id: Types.ObjectId;
@@ -19,6 +23,11 @@ export type AdminUserAggRow = {
   conversationCount: number;
 };
 
+export type AvailableNowUserRow = {
+  user: UserDocument;
+  circles: CircleDocument[];
+};
+
 type FacetResult = {
   data: AdminUserAggRow[];
   total: [{ n: number }];
@@ -26,7 +35,11 @@ type FacetResult = {
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<User>,
+    private availabilityService: AvailabilityService,
+    private membershipsService: MembershipsService,
+  ) {}
 
   async create(data: {
     name: string;
@@ -92,6 +105,41 @@ export class UsersService {
 
     const total = result?.total[0]?.n ?? 0;
     const data = result?.data ?? [];
+    return { data, total };
+  }
+
+  // Admin "Available Now" list: the paginated live pool joined with each
+  // user's document and circles. Presence order (most recently active first)
+  // is preserved from the availability layer.
+  async findAvailableNowWithCircles(
+    page: number,
+    limit: number,
+  ): Promise<{ data: AvailableNowUserRow[]; total: number }> {
+    const skip = (page - 1) * limit;
+    const freshSince = new Date(Date.now() - PRESENCE_FRESH_MS);
+    const { userIds, total } =
+      await this.availabilityService.findAvailableNowPaginated(
+        freshSince,
+        skip,
+        limit,
+      );
+    if (userIds.length === 0) return { data: [], total };
+
+    const [users, circlesByUser] = await Promise.all([
+      this.findByIds(userIds),
+      this.membershipsService.findCirclesForUsers(userIds),
+    ]);
+    const usersById = new Map(users.map((u) => [u.id.toString(), u]));
+
+    const data: AvailableNowUserRow[] = [];
+    for (const id of userIds) {
+      const key = id.toString();
+      const user = usersById.get(key);
+      // Presence rows are cascaded on user delete, so a miss here is only a
+      // transient race — skip it rather than surface a half-populated row.
+      if (!user) continue;
+      data.push({ user, circles: circlesByUser.get(key) ?? [] });
+    }
     return { data, total };
   }
 

@@ -54,15 +54,10 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import i18n from "@/lib/i18n"
+import { ROLE_LABELS } from "@/lib/roles"
 
 type SortBy = NonNullable<UsersQuery["sortBy"]>
 type SortDir = NonNullable<UsersQuery["sortDir"]>
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: "Admin",
-  user: "User",
-  founding_member: "Founding Member",
-}
 
 function SortIcon({ col, sortBy, sortDir }: { col: SortBy; sortBy: SortBy; sortDir: SortDir }) {
   if (sortBy !== col) return <ArrowUpDownIcon className="ml-1 inline size-3 opacity-40" />

@@ -38,7 +38,6 @@ interface CallControlToggleProps {
   name: string
   stateLabel: string
   icon: ReactNode
-  errorMessage: string
   captureOptions?: VideoCaptureOptions
 }
 
@@ -47,16 +46,16 @@ interface CallControlToggleProps {
 // attributes, so the muted/unmuted state is always reflected. TrackToggle still
 // performs the actual enable/disable + permission handling.
 //
-// TrackToggle swallows device errors (permission denied, device busy, etc.) by
-// default — the button just silently stays off with no feedback. onDeviceError
-// surfaces that as a toast instead.
+// Device failures (permission denied, device in use, etc.) are surfaced at the
+// room level via LiveKitRoom's onMediaDeviceFailure — see call.tsx. That single
+// handler covers both the connect-time auto-enable and manual toggles here, so
+// wiring onDeviceError on the toggle too would just double up the toast.
 export function CallControlToggle({
   source,
   enabled,
   name,
   stateLabel,
   icon,
-  errorMessage,
   captureOptions,
 }: CallControlToggleProps): ReactNode {
   return (
@@ -67,7 +66,6 @@ export function CallControlToggle({
         aria-label={name}
         className={cn(controlButtonClass, !enabled && controlButtonOffClass)}
         captureOptions={captureOptions}
-        onDeviceError={() => toast.error(errorMessage)}
       >
         {icon}
       </TrackToggle>
@@ -101,7 +99,6 @@ export function CallControls(): ReactNode {
         enabled={micOn}
         name={t("Microphone")}
         stateLabel={micOn ? t("Mic on") : t("Mic off")}
-        errorMessage={t("Couldn't turn on the microphone.")}
         icon={
           micOn ? (
             <MicIcon className="size-5" />
@@ -115,7 +112,6 @@ export function CallControls(): ReactNode {
         enabled={camOn}
         name={t("Camera")}
         stateLabel={camOn ? t("Camera on") : t("Camera off")}
-        errorMessage={t("Couldn't turn on the camera.")}
         // Pinned so re-enabling after a toggle-off doesn't re-resolve to a
         // different physical camera (e.g. flipping to the rear lens).
         captureOptions={{ facingMode: "user" }}

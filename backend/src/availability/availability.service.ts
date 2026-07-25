@@ -92,6 +92,34 @@ export class AvailabilityService {
     });
   }
 
+  // Live pool for the admin "Available Now" view: everyone currently online
+  // with a still-fresh heartbeat, most recently active first. Paginated at the
+  // presence layer so we never load the whole collection.
+  async findAvailableNowPaginated(
+    freshSince: Date,
+    skip: number,
+    limit: number,
+  ): Promise<{ userIds: Types.ObjectId[]; total: number }> {
+    const filter = {
+      isAvailableNow: true,
+      availableNowSetAt: { $gte: freshSince },
+    };
+    const [docs, total] = await Promise.all([
+      this.availabilityModel
+        .find(filter)
+        // _id is the stable tiebreaker so equal timestamps order
+        // deterministically across page fetches. The primary key still moves
+        // as heartbeats bump availableNowSetAt — cross-page drift under live
+        // presence is inherent and tolerated given the 30s client refetch.
+        .sort({ availableNowSetAt: -1, _id: 1 })
+        .skip(skip)
+        .limit(limit)
+        .select('userId'),
+      this.availabilityModel.countDocuments(filter),
+    ]);
+    return { userIds: docs.map((d) => d.userId), total };
+  }
+
   async findAvailableNowUserIds(
     candidateIds: Types.ObjectId[],
     freshSince: Date,

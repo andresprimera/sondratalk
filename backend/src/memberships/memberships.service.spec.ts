@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { BadRequestException } from '@nestjs/common';
+import { Types } from 'mongoose';
 import { MembershipsService } from './memberships.service';
 import { Membership } from './schemas/membership.schema';
 import { CircleDocument } from '../circles/schemas/circle.schema';
@@ -177,6 +178,50 @@ describe('MembershipsService', () => {
       const result = await service.findCirclesForUser(userId);
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('findCirclesForUsers', () => {
+    it('groups populated circles by user id', async () => {
+      const u1 = new Types.ObjectId(userId);
+      const u2 = new Types.ObjectId(circleId3);
+      const c1 = buildMockCircle(circleId1, 'german-shepherd');
+      const c2 = buildMockCircle(circleId2, 'golden-retriever');
+      const findChain = {
+        populate: jest.fn().mockResolvedValue([
+          { userId: u1, circleId: c1 },
+          { userId: u1, circleId: c2 },
+          { userId: u2, circleId: c1 },
+        ]),
+      };
+      membershipModel.find.mockReturnValue(findChain);
+
+      const result = await service.findCirclesForUsers([u1, u2]);
+
+      expect(findChain.populate).toHaveBeenCalledWith('circleId');
+      expect(result.get(u1.toString())).toEqual([c1, c2]);
+      expect(result.get(u2.toString())).toEqual([c1]);
+    });
+
+    it('returns an empty map without querying when no user ids are passed', async () => {
+      const result = await service.findCirclesForUsers([]);
+
+      expect(result.size).toBe(0);
+      expect(membershipModel.find).not.toHaveBeenCalled();
+    });
+
+    it('skips memberships whose circle failed to populate', async () => {
+      const u1 = new Types.ObjectId(userId);
+      const findChain = {
+        populate: jest
+          .fn()
+          .mockResolvedValue([{ userId: u1, circleId: null }]),
+      };
+      membershipModel.find.mockReturnValue(findChain);
+
+      const result = await service.findCirclesForUsers([u1]);
+
+      expect(result.get(u1.toString())).toBeUndefined();
     });
   });
 

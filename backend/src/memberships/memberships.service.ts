@@ -78,6 +78,28 @@ export class MembershipsService {
       .filter((c): c is CircleDocument => c !== null && c !== undefined);
   }
 
+  // Batch variant of findCirclesForUser: resolves every user's circles in a
+  // single populated query and groups them by user id, avoiding an N+1 when
+  // building a list of users alongside their circles.
+  async findCirclesForUsers(
+    userIds: Types.ObjectId[],
+  ): Promise<Map<string, CircleDocument[]>> {
+    const out = new Map<string, CircleDocument[]>();
+    if (userIds.length === 0) return out;
+    const memberships = await this.membershipModel
+      .find({ userId: { $in: userIds } })
+      .populate<{ circleId: CircleDocument }>('circleId');
+    for (const m of memberships) {
+      const circle = m.circleId;
+      if (!circle) continue;
+      const key = m.userId.toString();
+      const list = out.get(key) ?? [];
+      list.push(circle);
+      out.set(key, list);
+    }
+    return out;
+  }
+
   async findCircleIdsForUser(userId: string): Promise<Types.ObjectId[]> {
     const memberships = await this.membershipModel
       .find({ userId: new Types.ObjectId(userId) })

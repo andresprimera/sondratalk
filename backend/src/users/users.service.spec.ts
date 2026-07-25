@@ -1,11 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
+import { Types } from 'mongoose';
 import { UsersService } from './users.service';
-import { User } from './schemas/user.schema';
+import { User, UserDocument } from './schemas/user.schema';
+import { AvailabilityService } from '../availability/availability.service';
+import { MembershipsService } from '../memberships/memberships.service';
 
 describe('UsersService', () => {
   let service: UsersService;
   let model: Record<string, jest.Mock>;
+  let availabilityService: { findAvailableNowPaginated: jest.Mock };
+  let membershipsService: { findCirclesForUsers: jest.Mock };
 
   const mockUser = {
     id: 'user-1',
@@ -27,11 +32,15 @@ describe('UsersService', () => {
       updateOne: jest.fn(),
       aggregate: jest.fn(),
     };
+    availabilityService = { findAvailableNowPaginated: jest.fn() };
+    membershipsService = { findCirclesForUsers: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: getModelToken(User.name), useValue: model },
+        { provide: AvailabilityService, useValue: availabilityService },
+        { provide: MembershipsService, useValue: membershipsService },
       ],
     }).compile();
 
@@ -92,6 +101,72 @@ describe('UsersService', () => {
 
       expect(result.total).toBe(0);
       expect(result.data).toEqual([]);
+    });
+  });
+
+  describe('findAvailableNowWithCircles', () => {
+    it('joins the live pool with users and circles, preserving presence order', async () => {
+      const id1 = new Types.ObjectId();
+      const id2 = new Types.ObjectId();
+      availabilityService.findAvailableNowPaginated.mockResolvedValue({
+        userIds: [id1, id2],
+        total: 2,
+      });
+      const user1 = { id: id1.toString(), name: 'A' } as unknown as UserDocument;
+      const user2 = { id: id2.toString(), name: 'B' } as unknown as UserDocument;
+      // findByIds resolves in a different order to prove we re-sort by presence.
+      model.find.mockResolvedValue([user2, user1]);
+      const circle = { id: 'c1' };
+      membershipsService.findCirclesForUsers.mockResolvedValue(
+        new Map([[id1.toString(), [circle]]]),
+      );
+
+      const result = await service.findAvailableNowWithCircles(1, 10);
+
+      const [freshSince, skip, limit] =
+        availabilityService.findAvailableNowPaginated.mock.calls[0];
+      expect(freshSince).toBeInstanceOf(Date);
+      expect(skip).toBe(0);
+      expect(limit).toBe(10);
+      expect(result.total).toBe(2);
+      expect(result.data.map((r) => r.user)).toEqual([user1, user2]);
+      expect(result.data[0].circles).toEqual([circle]);
+      expect(result.data[1].circles).toEqual([]);
+    });
+
+    it('short-circuits without user/circle queries when the pool is empty', async () => {
+      availabilityService.findAvailableNowPaginated.mockResolvedValue({
+        userIds: [],
+        total: 0,
+      });
+
+      const result = await service.findAvailableNowWithCircles(2, 5);
+
+      expect(result).toEqual({ data: [], total: 0 });
+      expect(model.find).not.toHaveBeenCalled();
+      expect(membershipsService.findCirclesForUsers).not.toHaveBeenCalled();
+      // page 2, limit 5 → skip 5
+      expect(
+        availabilityService.findAvailableNowPaginated.mock.calls[0][1],
+      ).toBe(5);
+    });
+
+    it('skips users that vanished between the presence read and the join', async () => {
+      const id1 = new Types.ObjectId();
+      const id2 = new Types.ObjectId();
+      availabilityService.findAvailableNowPaginated.mockResolvedValue({
+        userIds: [id1, id2],
+        total: 2,
+      });
+      const user1 = { id: id1.toString() } as unknown as UserDocument;
+      model.find.mockResolvedValue([user1]);
+      membershipsService.findCirclesForUsers.mockResolvedValue(new Map());
+
+      const result = await service.findAvailableNowWithCircles(1, 10);
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].user).toBe(user1);
+      expect(result.total).toBe(2);
     });
   });
 

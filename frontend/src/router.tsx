@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router"
 import LandingPage from "@/pages/landing"
 import DashboardPage from "@/pages/dashboard"
 import UsersPage from "@/pages/users"
+import AvailableNowPage from "@/pages/available-now"
 import ApplicationsPage from "@/pages/applications"
 import AdminFeedbackPage from "@/pages/admin-feedback"
 import ThemesPage from "@/pages/themes"
@@ -88,6 +89,14 @@ export const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <UsersPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "available-now",
+        element: (
+          <AdminRoute>
+            <AvailableNowPage />
           </AdminRoute>
         ),
       },

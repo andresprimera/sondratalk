@@ -1,5 +1,5 @@
 import { z } from "zod/v4";
-import { LOCALE_KEYS } from "./circle";
+import { LOCALE_KEYS, circleSchema } from "./circle";
 import { paginationQuerySchema } from "./pagination";
 
 export const roleEnum = z.enum(["admin", "user", "founding_member"]);
@@ -51,6 +51,20 @@ export const adminUserSchema = userSchema.extend({
   conversationCount: z.number().int().default(0),
 });
 export type AdminUser = z.infer<typeof adminUserSchema>;
+
+// An admin-facing view of a user who is reachable for a Talk Now conversation
+// right now — the toggle is on and their presence heartbeat is still fresh.
+// Bundles the circles they belong to so admins can see the live pool at a glance.
+export const availableNowUserSchema = userSchema
+  .pick({
+    id: true,
+    name: true,
+    email: true,
+    role: true,
+    timezone: true,
+  })
+  .extend({ circles: z.array(circleSchema) });
+export type AvailableNowUser = z.infer<typeof availableNowUserSchema>;
 
 export const usersQuerySchema = paginationQuerySchema.extend({
   sortBy: z.enum(["name", "role"]).optional(),

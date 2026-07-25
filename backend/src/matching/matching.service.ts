@@ -12,6 +12,7 @@ import {
 } from './schemas/match-attempt.schema';
 import { MembershipsService } from '../memberships/memberships.service';
 import { AvailabilityService } from '../availability/availability.service';
+import { PRESENCE_FRESH_MS } from '../availability/presence.constants';
 import { UsersService } from '../users/users.service';
 import { CirclesService } from '../circles/circles.service';
 import { MeetingsService } from '../meetings/meetings.service';
@@ -31,11 +32,6 @@ import { projectSlotsForCandidate } from './slot-projection';
 type Intent = 'talk' | 'heard';
 
 const MAX_CANDIDATES = 5;
-
-// A user counts as "available now" only if their last heartbeat (or initial
-// flip-on) landed within this window. The frontend pings every ~60s, so two
-// minutes gives one missed beat of slack before we drop them from matching.
-const PRESENCE_FRESH_MS = 2 * 60 * 1000;
 
 @Injectable()
 export class MatchingService {

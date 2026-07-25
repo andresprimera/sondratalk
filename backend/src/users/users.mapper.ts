@@ -1,12 +1,14 @@
 import type {
   AdminUser,
+  AvailableNowUser,
   Fluency,
   Role,
   User,
   UserLanguage,
 } from '@base-dashboard/shared';
 import type { UserDocument } from './schemas/user.schema';
-import type { AdminUserAggRow } from './users.service';
+import { toCircle } from '../circles/circle.mapper';
+import type { AdminUserAggRow, AvailableNowUserRow } from './users.service';
 
 export function toUser(doc: UserDocument): User {
   return {
@@ -27,6 +29,19 @@ export function toUser(doc: UserDocument): User {
     applicationText: doc.applicationText,
     createdAt: doc.createdAt.toISOString(),
     hostExpPoints: doc.hostExp ?? 0,
+  };
+}
+
+export function toAvailableNowUser(row: AvailableNowUserRow): AvailableNowUser {
+  const { user, circles } = row;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    // eslint-disable-next-line no-restricted-syntax
+    role: user.role as Role,
+    timezone: user.timezone,
+    circles: circles.map(toCircle),
   };
 }
 
