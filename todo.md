@@ -1,2 +1,0 @@
-- [ ] el mail debería también match A o algo anónimo, en vez del nombre (spoiler) /Users/andresprimera/apps/personal/sondratalk/WhatsApp Image 2026-07-23 at 05.42.55.jpeg
-- [ ] n el movil se ve asi. Además no me dejaba prender el microfono, y la cámara por default era la trasera. Al apagar y prender se cambiaba a la frontal. Necesitamos trabajar tamaños alignment y placement. /Users/andresprimera/apps/personal/sondratalk/WhatsApp Image 2026-07-23 at 06.16.50.jpeg

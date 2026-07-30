@@ -29,7 +29,6 @@ import { MailService } from '../services';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { Public } from '../auth/decorators/public.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import {
   updateUserRoleSchema,
@@ -46,7 +45,7 @@ import {
   type UpdateLanguagesInput,
   updateApplicationSchema,
   type UpdateApplicationInput,
-  type FoundingMembersCount,
+  type UserCount,
   usersQuerySchema,
   type UsersQuery,
   type AdminUser,
@@ -85,15 +84,6 @@ export class UsersController {
   ) {
     this.adminNotificationEmail =
       configService.get<string>('ADMIN_NOTIFICATION_EMAIL') ?? '';
-  }
-
-  // --- Public endpoints ---
-
-  @Public()
-  @Get('count')
-  async getFoundingMembersCount(): Promise<FoundingMembersCount> {
-    const count = await this.usersService.countUsers();
-    return { count };
   }
 
   // --- Current user endpoints (all authenticated users) ---
@@ -249,6 +239,14 @@ export class UsersController {
   }
 
   // --- Admin-only endpoints ---
+
+  @Get('count')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async getUserCount(): Promise<UserCount> {
+    const count = await this.usersService.countUsers();
+    return { count };
+  }
 
   @Post()
   @UseGuards(RolesGuard)
