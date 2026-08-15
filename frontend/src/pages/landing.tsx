@@ -1,11 +1,9 @@
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
-import { useQuery } from "@tanstack/react-query"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LanguageToggle } from "@/components/language-toggle"
-import { fetchFoundingMembersCountApi } from "@/lib/users"
 
 function SectionDivider() {
   return (
@@ -39,12 +37,6 @@ const steps = [
 
 export default function LandingPage() {
   const { t } = useTranslation()
-  const countQuery = useQuery({
-    queryKey: ["users", "count"] as const,
-    queryFn: fetchFoundingMembersCountApi,
-    staleTime: 5 * 60 * 1000,
-    retry: false,
-  })
 
   return (
     <div className="landing-bg flex min-h-svh flex-col overflow-x-hidden text-foreground">
@@ -112,12 +104,6 @@ export default function LandingPage() {
               {t("Sign up")}
             </Button>
           </div>
-
-          {countQuery.data?.count !== undefined && (
-            <p className="mt-6 text-[0.8rem] tracking-[0.12em] text-muted-foreground/70 uppercase">
-              {t("{{count}} founding members · Applications open", { count: countQuery.data.count })}
-            </p>
-          )}
         </section>
 
         <SectionDivider />
@@ -126,15 +112,16 @@ export default function LandingPage() {
         <section className="mx-auto max-w-3xl px-6 py-24 md:py-28">
           <span className={sectionLabelClass}>{t("What it is")}</span>
           <h2 className="mb-8 text-balance text-[clamp(1.6rem,4vw,2.8rem)] font-normal leading-[1.25]">
-            {t("Not chatbots. Not scrolling. Not swiping.")}
+            {t("Not dating. Not therapy. Not networking.")}
+            <br />
+            <span className="text-muted-foreground">
+              {t("...but if it happens, it happens.")}
+            </span>
           </h2>
           <p className="max-w-2xl text-[1.25rem] font-light leading-[1.85] text-muted-foreground">
             {t(
-              "A live video conversation between two people who show up with their faces and their attention. Matched by what you have in common — not by an algorithm chasing your engagement.",
-            )}{" "}
-            <span className="text-foreground">
-              {t("The conversation is the whole point.")}
-            </span>
+              "A video call between two people matched by what they have in common, not by an algorithm chasing your attention.",
+            )}
           </p>
         </section>
 

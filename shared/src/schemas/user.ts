@@ -87,10 +87,10 @@ export const updateLanguagesSchema = z.object({
 });
 export type UpdateLanguagesInput = z.infer<typeof updateLanguagesSchema>;
 
-export const foundingMembersCountSchema = z.object({
+export const userCountSchema = z.object({
   count: z.number().int().nonnegative(),
 });
-export type FoundingMembersCount = z.infer<typeof foundingMembersCountSchema>;
+export type UserCount = z.infer<typeof userCountSchema>;
 
 export const updateApplicationSchema = z.object({
   applicationText: z.string().min(1, "Please tell us why you want to join").max(1000, "Keep it under 1000 characters"),
