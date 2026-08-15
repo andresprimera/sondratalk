@@ -3,9 +3,7 @@ import {
   type AdminUser,
   type PaginatedResponse,
   type CreateUserInput,
-  type FoundingMembersCount,
   type UsersQuery,
-  foundingMembersCountSchema,
 } from "@base-dashboard/shared"
 import { authFetch } from "@/lib/api"
 
