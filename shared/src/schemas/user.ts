@@ -67,6 +67,7 @@ export const availableNowUserSchema = userSchema
 export type AvailableNowUser = z.infer<typeof availableNowUserSchema>;
 
 export const usersQuerySchema = paginationQuerySchema.extend({
+  q: z.string().trim().optional(),
   sortBy: z.enum(["name", "role"]).optional(),
   sortDir: z.enum(["asc", "desc"]).optional(),
 });

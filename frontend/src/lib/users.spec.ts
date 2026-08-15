@@ -19,7 +19,7 @@ describe("users API", () => {
       const responseData = { data: [], meta: { page: 2, limit: 10, total: 0, totalPages: 0 } }
       vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(responseData))
 
-      const result = await fetchUsersApi(2, 10)
+      const result = await fetchUsersApi({ page: 2, limit: 10 })
 
       expect(authFetch).toHaveBeenCalledWith("/api/users?page=2&limit=10")
       expect(result).toEqual(responseData)
@@ -28,9 +28,17 @@ describe("users API", () => {
     it("appends sortBy and sortDir when provided", async () => {
       vi.mocked(authFetch).mockResolvedValue(mockJsonResponse({ data: [], meta: {} }))
 
-      await fetchUsersApi(1, 10, "role", "desc")
+      await fetchUsersApi({ page: 1, limit: 10, sortBy: "role", sortDir: "desc" })
 
-      expect(authFetch).toHaveBeenCalledWith("/api/users?page=1&limit=10&sortBy=role&sortDir=desc")
+      expect(authFetch).toHaveBeenCalledWith("/api/users?sortBy=role&sortDir=desc&page=1&limit=10")
+    })
+
+    it("includes q when provided", async () => {
+      vi.mocked(authFetch).mockResolvedValue(mockJsonResponse({ data: [], meta: {} }))
+
+      await fetchUsersApi({ page: 1, limit: 10, q: "jane" })
+
+      expect(authFetch).toHaveBeenCalledWith("/api/users?q=jane&page=1&limit=10")
     })
   })
 

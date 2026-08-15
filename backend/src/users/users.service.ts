@@ -33,6 +33,12 @@ type FacetResult = {
   total: [{ n: number }];
 };
 
+// Escapes regex metacharacters so user-typed search text is matched
+// literally rather than interpreted as a pattern.
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -60,12 +66,25 @@ export class UsersService {
     limit: number,
     sortBy: 'name' | 'role' = 'name',
     sortDir: 'asc' | 'desc' = 'asc',
+    q?: string,
   ): Promise<{ data: AdminUserAggRow[]; total: number }> {
     const skip = (page - 1) * limit;
     const sortOrder = sortDir === 'asc' ? 1 : -1;
     const now = new Date();
 
     const [result] = await this.userModel.aggregate<FacetResult>([
+      ...(q
+        ? [
+            {
+              $match: {
+                $or: [
+                  { name: { $regex: escapeRegExp(q), $options: 'i' } },
+                  { email: { $regex: escapeRegExp(q), $options: 'i' } },
+                ],
+              },
+            },
+          ]
+        : []),
       {
         $lookup: {
           from: 'meetings',

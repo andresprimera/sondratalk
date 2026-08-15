@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AddUserDialog } from "@/components/add-user-dialog"
 import { useTranslation } from "react-i18next"
 import {
@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -72,6 +73,8 @@ export default function UsersPage() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [q, setQ] = useState("")
+  const [debouncedQ, setDebouncedQ] = useState("")
   const [sortBy, setSortBy] = useState<SortBy>("name")
   const [sortDir, setSortDir] = useState<SortDir>("asc")
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -79,9 +82,25 @@ export default function UsersPage() {
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null)
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
 
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQ(q), 250)
+    return () => clearTimeout(id)
+  }, [q])
+
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedQ])
+
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["users", page, pageSize, sortBy, sortDir],
-    queryFn: () => fetchUsersApi(page, pageSize, sortBy, sortDir),
+    queryKey: ["users", page, pageSize, debouncedQ, sortBy, sortDir],
+    queryFn: () =>
+      fetchUsersApi({
+        page,
+        limit: pageSize,
+        q: debouncedQ || undefined,
+        sortBy,
+        sortDir,
+      }),
     placeholderData: keepPreviousData,
   })
 
@@ -189,22 +208,51 @@ export default function UsersPage() {
   const selectedNonSelf = [...selected].filter((id) => id !== currentUser?.id).length
 
   const colCount = 8
+  const isFiltered = Boolean(debouncedQ)
+
+  const Header = (
+    <div className="flex items-center justify-between">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">{t("Users")}</h2>
+        <p className="text-muted-foreground">
+          {t("Manage user accounts and roles.")}
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
+        {selectedCount > 0 && (
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={selectedNonSelf === 0}
+            onClick={() => setBulkDeleteOpen(true)}
+          >
+            <TrashIcon className="size-4" />
+            {t("Delete {{count}} selected", { count: selectedNonSelf })}
+          </Button>
+        )}
+        <Button onClick={() => setAddDialogOpen(true)}>
+          <PlusIcon className="size-4" />
+          {t("Add User")}
+        </Button>
+      </div>
+    </div>
+  )
+
+  const Filters = (
+    <Input
+      type="search"
+      placeholder={t("Search users...")}
+      value={q}
+      onChange={(e) => setQ(e.target.value)}
+      className="sm:max-w-sm"
+    />
+  )
 
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">{t("Users")}</h2>
-            <p className="text-muted-foreground">
-              {t("Manage user accounts and roles.")}
-            </p>
-          </div>
-          <Button onClick={() => setAddDialogOpen(true)}>
-            <PlusIcon className="size-4" />
-            {t("Add User")}
-          </Button>
-        </div>
+        {Header}
+        {Filters}
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
@@ -237,18 +285,8 @@ export default function UsersPage() {
   if (isError) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">{t("Users")}</h2>
-            <p className="text-muted-foreground">
-              {t("Manage user accounts and roles.")}
-            </p>
-          </div>
-          <Button onClick={() => setAddDialogOpen(true)}>
-            <PlusIcon className="size-4" />
-            {t("Add User")}
-          </Button>
-        </div>
+        {Header}
+        {Filters}
         <div className="flex flex-col items-center justify-center gap-4 py-12">
           <AlertCircleIcon className="size-10 text-destructive" />
           <p className="text-muted-foreground">
@@ -264,31 +302,8 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">{t("Users")}</h2>
-          <p className="text-muted-foreground">
-            {t("Manage user accounts and roles.")}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {selectedCount > 0 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={selectedNonSelf === 0}
-              onClick={() => setBulkDeleteOpen(true)}
-            >
-              <TrashIcon className="size-4" />
-              {t("Delete {{count}} selected", { count: selectedNonSelf })}
-            </Button>
-          )}
-          <Button onClick={() => setAddDialogOpen(true)}>
-            <PlusIcon className="size-4" />
-            {t("Add User")}
-          </Button>
-        </div>
-      </div>
+      {Header}
+      {Filters}
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -326,7 +341,7 @@ export default function UsersPage() {
             {users.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={colCount} className="h-24 text-center">
-                  {t("No users found.")}
+                  {isFiltered ? t("No users match your search.") : t("No users found.")}
                 </TableCell>
               </TableRow>
             ) : (

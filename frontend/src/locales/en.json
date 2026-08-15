@@ -77,6 +77,8 @@
   "Role": "Role",
   "Actions": "Actions",
   "No users found.": "No users found.",
+  "Search users...": "Search users...",
+  "No users match your search.": "No users match your search.",
   "Role updated": "Role updated",
   "Failed to update role": "Failed to update role",
   "User deleted": "User deleted",

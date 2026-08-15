@@ -4,6 +4,7 @@ import {
   type PaginatedResponse,
   type CreateUserInput,
   type FoundingMembersCount,
+  type UsersQuery,
   foundingMembersCountSchema,
 } from "@base-dashboard/shared"
 import { authFetch, publicFetch } from "@/lib/api"
@@ -14,17 +15,14 @@ export async function fetchFoundingMembersCountApi(): Promise<FoundingMembersCou
 }
 
 export async function fetchUsersApi(
-  page: number,
-  limit: number,
-  sortBy?: "name" | "role",
-  sortDir?: "asc" | "desc",
+  query: UsersQuery,
 ): Promise<PaginatedResponse<AdminUser>> {
-  const params = new URLSearchParams({
-    page: String(page),
-    limit: String(limit),
-  })
-  if (sortBy) params.set("sortBy", sortBy)
-  if (sortDir) params.set("sortDir", sortDir)
+  const params = new URLSearchParams()
+  if (query.q) params.set("q", query.q)
+  if (query.sortBy) params.set("sortBy", query.sortBy)
+  if (query.sortDir) params.set("sortDir", query.sortDir)
+  params.set("page", String(query.page))
+  params.set("limit", String(query.limit))
   const res = await authFetch(`/api/users?${params}`)
   return res.json()
 }

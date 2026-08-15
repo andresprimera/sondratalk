@@ -38,7 +38,7 @@ export default function ApplicationsPage() {
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["users", "applications", page, pageSize],
-    queryFn: () => fetchUsersApi(page, pageSize),
+    queryFn: () => fetchUsersApi({ page, limit: pageSize }),
     placeholderData: keepPreviousData,
   })
 

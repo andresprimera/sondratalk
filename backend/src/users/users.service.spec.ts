@@ -102,6 +102,40 @@ describe('UsersService', () => {
       expect(result.total).toBe(0);
       expect(result.data).toEqual([]);
     });
+
+    it('omits the $match stage when q is not provided', async () => {
+      model.aggregate.mockResolvedValue([{ data: [], total: [{ n: 0 }] }]);
+
+      await service.findAllPaginatedForAdmin(1, 10);
+
+      const pipeline = model.aggregate.mock.calls[0][0];
+      expect(pipeline.some((s: Record<string, unknown>) => '$match' in s)).toBe(
+        false,
+      );
+    });
+
+    it('filters by a case-insensitive name/email match when q is provided', async () => {
+      model.aggregate.mockResolvedValue([{ data: [], total: [{ n: 0 }] }]);
+
+      await service.findAllPaginatedForAdmin(1, 10, 'name', 'asc', 'jane');
+
+      const pipeline = model.aggregate.mock.calls[0][0];
+      const match = pipeline[0];
+      expect(match.$match.$or).toEqual([
+        { name: { $regex: 'jane', $options: 'i' } },
+        { email: { $regex: 'jane', $options: 'i' } },
+      ]);
+    });
+
+    it('escapes regex metacharacters in q so they are matched literally', async () => {
+      model.aggregate.mockResolvedValue([{ data: [], total: [{ n: 0 }] }]);
+
+      await service.findAllPaginatedForAdmin(1, 10, 'name', 'asc', 'a.b+c');
+
+      const pipeline = model.aggregate.mock.calls[0][0];
+      const match = pipeline[0];
+      expect(match.$match.$or[0].name.$regex).toBe('a\\.b\\+c');
+    });
   });
 
   describe('findAvailableNowWithCircles', () => {

@@ -280,6 +280,7 @@ export class UsersController {
       query.limit,
       query.sortBy,
       query.sortDir,
+      query.q,
     );
     return {
       data: data.map(toUserFromAgg),
