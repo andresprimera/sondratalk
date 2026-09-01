@@ -64,8 +64,8 @@ export class UsersService {
   async findAllPaginatedForAdmin(
     page: number,
     limit: number,
-    sortBy: 'name' | 'role' = 'name',
-    sortDir: 'asc' | 'desc' = 'asc',
+    sortBy: 'name' | 'role' | 'createdAt' = 'createdAt',
+    sortDir: 'asc' | 'desc' = 'desc',
     q?: string,
   ): Promise<{ data: AdminUserAggRow[]; total: number }> {
     const skip = (page - 1) * limit;

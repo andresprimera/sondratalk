@@ -75,8 +75,8 @@ export default function UsersPage() {
   const [pageSize, setPageSize] = useState(10)
   const [q, setQ] = useState("")
   const [debouncedQ, setDebouncedQ] = useState("")
-  const [sortBy, setSortBy] = useState<SortBy>("name")
-  const [sortDir, setSortDir] = useState<SortDir>("asc")
+  const [sortBy, setSortBy] = useState<SortBy>("createdAt")
+  const [sortDir, setSortDir] = useState<SortDir>("desc")
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null)
@@ -333,7 +333,13 @@ export default function UsersPage() {
               </TableHead>
               <TableHead>{t("Conversations")}</TableHead>
               <TableHead>{t("Host Exp")}</TableHead>
-              <TableHead>{t("Active since")}</TableHead>
+              <TableHead
+                className="cursor-pointer select-none"
+                onClick={() => handleSort("createdAt")}
+              >
+                {t("Active since")}
+                <SortIcon col="createdAt" sortBy={sortBy} sortDir={sortDir} />
+              </TableHead>
               <TableHead className="w-20">{t("Actions")}</TableHead>
             </TableRow>
           </TableHeader>

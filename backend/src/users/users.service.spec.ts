@@ -94,6 +94,30 @@ describe('UsersService', () => {
       expect(facet.$facet.data[1].$limit).toBe(5);
     });
 
+    it('defaults to sorting by createdAt descending (newest first)', async () => {
+      model.aggregate.mockResolvedValue([{ data: [], total: [{ n: 0 }] }]);
+
+      await service.findAllPaginatedForAdmin(1, 10);
+
+      const pipeline = model.aggregate.mock.calls[0][0];
+      const sort = pipeline.find(
+        (s: Record<string, unknown>) => '$sort' in s,
+      );
+      expect(sort.$sort).toEqual({ createdAt: -1 });
+    });
+
+    it('honors an explicit sort field and direction', async () => {
+      model.aggregate.mockResolvedValue([{ data: [], total: [{ n: 0 }] }]);
+
+      await service.findAllPaginatedForAdmin(1, 10, 'name', 'asc');
+
+      const pipeline = model.aggregate.mock.calls[0][0];
+      const sort = pipeline.find(
+        (s: Record<string, unknown>) => '$sort' in s,
+      );
+      expect(sort.$sort).toEqual({ name: 1 });
+    });
+
     it('returns empty data and zero total when aggregate yields no result', async () => {
       model.aggregate.mockResolvedValue([]);
 
