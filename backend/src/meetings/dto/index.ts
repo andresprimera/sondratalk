@@ -9,4 +9,5 @@ export {
   type UpcomingMeetingsResponse,
   conversationStatsSchema,
   type ConversationStats,
+  type AdminMeeting,
 } from '@base-dashboard/shared';

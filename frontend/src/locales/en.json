@@ -899,5 +899,20 @@
   "Distance from home": "Distance from home",
   "What stops them": "What stops them",
   "No registration surveys yet.": "No registration surveys yet.",
-  "Failed to load registration surveys.": "Failed to load registration surveys."
+  "Failed to load registration surveys.": "Failed to load registration surveys.",
+  "Appointments": "Appointments",
+  "Booked appointments across the platform.": "Booked appointments across the platform.",
+  "Participants": "Participants",
+  "Booked by": "Booked by",
+  "When": "When",
+  "Status": "Status",
+  "Instant": "Instant",
+  "Scheduled": "Scheduled",
+  "Booked": "Booked",
+  "Cancelled": "Cancelled",
+  "No appointments yet.": "No appointments yet.",
+  "Failed to load appointments.": "Failed to load appointments.",
+  "{{count}} appointment total": "{{count}} appointment total",
+  "{{count}} appointment total_one": "{{count}} appointment total",
+  "{{count}} appointment total_other": "{{count}} appointments total"
 }

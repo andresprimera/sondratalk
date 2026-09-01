@@ -1,8 +1,10 @@
 import {
+  type AdminMeeting,
   type ConversationStats,
   type CreateMeetingInput,
   type Meeting,
   type MeetingWithPeer,
+  type PaginatedResponse,
   type UpcomingMeetingsResponse,
 } from "@base-dashboard/shared"
 import { authFetch } from "@/lib/api"
@@ -38,4 +40,16 @@ export async function cancelMeetingApi(id: string): Promise<void> {
   await authFetch(`/api/meetings/${id}/cancel`, {
     method: "POST",
   })
+}
+
+export async function fetchAdminMeetingsApi(
+  page: number,
+  limit: number,
+): Promise<PaginatedResponse<AdminMeeting>> {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  })
+  const res = await authFetch(`/api/meetings/admin?${params}`)
+  return res.json()
 }

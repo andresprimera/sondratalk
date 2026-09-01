@@ -6,9 +6,13 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { MeetingsService } from './meetings.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import {
   createMeetingSchema,
@@ -17,7 +21,13 @@ import {
   type MeetingWithPeer,
   type UpcomingMeetingsResponse,
   type ConversationStats,
+  type AdminMeeting,
 } from './dto';
+import {
+  paginationQuerySchema,
+  type PaginationQuery,
+} from '../common/dto/pagination-query.dto';
+import { type PaginatedResponse } from '@base-dashboard/shared';
 import { toMeeting } from './meetings.mapper';
 
 @Controller('meetings')
@@ -49,6 +59,27 @@ export class MeetingsController {
     const conversations =
       await this.meetingsService.countConversationsForUser(userId);
     return { conversations };
+  }
+
+  @Get('admin')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async findAllForAdmin(
+    @Query(new ZodValidationPipe(paginationQuerySchema)) query: PaginationQuery,
+  ): Promise<PaginatedResponse<AdminMeeting>> {
+    const { data, total } = await this.meetingsService.findAllForAdmin(
+      query.page,
+      query.limit,
+    );
+    return {
+      data,
+      meta: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.ceil(total / query.limit),
+      },
+    };
   }
 
   @Get(':id')

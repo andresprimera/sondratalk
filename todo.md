@@ -1,1 +1,0 @@
-- [ ] In the admin backoffice, we need a list of booked appointments, with the details of the two participants and who book it.

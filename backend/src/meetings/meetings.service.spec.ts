@@ -51,6 +51,7 @@ describe('MeetingsService', () => {
       find: jest.fn(),
       findById: jest.fn(),
       aggregate: jest.fn(),
+      countDocuments: jest.fn(),
     };
     feedbackModel = {
       find: jest.fn(),
@@ -852,6 +853,64 @@ describe('MeetingsService', () => {
       expect(result.get(USER_B)).toBe(1);
       // Users absent from the aggregation are simply not in the map.
       expect(result.has(USER_C)).toBe(false);
+    });
+  });
+
+  describe('findAllForAdmin', () => {
+    it('maps rows to admin meetings with the booker surfaced first', async () => {
+      const meetingId = new Types.ObjectId();
+      const initiator = new Types.ObjectId(USER_A);
+      const peer = new Types.ObjectId(USER_B);
+      const scheduledAt = new Date('2026-02-01T10:00:00.000Z');
+      const createdAt = new Date('2026-01-15T09:00:00.000Z');
+      meetingModel.aggregate.mockResolvedValue([
+        {
+          _id: meetingId,
+          scheduledAt,
+          instant: false,
+          cancelled: false,
+          createdAt,
+          initiatorId: initiator,
+          // Peer listed first to prove we re-order the booker to the front.
+          participantDocs: [
+            { _id: peer, name: 'Beatriz', email: 'bea@example.com' },
+            { _id: initiator, name: 'Ada', email: 'ada@example.com' },
+          ],
+          initiatorDoc: {
+            _id: initiator,
+            name: 'Ada',
+            email: 'ada@example.com',
+          },
+        },
+      ]);
+      meetingModel.countDocuments.mockResolvedValue(1);
+
+      const result = await service.findAllForAdmin(1, 20);
+
+      expect(result.total).toBe(1);
+      expect(result.data).toHaveLength(1);
+      const row = result.data[0];
+      expect(row).toMatchObject({
+        id: meetingId.toString(),
+        scheduledAt: scheduledAt.toISOString(),
+        instant: false,
+        cancelled: false,
+        createdAt: createdAt.toISOString(),
+        bookedBy: { id: USER_A, name: 'Ada', email: 'ada@example.com' },
+      });
+      expect(row.participants.map((p) => p.id)).toEqual([USER_A, USER_B]);
+    });
+
+    it('sorts by scheduledAt desc and applies skip/limit', async () => {
+      meetingModel.aggregate.mockResolvedValue([]);
+      meetingModel.countDocuments.mockResolvedValue(0);
+
+      await service.findAllForAdmin(3, 10);
+
+      const pipeline = meetingModel.aggregate.mock.calls[0][0];
+      expect(pipeline).toContainEqual({ $sort: { scheduledAt: -1 } });
+      expect(pipeline).toContainEqual({ $skip: 20 });
+      expect(pipeline).toContainEqual({ $limit: 10 });
     });
   });
 });

@@ -24,6 +24,7 @@ import {
   ClipboardCheckIcon,
   MessageSquareTextIcon,
   RadioTowerIcon,
+  CalendarCheckIcon,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { Link } from "react-router"
@@ -53,6 +54,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       title: t("Registration Surveys"),
       url: "/dashboard/registration-surveys",
       icon: <ClipboardCheckIcon />,
+    },
+    {
+      title: t("Appointments"),
+      url: "/dashboard/appointments",
+      icon: <CalendarCheckIcon />,
     },
   ]
 

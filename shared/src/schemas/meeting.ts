@@ -37,3 +37,25 @@ export const conversationStatsSchema = z.object({
   conversations: z.number().int().nonnegative(),
 });
 export type ConversationStats = z.infer<typeof conversationStatsSchema>;
+
+// Admin view of a booked appointment: both participants and the booker
+// (initiator) resolved to their name + email.
+export const adminMeetingParticipantSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+});
+export type AdminMeetingParticipant = z.infer<
+  typeof adminMeetingParticipantSchema
+>;
+
+export const adminMeetingSchema = z.object({
+  id: z.string(),
+  scheduledAt: z.string(),
+  instant: z.boolean(),
+  cancelled: z.boolean(),
+  createdAt: z.string(),
+  bookedBy: adminMeetingParticipantSchema,
+  participants: z.array(adminMeetingParticipantSchema),
+});
+export type AdminMeeting = z.infer<typeof adminMeetingSchema>;

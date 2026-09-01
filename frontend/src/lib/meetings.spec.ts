@@ -1,6 +1,7 @@
 import {
   cancelMeetingApi,
   createMeetingApi,
+  fetchAdminMeetingsApi,
   fetchMeetingByIdApi,
   fetchUpcomingMeetingsApi,
 } from "@/lib/meetings"
@@ -90,6 +91,23 @@ describe("meetings API", () => {
       })
       expect(jsonSpy).not.toHaveBeenCalled()
       expect(result).toBeUndefined()
+    })
+  })
+
+  describe("fetchAdminMeetingsApi", () => {
+    it("GETs /api/meetings/admin with pagination params", async () => {
+      const page = {
+        data: [],
+        meta: { page: 2, limit: 20, total: 0, totalPages: 0 },
+      }
+      vi.mocked(authFetch).mockResolvedValue(mockJsonResponse(page))
+
+      const result = await fetchAdminMeetingsApi(2, 20)
+
+      expect(authFetch).toHaveBeenCalledWith(
+        "/api/meetings/admin?page=2&limit=20",
+      )
+      expect(result).toEqual(page)
     })
   })
 })

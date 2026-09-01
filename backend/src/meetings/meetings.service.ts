@@ -21,7 +21,7 @@ import {
   formatTimeRange,
   formatTimeZoneLabel,
 } from './meeting-email';
-import type { CreateMeetingInput, MeetingWithPeer } from './dto';
+import type { AdminMeeting, CreateMeetingInput, MeetingWithPeer } from './dto';
 import { extractFirstName, toMeetingWithPeer } from './meetings.mapper';
 import type { LocaleKey } from '@base-dashboard/shared';
 import type { UserDocument } from '../users/schemas/user.schema';
@@ -34,6 +34,17 @@ export const MEETING_DURATION_MINUTES = 60;
 // How long the callee's ring stays live on their screen. Kept under the
 // caller's 60s PEER_JOIN_TIMEOUT_MS so the caller's timeout is the backstop.
 const RING_TTL_MS = 45 * 1000;
+
+type AdminMeetingAggRow = {
+  _id: Types.ObjectId;
+  scheduledAt: Date;
+  instant: boolean;
+  cancelled: boolean;
+  createdAt: Date;
+  initiatorId: Types.ObjectId;
+  participantDocs: { _id: Types.ObjectId; name: string; email: string }[];
+  initiatorDoc: { _id: Types.ObjectId; name: string; email: string };
+};
 
 @Injectable()
 export class MeetingsService {
@@ -366,6 +377,85 @@ export class MeetingsService {
       out.set(row._id.toString(), row.count);
     }
     return out;
+  }
+
+  // Admin listing of every booked appointment, newest scheduled first, with
+  // both participants and the booker (initiator) resolved to name + email.
+  async findAllForAdmin(
+    page: number,
+    limit: number,
+  ): Promise<{ data: AdminMeeting[]; total: number }> {
+    const skip = (page - 1) * limit;
+
+    const [rows, total] = await Promise.all([
+      this.meetingModel.aggregate<AdminMeetingAggRow>([
+        { $sort: { scheduledAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'participants',
+            foreignField: '_id',
+            as: 'participantDocs',
+          },
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'initiatorId',
+            foreignField: '_id',
+            as: 'initiatorDoc',
+          },
+        },
+        { $unwind: { path: '$initiatorDoc', preserveNullAndEmptyArrays: false } },
+        {
+          $project: {
+            _id: 1,
+            scheduledAt: 1,
+            instant: 1,
+            cancelled: 1,
+            createdAt: 1,
+            initiatorId: 1,
+            'participantDocs._id': 1,
+            'participantDocs.name': 1,
+            'participantDocs.email': 1,
+            'initiatorDoc._id': 1,
+            'initiatorDoc.name': 1,
+            'initiatorDoc.email': 1,
+          },
+        },
+      ]),
+      this.meetingModel.countDocuments(),
+    ]);
+
+    const data = rows.map((r): AdminMeeting => {
+      const bookedById = r.initiatorId.toString();
+      const participants = r.participantDocs.map((p) => ({
+        id: p._id.toString(),
+        name: p.name,
+        email: p.email,
+      }));
+      // Surface the booker first for a stable, meaningful order.
+      participants.sort((a, b) =>
+        a.id === bookedById ? -1 : b.id === bookedById ? 1 : 0,
+      );
+      return {
+        id: r._id.toString(),
+        scheduledAt: r.scheduledAt.toISOString(),
+        instant: r.instant,
+        cancelled: r.cancelled,
+        createdAt: r.createdAt.toISOString(),
+        bookedBy: {
+          id: r.initiatorDoc._id.toString(),
+          name: r.initiatorDoc.name,
+          email: r.initiatorDoc.email,
+        },
+        participants,
+      };
+    });
+
+    return { data, total };
   }
 
   async findByIdForParticipant(

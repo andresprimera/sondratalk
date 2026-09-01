@@ -20,6 +20,7 @@ import ForgotPasswordPage from "@/pages/forgot-password"
 import ResetPasswordPage from "@/pages/reset-password"
 import OnboardingPage from "@/pages/onboarding"
 import RegistrationSurveysPage from "@/pages/registration-surveys"
+import AdminMeetingsPage from "@/pages/admin-meetings"
 import SettingsPage from "@/pages/settings"
 import { ProtectedRoute } from "@/components/protected-route"
 import { AdminRoute } from "@/components/admin-route"
@@ -143,6 +144,14 @@ export const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <RegistrationSurveysPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "appointments",
+        element: (
+          <AdminRoute>
+            <AdminMeetingsPage />
           </AdminRoute>
         ),
       },

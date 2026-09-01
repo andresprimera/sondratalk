@@ -161,6 +161,10 @@ export {
   type UpcomingMeetingsResponse,
   conversationStatsSchema,
   type ConversationStats,
+  adminMeetingParticipantSchema,
+  type AdminMeetingParticipant,
+  adminMeetingSchema,
+  type AdminMeeting,
 } from "./schemas/meeting";
 
 export {

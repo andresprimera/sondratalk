@@ -899,5 +899,20 @@
   "Distance from home": "Distancia de casa",
   "What stops them": "Qué les frena",
   "No registration surveys yet.": "Aún no hay encuestas de registro.",
-  "Failed to load registration surveys.": "No se pudieron cargar las encuestas de registro."
+  "Failed to load registration surveys.": "No se pudieron cargar las encuestas de registro.",
+  "Appointments": "Citas",
+  "Booked appointments across the platform.": "Citas reservadas en toda la plataforma.",
+  "Participants": "Participantes",
+  "Booked by": "Reservada por",
+  "When": "Cuándo",
+  "Status": "Estado",
+  "Instant": "Instantánea",
+  "Scheduled": "Programada",
+  "Booked": "Reservada",
+  "Cancelled": "Cancelada",
+  "No appointments yet.": "Aún no hay citas.",
+  "Failed to load appointments.": "No se pudieron cargar las citas.",
+  "{{count}} appointment total": "{{count}} cita en total",
+  "{{count}} appointment total_one": "{{count}} cita en total",
+  "{{count}} appointment total_other": "{{count}} citas en total"
 }
