@@ -16,6 +16,7 @@ import { MembershipsModule } from './memberships/memberships.module';
 import { MatchingModule } from './matching/matching.module';
 import { MeetingsModule } from './meetings/meetings.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { RegistrationSurveyModule } from './registration-survey/registration-survey.module';
 import { CallsModule } from './calls/calls.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -47,6 +48,7 @@ import { SeederModule } from './seeder/seeder.module';
     MatchingModule,
     MeetingsModule,
     FeedbackModule,
+    RegistrationSurveyModule,
     CallsModule,
     RealtimeModule,
     SeederModule,

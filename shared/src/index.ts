@@ -196,3 +196,20 @@ export {
   adminFeedbackSchema,
   type AdminFeedback,
 } from "./schemas/conversation-feedback";
+
+export {
+  registrationIntentEnum,
+  type RegistrationIntent,
+  ageRangeEnum,
+  type AgeRange,
+  realConversationsEnum,
+  type RealConversations,
+  distanceFromHomeEnum,
+  type DistanceFromHome,
+  submitRegistrationSurveySchema,
+  type SubmitRegistrationSurveyInput,
+  registrationSurveySchema,
+  type RegistrationSurvey,
+  adminRegistrationSurveySchema,
+  type AdminRegistrationSurvey,
+} from "./schemas/registration-survey";

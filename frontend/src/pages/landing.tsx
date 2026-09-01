@@ -62,7 +62,7 @@ export default function LandingPage() {
           <Button
             size="lg"
             className="landing-flicker tracking-[0.05em]"
-            render={<Link to="/signup" />}
+            render={<Link to="/register" />}
           >
             {t("Sign up")}
           </Button>
@@ -91,7 +91,7 @@ export default function LandingPage() {
             <Button
               size="xl"
               className="landing-flicker tracking-[0.05em]"
-              render={<Link to="/signup" />}
+              render={<Link to="/register" />}
             >
               {t("Talk Now")}
             </Button>
@@ -99,7 +99,7 @@ export default function LandingPage() {
               size="xl"
               variant="outline"
               className="tracking-[0.05em]"
-              render={<Link to="/signup" />}
+              render={<Link to="/register" />}
             >
               {t("Sign up")}
             </Button>
@@ -184,7 +184,7 @@ export default function LandingPage() {
             <Button
               size="xl"
               className="landing-flicker tracking-[0.05em]"
-              render={<Link to="/signup" />}
+              render={<Link to="/register" />}
             >
               {t("Talk Now")}
             </Button>
@@ -192,7 +192,7 @@ export default function LandingPage() {
               size="xl"
               variant="outline"
               className="tracking-[0.05em]"
-              render={<Link to="/signup" />}
+              render={<Link to="/register" />}
             >
               {t("Sign up")}
             </Button>

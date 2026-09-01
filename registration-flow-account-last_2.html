@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sondra — Registration, account last</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  :root{
+    --accent:#4d8a60; --accent-glow:#5d9a70;
+    --cream:#e8dcc4; --cream-dim:#a89878;
+    --border:rgba(232,220,196,0.10);
+  }
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(ellipse 90% 55% at 50% 115%, rgba(77,138,96,0.26) 0%, rgba(77,138,96,0.10) 28%, transparent 58%),
+      linear-gradient(180deg,#03070f 0%,#07101e 35%,#0c1929 70%,#102338 100%);
+    background-attachment:fixed;background-color:#070d18;
+    color:var(--cream);font-family:'Cormorant Garamond',Georgia,serif;
+    display:flex;flex-direction:column;
+  }
+  .grain{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.05;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.85'/></svg>");}
+
+  header{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:1.5rem 2rem;}
+  .logo{font-size:1.35rem;letter-spacing:.05em;}
+  .counter{font-size:.75rem;letter-spacing:.18em;text-transform:uppercase;color:var(--cream-dim);opacity:.4;}
+  .bar{position:relative;z-index:2;height:2px;background:rgba(232,220,196,.07);margin:0 2rem;border-radius:2px;overflow:hidden;}
+  .bar span{display:block;height:100%;width:0;background:var(--accent);transition:width .5s cubic-bezier(.4,0,.2,1);
+    box-shadow:0 0 12px rgba(77,138,96,.6);}
+
+  main{position:relative;z-index:2;flex:1;display:flex;align-items:center;justify-content:center;padding:2rem;}
+  .card{width:100%;max-width:580px;}
+
+  .screen{display:none;animation:in .55s cubic-bezier(.2,.7,.3,1) both;}
+  .screen.on{display:block;}
+  @keyframes in{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+
+  .eyebrow{font-size:.7rem;letter-spacing:.28em;text-transform:uppercase;color:var(--accent-glow);opacity:.7;margin-bottom:1rem;}
+  h2{font-size:clamp(1.55rem,3.4vw,2.1rem);font-weight:300;line-height:1.25;letter-spacing:-.01em;margin-bottom:.7rem;}
+  .sub{font-size:1rem;font-weight:300;line-height:1.68;color:var(--cream-dim);opacity:.64;margin-bottom:1.9rem;max-width:480px;}
+  .sub em{font-style:italic;color:var(--cream);opacity:.85;}
+
+  .screen.info h2{font-size:clamp(1.3rem,2.9vw,1.72rem);font-style:italic;font-weight:300;opacity:.95;}
+  .screen.info .rule{width:44px;height:1px;background:var(--accent);opacity:.5;margin-bottom:1.5rem;}
+  .src-block{font-size:.71rem;font-weight:300;line-height:1.55;color:var(--cream-dim);opacity:.3;
+    letter-spacing:.02em;border-top:1px solid var(--border);padding-top:.75rem;max-width:480px;margin-top:-.6rem;}
+
+  .field{width:100%;background:rgba(8,16,30,.55);border:1px solid var(--border);border-radius:10px;
+    padding:.85rem 1.1rem;font-family:inherit;font-size:1.02rem;font-weight:300;color:var(--cream);outline:none;
+    transition:border-color .3s,background .3s;margin-bottom:.65rem;}
+  .field::placeholder{color:rgba(168,152,120,.3);}
+  .field:focus{border-color:rgba(93,154,112,.5);background:rgba(8,16,30,.75);}
+
+  .chips{display:flex;flex-wrap:wrap;gap:.5rem;}
+  .chip{font-size:.92rem;font-weight:300;padding:.5rem .95rem;border-radius:22px;border:1px solid var(--border);
+    color:var(--cream-dim);background:rgba(8,16,30,.4);cursor:pointer;transition:all .25s;user-select:none;}
+  .chip:hover{border-color:rgba(232,220,196,.25);color:var(--cream);}
+  .chip.on{border-color:rgba(93,154,112,.55);background:rgba(77,138,96,.16);color:#d3e8da;
+    box-shadow:0 0 16px rgba(77,138,96,.14);}
+  .chip.big{padding:.62rem 2.1rem;font-size:1rem;letter-spacing:.04em;}
+  .hint{font-size:.8rem;font-weight:300;font-style:italic;color:var(--cream-dim);opacity:.4;margin-top:.95rem;}
+  .locked .chip{cursor:default;}
+  .locked .chip:not(.on){opacity:.35;}
+
+  .reply{max-height:0;overflow:hidden;opacity:0;transition:max-height .7s cubic-bezier(.2,.7,.3,1),opacity .6s ease .15s;}
+  .reply.show{max-height:520px;opacity:1;}
+  .reply-in{border-left:2px solid rgba(93,154,112,.45);padding:.1rem 0 .1rem 1.15rem;margin-top:1.9rem;}
+  .reply-in p{font-size:1rem;font-weight:300;font-style:italic;line-height:1.7;color:var(--cream);opacity:.82;}
+  .reply-in .src{font-size:.71rem;font-style:normal;font-weight:300;line-height:1.55;color:var(--cream-dim);
+    opacity:.32;letter-spacing:.02em;margin-top:.8rem;}
+
+  .actions{display:flex;align-items:center;gap:1rem;margin-top:2rem;}
+  .btn{font-family:inherit;font-size:1rem;font-weight:500;letter-spacing:.05em;padding:.8rem 2rem;border-radius:10px;
+    border:none;background:var(--accent);color:#e8f2ec;cursor:pointer;transition:all .3s;
+    box-shadow:0 0 22px rgba(77,138,96,.2);}
+  .btn:hover{background:var(--accent-glow);transform:translateY(-1px);box-shadow:0 0 38px rgba(77,138,96,.34);}
+  .btn.wide{width:100%;}
+  .btn.google{background:transparent;border:1px solid var(--border);color:var(--cream);box-shadow:none;font-weight:300;}
+  .btn.google:hover{background:rgba(232,220,196,.04);border-color:rgba(232,220,196,.25);transform:none;box-shadow:none;}
+  .link{font-size:.88rem;font-weight:300;color:var(--cream-dim);opacity:.42;cursor:pointer;transition:opacity .3s;
+    background:none;border:none;font-family:inherit;letter-spacing:.02em;}
+  .link:hover{opacity:.8;}
+  .or{display:flex;align-items:center;gap:.9rem;margin:1.1rem 0;font-size:.78rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--cream-dim);opacity:.28;}
+  .or::before,.or::after{content:'';flex:1;height:1px;background:var(--border);}
+  .fine{font-size:.78rem;font-weight:300;color:var(--cream-dim);opacity:.35;margin-top:1.1rem;line-height:1.6;}
+
+  .back{position:relative;z-index:2;padding:0 2rem 1.5rem;}
+  .mark{font-size:1.3rem;letter-spacing:.4em;color:var(--accent);opacity:.75;margin-bottom:1.1rem;}
+  .anno{position:relative;z-index:2;margin:0 auto;max-width:900px;padding:0 2rem 2.5rem;
+    font-size:.8rem;font-weight:300;line-height:1.65;color:var(--cream-dim);opacity:.32;text-align:center;}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<header>
+  <span class="logo">Sondra</span>
+  <span class="counter" id="counter"></span>
+</header>
+<div class="bar"><span id="bar"></span></div>
+
+<main>
+  <div class="card">
+
+    <!-- 0 · OPENER (info only) -->
+    <section class="screen info on">
+      <div class="rule"></div>
+      <h2>The most valuable connections start with a little openness and a willingness to be surprised.</h2>
+      <p class="sub">Across twenty million people over five years, it wasn't the closest relationships that opened the most doors — it was the looser ones. Acquaintances. Friends of friends. The people not yet in your life.</p>
+      <p class="src-block">Rajkumar, Saint-Jacques, Bojinov, Brynjolfsson &amp; Aral, <em>Science</em>, 2022</p>
+      <div class="actions"><button class="btn" onclick="go(1)">Start</button></div>
+      <p class="fine">Seven short questions. Two minutes. No account needed yet.</p>
+    </section>
+
+    <!-- 1 · Q1 INTENT -->
+    <section class="screen" data-q="1" data-next="2">
+      <div class="eyebrow">Question 1</div>
+      <h2>What brought you here?</h2>
+      <p class="sub">Honestly. It changes who we put in front of you.</p>
+      <div class="chips">
+        <span class="chip" onclick="one(this)"
+          data-r="Curiosity is the most durable reason there is. The people who arrive curious aren't trying to fix anything — they just want to see who's out there, and they're the ones still here months later.">Curiosity</span>
+        <span class="chip on" onclick="one(this)"
+          data-r="Then here's the thing worth knowing: when strangers were asked to skip small talk entirely and go straight to something real, the conversation came out less awkward and more enjoyable than either of them predicted. Depth isn't the risk. Assuming the other person doesn't want it — that's the risk."
+          data-src="Kardas, Kumar &amp; Epley, Journal of Personality and Social Psychology, 2022">Something deeper</span>
+        <span class="chip" onclick="one(this)"
+          data-r="Moving costs you your weak ties — the barista, the neighbour, the person at the next desk. Those brief exchanges measurably lift mood and sense of belonging, and they're the first thing a new city takes away."
+          data-src="Sandstrom &amp; Dunn, Personality and Social Psychology Bulletin, 2014">A new city</span>
+        <span class="chip" onclick="one(this)"
+          data-r="That makes you rarer than you think. Most people enter a conversation planning what they'll say. The ones who enter planning to listen are the ones others ask for again.">Other lives</span>
+        <span class="chip" onclick="one(this)"
+          data-r="You won't have to name it — not here, and not in a conversation. Circles exist precisely so you can be recognised without having to explain yourself first.">Something personal</span>
+      </div>
+      <div class="reply"><div class="reply-in"><p></p><div class="src"></div></div></div>
+      <div class="actions"><button class="btn" onclick="submitAnswer(this)">Submit answer</button></div>
+    </section>
+
+    <!-- 2 · Q2 AGE -->
+    <section class="screen" data-q="2" data-next="3">
+      <div class="eyebrow">Question 2</div>
+      <h2>How old are you?</h2>
+      <p class="sub">A range is enough.</p>
+      <div class="chips">
+        <span class="chip" onclick="one(this)" data-r="We ask because a conversation across a forty-year gap is a different animal from one across four. Both are worth having — they're just not the same, and you should get to have either.">18–24</span>
+        <span class="chip" onclick="one(this)" data-r="We ask because a conversation across a forty-year gap is a different animal from one across four. Both are worth having — they're just not the same, and you should get to have either.">25–34</span>
+        <span class="chip on" onclick="one(this)" data-r="We ask because a conversation across a forty-year gap is a different animal from one across four. Both are worth having — they're just not the same, and you should get to have either.">35–44</span>
+        <span class="chip" onclick="one(this)" data-r="We ask because a conversation across a forty-year gap is a different animal from one across four. Both are worth having — they're just not the same, and you should get to have either.">45–54</span>
+        <span class="chip" onclick="one(this)" data-r="We ask because a conversation across a forty-year gap is a different animal from one across four. Both are worth having — they're just not the same, and you should get to have either.">55–64</span>
+        <span class="chip" onclick="one(this)" data-r="We ask because a conversation across a forty-year gap is a different animal from one across four. You're on the side of that gap where you've already lived through the thing the other person is standing in the middle of.">65+</span>
+      </div>
+      <div class="reply"><div class="reply-in"><p></p><div class="src"></div></div></div>
+      <div class="actions"><button class="btn" onclick="submitAnswer(this)">Submit answer</button></div>
+    </section>
+
+    <!-- 3 · Q3 REAL CONVERSATIONS -->
+    <section class="screen" data-q="3" data-next="4">
+      <div class="eyebrow">Question 3</div>
+      <h2>Do you feel like you have real conversations in your life?</h2>
+      <p class="sub">The kind where you say the true thing, not the easy one.</p>
+      <div class="chips">
+        <span class="chip big" onclick="one(this)"
+          data-r="Then you're luckier than most. Sondra isn't trying to replace those people — it's for the conversations they can't have with you.">Yes</span>
+        <span class="chip big on" onclick="one(this)"
+          data-r="You have more company than it feels like — one in six people worldwide would answer the same way. And there's a good finding attached to it: people underestimate how much others like them, for a very long time. Among students sharing a dorm, the gap lasted almost the whole academic year before it closed."
+          data-src="WHO Commission on Social Connection, 2025 · Boothby, Cooney, Sandstrom &amp; Clark, Psychological Science, 2018">No</span>
+      </div>
+      <div class="reply"><div class="reply-in"><p></p><div class="src"></div></div></div>
+      <div class="actions"><button class="btn" onclick="submitAnswer(this)">Submit answer</button></div>
+    </section>
+
+    <!-- 4 · Q4 WORK MODE -->
+    <section class="screen" data-q="4" data-next="5">
+      <div class="eyebrow">Question 4</div>
+      <h2>Where do your days happen?</h2>
+      <p class="sub">A kitchen table is a different kind of week than a room full of people.</p>
+      <div class="chips">
+        <span class="chip on" onclick="one(this)"
+          data-r="Remote work removes your weak ties without announcing it — the corridor, the lift, the person at the next desk. Those small exchanges measurably raise mood and belonging. Losing them is quiet, and it accumulates."
+          data-src="Sandstrom &amp; Dunn, Personality and Social Psychology Bulletin, 2014">At home</span>
+        <span class="chip" onclick="one(this)"
+          data-r="Two different weeks stitched together, which usually means your appetite for company changes depending on the day. That's what the availability windows are for — you set them broadly, not by the hour.">A bit of both</span>
+        <span class="chip" onclick="one(this)"
+          data-r="Being around people all day isn't the same as being known by them. Some of the loneliest weeks happen in full rooms.">Out, with people</span>
+      </div>
+      <input class="field" style="margin-top:1rem" placeholder="Or somewhere else entirely — where?"
+        oninput="clearChips(this)"
+        data-r="However your week is shaped, it decides how much unplanned company you get — and unplanned company is the thing almost nobody schedules and everybody misses.">
+      <div class="reply"><div class="reply-in"><p></p><div class="src"></div></div></div>
+      <div class="actions"><button class="btn" onclick="submitAnswer(this)">Submit answer</button></div>
+    </section>
+
+    <!-- 5 · Q5 FAR FROM HOME -->
+    <section class="screen" data-q="5" data-next="6">
+      <div class="eyebrow">Question 5</div>
+      <h2>How far are you from where you're from?</h2>
+      <p class="sub">Distance from home changes what a conversation is for.</p>
+      <div class="chips">
+        <span class="chip" onclick="one(this)"
+          data-r="Roots are an advantage most people here don't have. You're often the one who can offer steadiness rather than the one needing it.">Still there</span>
+        <span class="chip on" onclick="one(this)"
+          data-r="Living abroad is a circle of its own. Most people who choose it say the hard part isn't the language — it's that nobody around you knew you before.">Another country</span>
+        <span class="chip" onclick="one(this)"
+          data-r="Then you already know the pattern: arriving isn't the hard part. Starting the explaining again is. Circles are our attempt to let you skip that.">Lost count</span>
+      </div>
+      <div class="reply"><div class="reply-in"><p></p><div class="src"></div></div></div>
+      <div class="actions"><button class="btn" onclick="submitAnswer(this)">Submit answer</button></div>
+    </section>
+
+    <!-- 6 · INFO · beta -->
+    <section class="screen info">
+      <div class="rule"></div>
+      <h2>Sondra is in beta, and beta is free.</h2>
+      <p class="sub">A few hundred people, not a few million — by choice. What you're answering decides what gets built next. No card, nothing to cancel.</p>
+      <div class="actions"><button class="btn" onclick="go(7)">Next</button></div>
+    </section>
+
+    <!-- 7 · Q6 CIRCLES -->
+    <section class="screen" data-q="6" data-next="8">
+      <div class="eyebrow">Question 6</div>
+      <h2>What are your circles?</h2>
+      <p class="sub">Something true about your life that someone else recognises without an explanation. It's the whole match — no photos, no bios.</p>
+      <div class="chips">
+        <span class="chip on" onclick="t(this)">Parenthood</span>
+        <span class="chip" onclick="t(this)">Grief</span>
+        <span class="chip on" onclick="t(this)">Building something</span>
+        <span class="chip" onclick="t(this)">Living abroad</span>
+        <span class="chip" onclick="t(this)">Caring for someone</span>
+        <span class="chip" onclick="t(this)">Starting over</span>
+        <span class="chip" onclick="t(this)">Solitude</span>
+      </div>
+      <p class="hint">Pick at least two. There are many more inside.</p>
+      <div class="reply"><div class="reply-in"><p></p><div class="src"></div></div></div>
+      <div class="actions"><button class="btn" onclick="submitAnswer(this,'Two is enough to be matched. When someone appears, this is all you will see of them — the circles you share, and one line about what they want to talk about. No photograph, no biography, nothing to scroll.')">Submit answer</button></div>
+    </section>
+
+    <!-- 8 · Q7 WHAT STOPS YOU -->
+    <section class="screen" data-q="7" data-next="9">
+      <div class="eyebrow">Question 7 · last one</div>
+      <h2>Is there something that stops you from talking to a stranger on video?</h2>
+      <p class="sub">Pick what fits, or write it. We read every one of these.</p>
+      <div class="chips">
+        <span class="chip on" onclick="one(this)"
+          data-r="Everyone predicts awkward. Across study after study of conversations with strangers, the actual experience comes out better than the forecast — the misprediction is itself the finding."
+          data-src="Epley &amp; Schroeder, Journal of Experimental Psychology: General, 2014">It'll be awkward</span>
+        <span class="chip" onclick="one(this)"
+          data-r="There is a Leave conversation button, and pressing it tells the other person nothing at all. Easier still: agree a rough length in the first minute — &quot;shall we say twenty?&quot; — and then the ending belongs to both of you instead of falling to whoever is braver.">Ending it</span>
+        <span class="chip" onclick="one(this)"
+          data-r="Fair, and it's the one thing we won't compromise on — so you deserve the reason. When you hear and see a person rather than read their words, they register as more thoughtful, more capable, more human. The effect is strongest exactly when you disagree with them. That's why Sondra isn't a chat app."
+          data-src="Schroeder, Kardas &amp; Epley, Psychological Science, 2017">Being on camera</span>
+        <span class="chip" onclick="one(this)"
+          data-r="You can leave at any moment and no one is told why. No ratings, no score, no public profile. Nobody is kept: a door only stays open if both of you reach for it afterwards, separately.">Safety</span>
+        <span class="chip" onclick="one(this)"
+          data-r="One conversation, in a window you choose. Nothing here runs without you and nothing accumulates while you're away — there's no streak to break.">Time</span>
+        <span class="chip" onclick="one(this)"
+          data-r="Rare, and useful. You'll probably end up being somebody's easiest first conversation.">Nothing, really</span>
+      </div>
+      <input class="field" style="margin-top:1rem" placeholder="Or say it in your own words">
+      <div class="reply"><div class="reply-in"><p></p><div class="src"></div></div></div>
+      <div class="actions"><button class="btn" onclick="submitAnswer(this)">Submit answer</button></div>
+    </section>
+
+    <!-- 9 · ACCOUNT (LAST) -->
+    <section class="screen">
+      <div class="eyebrow">One last thing</div>
+      <h2>Where should we reach you?</h2>
+      <p class="sub">So we can tell you when there's someone on the other side. Nothing else — no newsletter, no digest, no notifications you didn't ask for.</p>
+      <input class="field" type="email" placeholder="Email address">
+      <input class="field" type="password" placeholder="Choose a password">
+      <div class="or">or</div>
+      <button class="btn google wide">Continue with Google</button>
+      <div class="actions"><button class="btn" onclick="go(10)">Enter Sondra</button></div>
+      <p class="fine">Free while Sondra is in beta. No card, nothing to cancel.</p>
+    </section>
+
+    <!-- 10 · DONE -->
+    <section class="screen info">
+      <div class="mark">◦ ◦ ◦</div>
+      <h2 style="font-style:normal">Thank you, Raúl.</h2>
+      <p class="sub">There are people on the other side of this.</p>
+      <div class="actions"><button class="btn" onclick="go(0)">Enter Sondra</button></div>
+    </section>
+
+  </div>
+</main>
+
+<div class="back"><button class="link" onclick="prev()">← Back</button></div>
+<p class="anno">Variant — account created at the END. Opens with the weak-ties finding, not a question.</p>
+
+<script>
+  const screens=[...document.querySelectorAll('.screen')];
+  const totalQ=7;
+  let i=0, history=[];
+
+  function render(){
+    screens.forEach((s,n)=>s.classList.toggle('on',n===i));
+    const q=screens[i].dataset.q;
+    document.getElementById('bar').style.width=(i/(screens.length-1)*100)+'%';
+    document.getElementById('counter').textContent = q ? `Question ${q} of ${totalQ}` : (i===9?'One last thing':(i===10?'Done':''));
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function go(n){ history.push(i); i=n; reset(screens[n]); render(); }
+  function prev(){ if(history.length){ i=history.pop(); render(); } }
+  function t(el){ el.classList.toggle('on'); }
+  function one(el){ [...el.parentNode.children].forEach(c=>c.classList.remove('on')); el.classList.add('on'); }
+  function clearChips(inp){
+    if(inp.value.trim()) inp.closest('.screen').querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  }
+
+  function reset(sec){
+    const r=sec.querySelector('.reply'); if(!r) return;
+    r.classList.remove('show');
+    const c=sec.querySelector('.chips'); if(c) c.classList.remove('locked');
+    const b=sec.querySelector('.actions .btn');
+    b.textContent='Submit answer';
+    b.dataset.stage='';
+  }
+  function submitAnswer(btn, fixed, fixedSrc){
+    const sec=btn.closest('.screen');
+    if(btn.dataset.stage==='done'){ go(+sec.dataset.next); return; }
+    const picked=sec.querySelector('.chip.on');
+    const typed=sec.querySelector('input.field[data-r]');
+    const reply=sec.querySelector('.reply');
+    let text = fixed || (picked ? picked.dataset.r : (typed ? typed.dataset.r : ''));
+    let src  = fixedSrc || (picked && picked.dataset.src ? picked.dataset.src : '');
+    reply.querySelector('p').textContent = text;
+    reply.querySelector('.src').innerHTML = src;
+    reply.querySelector('.src').style.display = src ? 'block' : 'none';
+    reply.classList.add('show');
+    const c=sec.querySelector('.chips'); if(c) c.classList.add('locked');
+    btn.textContent='Continue';
+    btn.dataset.stage='done';
+  }
+  render();
+</script>
+</body>
+</html>

@@ -15,9 +15,11 @@ import CallPage from "@/pages/call"
 import ConversationWrapUpPage from "@/pages/conversation-wrap-up"
 import LoginPage from "@/pages/login"
 import SignupPage from "@/pages/signup"
+import RegisterPage from "@/pages/register"
 import ForgotPasswordPage from "@/pages/forgot-password"
 import ResetPasswordPage from "@/pages/reset-password"
 import OnboardingPage from "@/pages/onboarding"
+import RegistrationSurveysPage from "@/pages/registration-surveys"
 import SettingsPage from "@/pages/settings"
 import { ProtectedRoute } from "@/components/protected-route"
 import { AdminRoute } from "@/components/admin-route"
@@ -39,6 +41,10 @@ export const router = createBrowserRouter([
   {
     path: "/signup",
     element: <SignupPage />,
+  },
+  {
+    path: "/register",
+    element: <RegisterPage />,
   },
   {
     path: "/forgot-password",
@@ -129,6 +135,14 @@ export const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <AdminFeedbackPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "registration-surveys",
+        element: (
+          <AdminRoute>
+            <RegistrationSurveysPage />
           </AdminRoute>
         ),
       },

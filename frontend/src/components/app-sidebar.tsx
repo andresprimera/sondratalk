@@ -21,6 +21,7 @@ import {
   LayersIcon,
   CircleDotIcon,
   ClipboardListIcon,
+  ClipboardCheckIcon,
   MessageSquareTextIcon,
   RadioTowerIcon,
 } from "lucide-react"
@@ -47,6 +48,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       title: t("Survey Answers"),
       url: "/dashboard/survey-answers",
       icon: <MessageSquareTextIcon />,
+    },
+    {
+      title: t("Registration Surveys"),
+      url: "/dashboard/registration-surveys",
+      icon: <ClipboardCheckIcon />,
     },
   ]
 
