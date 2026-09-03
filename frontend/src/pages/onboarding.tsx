@@ -22,6 +22,7 @@ import {
   type OnboardingCircle,
 } from "@/components/onboarding/onboarding-circles-step"
 import { OnboardingWelcomeStep } from "@/components/onboarding/onboarding-welcome-step"
+import { LanguageToggle } from "@/components/language-toggle"
 import { detectTimezone } from "@/lib/timezones"
 import { detectBrowserLanguage } from "@/lib/languages"
 import {
@@ -165,7 +166,10 @@ export default function OnboardingPage() {
 
       <header className="relative z-10 mx-auto flex w-full max-w-[680px] items-center justify-between px-6 pt-8">
         <span className="onboarding-logo">Sondra</span>
-        {step !== 4 && <OnboardingProgress current={step} total={3} />}
+        <div className="flex items-center gap-3">
+          {step !== 4 && <OnboardingProgress current={step} total={3} />}
+          <LanguageToggle />
+        </div>
       </header>
 
       <main className="relative z-10 mx-auto w-full max-w-[680px] flex-1 px-6 pb-20">

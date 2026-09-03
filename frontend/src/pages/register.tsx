@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { submitRegistrationSurveySchema } from "@base-dashboard/shared"
 import { useAuth } from "@/hooks/use-auth"
+import { LanguageToggle } from "@/components/language-toggle"
 import { submitRegistrationSurveyApi } from "@/lib/registration-surveys"
 import {
   RegistrationQuestionStep,
@@ -327,7 +328,10 @@ export default function RegisterPage() {
 
       <header className="relative z-10 mx-auto flex w-full max-w-[680px] items-center justify-between px-6 pt-8">
         <span className="onboarding-logo">Sondra</span>
-        <span className="onboarding-counter">{counter}</span>
+        <div className="flex items-center gap-3">
+          <span className="onboarding-counter">{counter}</span>
+          <LanguageToggle />
+        </div>
       </header>
       <div className="relative z-10 mx-auto mt-4 w-full max-w-[680px] px-6">
         <div className="onboarding-bar">
