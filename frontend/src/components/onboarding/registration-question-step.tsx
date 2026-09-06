@@ -13,7 +13,7 @@ export interface RegistrationOption {
 interface RegistrationQuestionStepProps {
   counter: string
   heading: string
-  subline: string
+  subline?: string
   options: RegistrationOption[]
   value: string | string[]
   onChange: (value: string | string[]) => void
@@ -95,7 +95,7 @@ export function RegistrationQuestionStep({
       )}
       <p className="onboarding-eyebrow mb-6">{counter}</p>
       <h1 className="onboarding-step-heading mb-4">{heading}</h1>
-      <p className="onboarding-step-subline mb-8">{subline}</p>
+      {subline && <p className="onboarding-step-subline mb-8">{subline}</p>}
 
       <div className="onboarding-chip-row">
         {options.map((option) => {

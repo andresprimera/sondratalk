@@ -57,7 +57,7 @@ export function RegistrationAccountStep({
       </h1>
       <p className="onboarding-step-subline mb-8">
         {t(
-          "So we can tell you when there's someone on the other side. Nothing else — no newsletter, no digest, no notifications you didn't ask for.",
+          "So you have access to your dashboard and we can tell you when there's someone on the other side.",
         )}
       </p>
 

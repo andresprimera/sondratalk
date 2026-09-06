@@ -163,7 +163,7 @@ export default function RegisterPage() {
   ]
 
   const ageReply = t(
-    "We ask because a conversation across a forty-year gap is a different animal from one across four. Both are worth having — they're just not the same, and you should get to have either.",
+    "We ask because a conversation between people forty years apart is very different from one between people four years apart. Both are worth having — they're just not the same. Thanks for talking to a human in such a digital age.",
   )
   const ageOptions: RegistrationOption[] = [
     { value: "18-24", label: t("18–24"), reply: ageReply },
@@ -252,13 +252,15 @@ export default function RegisterPage() {
   ]
 
   const circleOptions: RegistrationOption[] = [
-    { value: "Parenthood", label: t("Parenthood") },
+    { value: "Parent", label: t("Parent") },
+    { value: "Introvert", label: t("Introvert") },
+    { value: "Entrepreneur", label: t("Entrepreneur") },
+    { value: "Travel", label: t("Travel") },
+    { value: "Books", label: t("Books") },
+    { value: "Music", label: t("Music") },
     { value: "Grief", label: t("Grief") },
-    { value: "Building something", label: t("Building something") },
-    { value: "Living abroad", label: t("Living abroad") },
-    { value: "Caring for someone", label: t("Caring for someone") },
-    { value: "Starting over", label: t("Starting over") },
-    { value: "Solitude", label: t("Solitude") },
+    { value: "Starting Over", label: t("Starting Over") },
+    { value: "New to the City", label: t("New to the City") },
   ]
 
   const blockerOptions: RegistrationOption[] = [
@@ -295,10 +297,10 @@ export default function RegisterPage() {
       ),
     },
     {
-      value: "Time",
-      label: t("Time"),
+      value: "Time commitment",
+      label: t("Time commitment"),
       reply: t(
-        "One conversation, in a window you choose. Nothing here runs without you and nothing accumulates while you're away — there's no streak to break.",
+        "You choose your own availability. You won't owe more time than you want to give.",
       ),
     },
     {
@@ -403,9 +405,6 @@ export default function RegisterPage() {
           <RegistrationQuestionStep
             counter={counter}
             heading={t("Where do your days happen?")}
-            subline={t(
-              "A kitchen table is a different kind of week than a room full of people.",
-            )}
             options={daysOptions}
             value={answers.daysSpent}
             onChange={(v) => setSingle("daysSpent", v)}
@@ -454,11 +453,11 @@ export default function RegisterPage() {
             )}
             options={circleOptions}
             multi
-            minSelect={2}
+            minSelect={3}
             value={answers.circles}
             onChange={setCircles}
             multiReply={t(
-              "Two is enough to be matched. When someone appears, this is all you will see of them — the circles you share, and one line about what they want to talk about. No photograph, no biography, nothing to scroll.",
+              "Three is enough to be matched. When someone appears, this is all you will see of them — the circles you share, and their availability. No photo, no bio, no swipe.",
             )}
             onBack={() => go(BETA)}
             onNext={() => go(Q_BLOCKER)}
