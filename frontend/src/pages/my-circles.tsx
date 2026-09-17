@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
 import {
@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchCirclesApi } from "@/lib/circles"
-import { selectedFirst } from "@/lib/circle-order"
+import { pinnedFirst } from "@/lib/circle-order"
 import {
   fetchMyCirclesApi,
   updateMyCirclesApi,
@@ -85,12 +85,30 @@ export default function MyCirclesPage() {
     placeholderData: keepPreviousData,
   })
 
-  // Per page, and against the saved circles rather than `draft` — see
-  // selectedFirst for why both matter.
-  const fetchedCircles: Circle[] =
-    catalog.data?.pages.flatMap((p) =>
-      selectedFirst(p.data, myCirclesQuery.data ?? []),
-    ) ?? []
+  // The query the chips currently on screen belong to. `keepPreviousData`
+  // leaves the previous result up while the next one loads, so deciding from
+  // the requested query would drop or restore the pinned block a render before
+  // the grid it belongs to — flashing it in and out on every keystroke of a
+  // refinement ("fam" → "fami").
+  const [settledQ, setSettledQ] = useState("")
+  useEffect(() => {
+    if (!catalog.isPlaceholderData) setSettledQ(debouncedQ)
+  }, [catalog.isPlaceholderData, debouncedQ])
+
+  // Pinned against the saved circles rather than `draft` — see pinnedFirst.
+  // Skipped while searching: the results are already a narrow set the user
+  // asked for, and prepending their whole circle list would bury it.
+  const searching = Boolean(
+    catalog.isPlaceholderData ? settledQ : debouncedQ,
+  )
+  const fetchedCircles: Circle[] = useMemo(
+    () =>
+      pinnedFirst(
+        catalog.data?.pages.flatMap((p) => p.data) ?? [],
+        searching ? [] : (myCirclesQuery.data ?? []),
+      ),
+    [catalog.data, myCirclesQuery.data, searching],
+  )
 
   const saveMutation = useMutation({
     mutationFn: updateMyCirclesApi,
@@ -221,7 +239,7 @@ export default function MyCirclesPage() {
       />
 
       {/* Waits on the saved circles too — rendering the grid before they land
-          would order it as if nothing were selected, then rearrange it. */}
+          would show the catalog with no pinned block, which then pops in. */}
       {catalog.isLoading || myCirclesQuery.isLoading ? (
         <div className="flex flex-wrap gap-2">
           {Array.from({ length: 12 }).map((_, i) => (

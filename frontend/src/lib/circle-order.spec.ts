@@ -1,5 +1,5 @@
 import type { Circle } from "@base-dashboard/shared"
-import { selectedFirst } from "@/lib/circle-order"
+import { pinnedFirst } from "@/lib/circle-order"
 
 function circle(id: string): Circle {
   return {
@@ -16,24 +16,31 @@ function circle(id: string): Circle {
 
 const [a, b, c, d] = [circle("a"), circle("b"), circle("c"), circle("d")]
 
-describe("selectedFirst", () => {
-  it("moves selected circles ahead of unselected ones", () => {
-    const result = selectedFirst([a, b, c, d], [c])
+describe("pinnedFirst", () => {
+  it("puts every pinned circle ahead of the catalog", () => {
+    const result = pinnedFirst([a, b, c, d], [c, a])
     expect(result.map((x) => x.id)).toEqual(["c", "a", "b", "d"])
   })
 
-  it("keeps catalog order within the selected and unselected groups", () => {
-    const result = selectedFirst([a, b, c, d], [d, b])
+  it("keeps pinned circles together even when the catalog interleaves them", () => {
+    // The shape that broke before: pinned entries spread across catalog pages.
+    const result = pinnedFirst([a, b, c, d], [b, d])
     expect(result.map((x) => x.id)).toEqual(["b", "d", "a", "c"])
   })
 
-  it("returns the catalog unchanged when nothing is selected", () => {
-    const result = selectedFirst([a, b, c], [])
-    expect(result.map((x) => x.id)).toEqual(["a", "b", "c"])
+  it("preserves catalog order for the unpinned remainder", () => {
+    const result = pinnedFirst([a, b, c, d], [])
+    expect(result.map((x) => x.id)).toEqual(["a", "b", "c", "d"])
   })
 
-  it("ignores selected circles that are not in the catalog page", () => {
-    const result = selectedFirst([a, b], [c])
-    expect(result.map((x) => x.id)).toEqual(["a", "b"])
+  it("shows a pinned circle the catalog pages have not loaded yet", () => {
+    const result = pinnedFirst([a, b], [d])
+    expect(result.map((x) => x.id)).toEqual(["d", "a", "b"])
+  })
+
+  it("never renders a pinned circle twice", () => {
+    const result = pinnedFirst([a, b, c], [b])
+    expect(result.map((x) => x.id)).toEqual(["b", "a", "c"])
+    expect(result.filter((x) => x.id === "b")).toHaveLength(1)
   })
 })

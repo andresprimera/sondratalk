@@ -1,21 +1,13 @@
 import { LoginForm } from "@/components/login-form"
-import { Link, Navigate } from "react-router"
+import { Link } from "react-router"
 import { ArrowLeft } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { useAuth } from "@/hooks/use-auth"
 
 const showLanding = import.meta.env.VITE_LANDING_PAGE !== "false"
 
+// Signed-in users never reach this page — the route is wrapped in GuestRoute.
 export default function LoginPage() {
   const { t } = useTranslation()
-  const { isAuthenticated } = useAuth()
-
-  // Someone who is already signed in has no business staring at a login form —
-  // most reachably, a user who left the reconnecting screen by hand and whose
-  // background retry then succeeded.
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />
-  }
 
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">

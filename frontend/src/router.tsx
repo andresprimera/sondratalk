@@ -26,6 +26,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { AdminRoute } from "@/components/admin-route"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { RootLayout } from "@/components/root-layout"
+import { GuestRoute } from "@/components/guest-route"
 
 export const router = createBrowserRouter([
   {
@@ -33,12 +34,28 @@ export const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <LandingPage />,
+        element: (
+          <GuestRoute>
+            <LandingPage />
+          </GuestRoute>
+        ),
       },
   {
     path: "/login",
-    element: <LoginPage />,
+    element: (
+      <GuestRoute>
+        <LoginPage />
+      </GuestRoute>
+    ),
   },
+  // Deliberately NOT wrapped in GuestRoute, unlike "/" and "/login". /register
+  // authenticates part-way through and keeps rendering: handleAccountSubmit
+  // awaits signup(), then the survey POST, then shows the done screen — all
+  // while authenticated — so a guest guard would eject the user to /dashboard
+  // mid-flow and skip both the done screen and /onboarding. /signup navigates
+  // to /onboarding in the same continuation as signup(), so a guard there would
+  // most likely never fire; it stays unwrapped so the flow doesn't depend on
+  // render batching, and so both signup entry points behave alike.
   {
     path: "/signup",
     element: <SignupPage />,
