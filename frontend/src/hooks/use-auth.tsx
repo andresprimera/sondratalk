@@ -33,6 +33,12 @@ interface AuthContextValue {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
+  /**
+   * We hold a refresh token but couldn't verify it — the backend was down, the
+   * network dropped, the request timed out. The session is probably still good,
+   * so route guards wait this out instead of treating it as a sign-out.
+   */
+  isReconnecting: boolean
   login: (email: string, password: string) => Promise<void>
   signup: (
     name: string,
@@ -59,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isReconnecting, setIsReconnecting] = useState(false)
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Mirror `user` into a ref so window/document event handlers (which capture
   // the value at subscription time) can read the current auth state.
@@ -132,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       }
       setUser(data.user)
+      setIsReconnecting(false)
       scheduleRefresh(data.accessToken)
     } catch (err) {
       if (!mountedRef.current || getSessionEpoch() !== epoch) return
@@ -139,8 +147,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // The session is dead (refreshTokens already cleared storage). Mark this
         // tab logged out so events don't keep retrying against dead tokens.
         loggedOutRef.current = true
+        setIsReconnecting(false)
         setUser(null)
       } else {
+        // Transient: the session is almost certainly still valid, we just can't
+        // prove it yet. Flag it so guards keep waiting instead of bouncing the
+        // user to /login — a login form is useless while the backend is
+        // unreachable, and signing back in is exactly the friction to avoid.
+        setIsReconnecting(getStoredTokens().refreshToken !== null)
         scheduleRetry()
       }
     }
@@ -164,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(refreshTimerRef.current)
       refreshTimerRef.current = null
     }
+    setIsReconnecting(false)
     setUser(null)
   }, [])
 
@@ -298,6 +313,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // just-ended session can't overwrite these tokens.
     beginSession()
     loggedOutRef.current = false
+    setIsReconnecting(false)
     queryClient.clear()
     storeTokens(data.accessToken, data.refreshToken)
     setUser(data.user)
@@ -314,6 +330,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await signupApi(name, email, password, timezone)
       beginSession()
       loggedOutRef.current = false
+      setIsReconnecting(false)
       queryClient.clear()
       storeTokens(data.accessToken, data.refreshToken)
       setUser(data.user)
@@ -331,6 +348,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // timer or call socket) aborts its write-back immediately.
     loggedOutRef.current = true
     endSession()
+    setIsReconnecting(false)
     if (refreshTimerRef.current) {
       clearTimeout(refreshTimerRef.current)
       refreshTimerRef.current = null
@@ -356,6 +374,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isAuthenticated: !!user,
         isLoading,
+        isReconnecting,
         login,
         signup,
         logout,

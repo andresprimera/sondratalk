@@ -1,1 +1,0 @@
-- [ ] Do not log out user unless they do it. Having to sign in each time the user comes back adds friction.

@@ -43,6 +43,7 @@ function setAuth(user: User | null): void {
     user,
     isAuthenticated: !!user,
     isLoading: false,
+    isReconnecting: false,
     login: vi.fn(),
     signup: vi.fn(),
     logout: vi.fn(),

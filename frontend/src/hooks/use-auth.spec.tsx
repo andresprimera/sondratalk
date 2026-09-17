@@ -134,6 +134,9 @@ describe("useAuth session hardening", () => {
 
     await waitFor(() => expect(result.current.isAuthenticated).toBe(false))
     expect(result.current.user).toBeNull()
+    // A cross-tab logout is a real sign-out, not a connectivity problem — the
+    // guard must redirect rather than sit on the reconnecting screen.
+    expect(result.current.isReconnecting).toBe(false)
   })
 
   it("ignores storage events for unrelated keys", async () => {
@@ -238,6 +241,67 @@ describe("useAuth session hardening", () => {
     })
 
     await waitFor(() => expect(result.current.isAuthenticated).toBe(true))
+  })
+
+  // Guards read isReconnecting to keep waiting rather than redirecting to
+  // /login — otherwise a transient failure at mount makes a returning user with
+  // a perfectly valid refresh token sign in again.
+  it("reports reconnecting (not signed out) after a transient failure at mount", async () => {
+    vi.mocked(getStoredTokens).mockReturnValue({
+      accessToken: "a1",
+      refreshToken: "r1",
+    })
+    vi.mocked(refreshTokens).mockRejectedValueOnce(new Error("Network down"))
+
+    const { result } = renderHook(() => useAuth(), { wrapper: makeWrapper() })
+
+    await waitFor(() => expect(result.current.isReconnecting).toBe(true))
+    expect(result.current.isAuthenticated).toBe(false)
+    expect(clearTokens).not.toHaveBeenCalled()
+
+    // Once the refresh succeeds the flag clears and the user is signed in.
+    vi.mocked(isTokenExpiringSoon).mockReturnValue(true)
+    vi.mocked(refreshTokens).mockResolvedValue(authResponse)
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"))
+    })
+
+    await waitFor(() => expect(result.current.isAuthenticated).toBe(true))
+    expect(result.current.isReconnecting).toBe(false)
+  })
+
+  it("clears reconnecting when the user signs in by hand", async () => {
+    vi.mocked(getStoredTokens).mockReturnValue({
+      accessToken: "a1",
+      refreshToken: "r1",
+    })
+    vi.mocked(refreshTokens).mockRejectedValue(new Error("Network down"))
+
+    const { result } = renderHook(() => useAuth(), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isReconnecting).toBe(true))
+
+    // The user took the manual escape hatch out of the reconnecting screen.
+    vi.mocked(loginApi).mockResolvedValue(authResponse)
+    await act(async () => {
+      await result.current.login("a@b.com", "pw")
+    })
+
+    expect(result.current.isAuthenticated).toBe(true)
+    expect(result.current.isReconnecting).toBe(false)
+  })
+
+  it("does not report reconnecting on a definitive auth failure at mount", async () => {
+    vi.mocked(getStoredTokens).mockReturnValue({
+      accessToken: "a1",
+      refreshToken: "r1",
+    })
+    vi.mocked(refreshTokens).mockRejectedValue(new ApiError(401, "Expired"))
+
+    const { result } = renderHook(() => useAuth(), { wrapper: makeWrapper() })
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    expect(result.current.isReconnecting).toBe(false)
+    expect(result.current.isAuthenticated).toBe(false)
   })
 
   it("logs out: signs out synchronously, no-refresh, then clears tokens", async () => {
