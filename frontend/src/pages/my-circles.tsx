@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchCirclesApi } from "@/lib/circles"
+import { selectedFirst } from "@/lib/circle-order"
 import {
   fetchMyCirclesApi,
   updateMyCirclesApi,
@@ -84,8 +85,12 @@ export default function MyCirclesPage() {
     placeholderData: keepPreviousData,
   })
 
+  // Per page, and against the saved circles rather than `draft` — see
+  // selectedFirst for why both matter.
   const fetchedCircles: Circle[] =
-    catalog.data?.pages.flatMap((p) => p.data) ?? []
+    catalog.data?.pages.flatMap((p) =>
+      selectedFirst(p.data, myCirclesQuery.data ?? []),
+    ) ?? []
 
   const saveMutation = useMutation({
     mutationFn: updateMyCirclesApi,
@@ -215,7 +220,9 @@ export default function MyCirclesPage() {
         className="mb-4"
       />
 
-      {catalog.isLoading ? (
+      {/* Waits on the saved circles too — rendering the grid before they land
+          would order it as if nothing were selected, then rearrange it. */}
+      {catalog.isLoading || myCirclesQuery.isLoading ? (
         <div className="flex flex-wrap gap-2">
           {Array.from({ length: 12 }).map((_, i) => (
             <Skeleton
